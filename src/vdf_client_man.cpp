@@ -13,7 +13,8 @@
 #include <vector>
 #include <chrono>
 
-#include <asio/deadline_timer.hpp>
+#include "vdf_types.h"
+#include "vdf_computer.h"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -24,7 +25,6 @@ namespace chiapos {
 
 using VdfForm = std::array<uint8_t, 100>;
 VdfForm MakeZeroForm();
-Bytes MakeFormBuf(VdfForm const& form);
 
 std::string BytesToHex(Bytes const& bytes);
 Bytes BytesFromHex(std::string const& hex);
