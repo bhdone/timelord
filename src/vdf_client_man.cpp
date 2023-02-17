@@ -283,7 +283,7 @@ void CTimeSession::Stop() {
     }
     m_stopping = true;
     // wait 5 seconds and close this session if it still exists
-    auto timer = std::make_shared<asio::deadline_timer>(m_ioc);
+    auto timer = std::make_shared<asio::steady_timer>(m_ioc);
     timer->expires_from_now(std::chrono::seconds(5));
     auto weak_self = std::weak_ptr<CTimeSession>(shared_from_this());
     timer->async_wait([timer, weak_self](std::error_code const& ec) {
@@ -473,7 +473,7 @@ void CTimeLord::GoChallenge(uint256 challenge, TimeType time_type, SessionNotify
     // Notify to exit for all connected sessions
     StopAllSessions();
     // Waiting for 5 seconds to remove all dead processes
-    auto timer = std::make_shared<asio::deadline_timer>(m_ioc);
+    auto timer = std::make_shared<asio::steady_timer>(m_ioc);
     timer->expires_from_now(std::chrono::seconds(5));
     timer->async_wait([this, timer](std::error_code const& ec) {
         int num_removed = m_proc_man.RemoveDeadChildren();
