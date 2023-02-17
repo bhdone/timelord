@@ -18,8 +18,8 @@ using tcp = asio::ip::tcp;
 
 #include <plog/Log.h>
 
-namespace fe {
-
+namespace fe
+{
 
 class Session;
 using SessionPtr = std::shared_ptr<Session>;
@@ -31,17 +31,48 @@ using MessageReceiver = std::function<void(std::string_view)>;
 using SessionErrorHandler = std::function<void(SessionPtr psession, ErrorType type, std::string_view errs)>;
 using SessionMessageReceiver = std::function<void(SessionPtr psession, Json::Value const& msg)>;
 
+class MessageDispatcher
+{
+public:
+    using Handler = std::function<void(SessionPtr psession, Json::Value const& msg)>;
 
-class Session : public std::enable_shared_from_this<Session> {
+    void RegisterHandler(int id, Handler handler)
+    {
+        handlers_[id] = handler;
+    }
+
+    void DispatchMessage(SessionPtr psession, Json::Value const& msg)
+    {
+        if (!msg.isMember("id")) {
+            PLOGE << "`id' is not found from the received message";
+            PLOGD << msg.toStyledString();
+            return;
+        }
+        auto id = msg["id"].asInt();
+        auto it = handlers_.find(id);
+        if (it == std::cend(handlers_)) {
+            return;
+        }
+        it->second(psession, msg);
+    }
+
+private:
+    std::map<int, Handler> handlers_;
+};
+
+class Session : public std::enable_shared_from_this<Session>
+{
 public:
     explicit Session(tcp::socket&& s) : s_(std::move(s)) {}
 
-    void Start(MessageReceiver msg_receiver) {
+    void Start(MessageReceiver msg_receiver)
+    {
         msg_receiver_ = std::move(msg_receiver);
         DoReadNext();
     }
 
-    void SendMessage(Json::Value const& value) {
+    void SendMessage(Json::Value const& value)
+    {
         bool do_send = sending_msgs_.empty();
         sending_msgs_.push_back(value.toStyledString());
         if (do_send) {
@@ -49,12 +80,14 @@ public:
         }
     }
 
-    void SetErrorHandler(ErrorHandler err_handler) {
+    void SetErrorHandler(ErrorHandler err_handler)
+    {
         err_handler_ = std::move(err_handler);
     }
 
 private:
-    void DoSendNext() {
+    void DoSendNext()
+    {
         assert(!sending_msgs_.empty());
         send_buf_ = sending_msgs_.front();
         send_buf_.resize(send_buf_.size() + 1);
@@ -77,7 +110,8 @@ private:
                 });
     }
 
-    void DoReadNext() {
+    void DoReadNext()
+    {
         asio::async_read_until(s_, read_buf_, '\0',
                 [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
                     PLOGD << "total " << bytes_read << " bytes are read";
@@ -114,9 +148,16 @@ private:
 
 class FrontEnd {
 public:
-    FrontEnd(asio::io_context& ioc, unsigned short port, SessionMessageReceiver session_msg_receiver)
-            : acceptor_(ioc), session_msg_receiver_(session_msg_receiver) {
-        tcp::endpoint endpoint(tcp::v4(), port);
+    explicit FrontEnd(asio::io_context& ioc)
+        : acceptor_(ioc)
+    {
+    }
+
+    void Run(std::string_view addr, unsigned short port, SessionMessageReceiver session_msg_receiver)
+    {
+        session_msg_receiver_ = std::move(session_msg_receiver);
+        // prepare to listen
+        tcp::endpoint endpoint(asio::ip::address::from_string(std::string(addr)), port);
         acceptor_.open(endpoint.protocol());
         acceptor_.set_option(tcp::acceptor::reuse_address(true));
         acceptor_.bind(endpoint);
@@ -124,12 +165,14 @@ public:
         PLOGI << "Listening on port: " << port;
     }
 
-    void SetErrorHandler(SessionErrorHandler err_handler) {
+    void SetErrorHandler(SessionErrorHandler err_handler)
+    {
         err_handler_ = err_handler;
     }
 
 private:
-    void DoAcceptNext() {
+    void DoAcceptNext()
+    {
         acceptor_.async_accept(
                 [this](std::error_code const& ec, tcp::socket&& s) {
                     if (ec) {

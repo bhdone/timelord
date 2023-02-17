@@ -24,11 +24,13 @@ using std::placeholders::_2;
 using std::placeholders::_3;
 using std::placeholders::_4;
 
-namespace vdf_client {
+namespace vdf_client
+{
+namespace
+{
 
-namespace {
-
-Command AnalyzeStrCmd(Bytes const& buf, char const* cmd_str, Command::CommandType type) {
+Command AnalyzeStrCmd(Bytes const& buf, char const* cmd_str, Command::CommandType type)
+{
     PLOG_DEBUG << "checking command: " << cmd_str;
     Command res;
     if (buf.size() < std::strlen(cmd_str)) {
@@ -47,12 +49,14 @@ uint64_t bswap_common(uint64_t x) { return __bswap_64(x); }
 
 uint32_t bswap_common(uint32_t x) { return __bswap_32(x); }
 
-struct Slice {
+struct Slice
+{
     uint8_t const* p{nullptr};
     std::size_t n{0};
 };
 
-Slice MakeSlice(Bytes const& buf, uint64_t offset) {
+Slice MakeSlice(Bytes const& buf, uint64_t offset)
+{
     assert(offset < buf.size());
     Slice s;
     s.p = buf.data() + offset;
@@ -61,7 +65,8 @@ Slice MakeSlice(Bytes const& buf, uint64_t offset) {
 }
 
 template <typename Int>
-std::tuple<Int, bool> IntFromBytes(Slice const& slice) {
+std::tuple<Int, bool> IntFromBytes(Slice const& slice)
+{
     if (slice.n < sizeof(Int)) {
         return std::make_tuple(0, false);
     }
@@ -70,7 +75,8 @@ std::tuple<Int, bool> IntFromBytes(Slice const& slice) {
     return std::make_tuple(bswap_common(x), true);
 }
 
-std::tuple<Proof, uint64_t> ParseProofIters(Bytes const& buf) {
+std::tuple<Proof, uint64_t> ParseProofIters(Bytes const& buf)
+{
     Proof proof;
     // Analyze proof from bytes
     bool succ;
@@ -112,7 +118,8 @@ std::tuple<Proof, uint64_t> ParseProofIters(Bytes const& buf) {
     return std::make_tuple(proof, iters);
 }
 
-Bytes MakeChallengeBuf(uint256 const& challenge) {
+Bytes MakeChallengeBuf(uint256 const& challenge)
+{
     auto disc = vdf::utils::CreateDiscriminant(MakeBytes(challenge));
     std::string disc_str = disc.FormatString();
     int disc_size = disc_str.size();
@@ -125,14 +132,16 @@ Bytes MakeChallengeBuf(uint256 const& challenge) {
     return buf;
 }
 
-Bytes MakeFormBuf(VdfForm const& form) {
+Bytes MakeFormBuf(VdfForm const& form)
+{
     Bytes form_buf(form.size() + 1);
     form_buf[0] = form.size();
     std::memcpy(form_buf.data() + 1, form.data(), form.size());
     return form_buf;
 }
 
-Command AnalyzeProofCommand(Bytes const& buf) {
+Command AnalyzeProofCommand(Bytes const& buf)
+{
     Command cmd;
     bool succ;
     uint32_t size;
@@ -149,7 +158,8 @@ Command AnalyzeProofCommand(Bytes const& buf) {
     return cmd;
 }
 
-class VDFCommandAnalyzer {
+class VDFCommandAnalyzer
+{
 public:
     VDFCommandAnalyzer() {
         m_analyzers.push_back(std::bind(AnalyzeStrCmd, std::placeholders::_1, "OK", Command::CommandType::OK));
@@ -178,7 +188,8 @@ private:
 VdfClientProc::VdfClientProc(std::string vdf_client_path, std::string hostname, uint16_t port)
         : m_vdf_client_path(std::move(vdf_client_path)), m_hostname(std::move(hostname)), m_port(port) {}
 
-void VdfClientProc::NewProc() {
+void VdfClientProc::NewProc()
+{
     PLOG_DEBUG << "creating new process: " << m_vdf_client_path << " " << m_hostname << " " << m_port;
     pid_t pid;
     auto port_str = std::to_string(m_port);
@@ -191,7 +202,8 @@ void VdfClientProc::NewProc() {
     }
 }
 
-int VdfClientProc::RemoveDeadChildren() {
+int VdfClientProc::RemoveDeadChildren()
+{
     auto i = std::remove_if(std::begin(m_children), std::end(m_children),
                             [](pid_t pid) { return kill(pid, 0) == 0; });
     int d = std::distance(i, std::end(m_children));
@@ -199,7 +211,8 @@ int VdfClientProc::RemoveDeadChildren() {
     return d;
 }
 
-void VdfClientProc::Wait() {
+void VdfClientProc::Wait()
+{
     PLOG_DEBUG << "waiting all processes(total " << m_children.size() << ") of vdf_client to exit...";
     for (pid_t pid : m_children) {
         int ret;
@@ -210,7 +223,8 @@ void VdfClientProc::Wait() {
 
 SocketWriter::SocketWriter(tcp::socket& s) : m_s(s) {}
 
-void SocketWriter::AsyncWrite(Bytes buff) {
+void SocketWriter::AsyncWrite(Bytes buff)
+{
     PLOG_DEBUG << "prepare to write total " << buff.size() << " bytes";
     bool do_write = m_buffs.empty();
     m_buffs.push_back(std::move(buff));
@@ -219,7 +233,8 @@ void SocketWriter::AsyncWrite(Bytes buff) {
     }
 }
 
-void SocketWriter::DoWriteNext() {
+void SocketWriter::DoWriteNext()
+{
     assert(!m_buffs.empty());
     Bytes const& buf = m_buffs.front();
     asio::async_write(m_s, asio::buffer(buf), [this](std::error_code const& ec, std::size_t size) {
@@ -235,7 +250,8 @@ void SocketWriter::DoWriteNext() {
     });
 }
 
-std::string TimeTypeToString(TimeType type) {
+std::string TimeTypeToString(TimeType type)
+{
     switch (type) {
         case TimeType::S:
             return "S";
@@ -248,15 +264,11 @@ std::string TimeTypeToString(TimeType type) {
 }
 
 VdfClientSession::VdfClientSession(asio::io_context& ioc, tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer)
-        : m_ioc(ioc),
-          m_socket(std::move(s)),
-          m_challenge(std::move(challenge)),
-          m_time_type(time_type),
-          m_cmd_analyzer(std::move(cmd_analyzer)),
-          m_writer(m_socket),
-          m_temp(4096, 0) {}
+    : m_ioc(ioc), m_socket(std::move(s)), m_challenge(std::move(challenge)), m_time_type(time_type), m_cmd_analyzer(std::move(cmd_analyzer))
+    , m_writer(m_socket), m_temp(4096, 0) {}
 
-void VdfClientSession::Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver) {
+void VdfClientSession::Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver)
+{
     PLOG_DEBUG << "session start with challenge: " << GetHex(m_challenge);
     m_ready_callback = std::move(ready_callback);
     m_finished_callback = std::move(finished_callback);
@@ -271,7 +283,8 @@ void VdfClientSession::Start(SessionNotify ready_callback, SessionNotify finishe
     AsyncReadSomeNext();
 }
 
-void VdfClientSession::Stop() {
+void VdfClientSession::Stop()
+{
     if (m_stopping) {
         return;
     }
@@ -299,7 +312,8 @@ void VdfClientSession::Stop() {
     CalcIters(0);
 }
 
-void VdfClientSession::Close() {
+void VdfClientSession::Close()
+{
     std::error_code ignored_ec;
     m_socket.shutdown(tcp::socket::shutdown_both, ignored_ec);
     m_socket.close(ignored_ec);
@@ -307,7 +321,8 @@ void VdfClientSession::Close() {
 
 bool VdfClientSession::IsStopping() const { return m_stopping; }
 
-void VdfClientSession::CalcIters(uint64_t iters) {
+void VdfClientSession::CalcIters(uint64_t iters)
+{
     if (!m_ready) {
         PLOG_WARNING << "trying to start a calculation on an unprepared session, send it later... challenge="
                      << GetHex(m_challenge) << ", iters=" << iters;
@@ -318,17 +333,20 @@ void VdfClientSession::CalcIters(uint64_t iters) {
     SendIters(iters);
 }
 
-uint256 const& VdfClientSession::GetChallenge() const {
+uint256 const& VdfClientSession::GetChallenge() const
+{
     return m_challenge;
 }
 
-uint64_t VdfClientSession::GetCurrDuration() const {
+uint64_t VdfClientSession::GetCurrDuration() const
+{
     auto now = std::chrono::system_clock::now();
     uint64_t duration = std::chrono::duration_cast<std::chrono::seconds>(now - m_start_time).count();
     return duration;
 }
 
-void VdfClientSession::AsyncReadSomeNext() {
+void VdfClientSession::AsyncReadSomeNext()
+{
     auto self = shared_from_this();
     m_socket.async_read_some(asio::buffer(m_temp), [self](std::error_code const& ec, std::size_t size) {
         if (ec) {
@@ -352,7 +370,8 @@ void VdfClientSession::AsyncReadSomeNext() {
     });
 }
 
-Command VdfClientSession::ParseCommand() {
+Command VdfClientSession::ParseCommand()
+{
     PLOG_DEBUG << "analyzing command: " << m_recv[0] << m_recv[1];
     Command cmd = m_cmd_analyzer(m_recv);
     if (cmd.type != Command::CommandType::UNKNOWN) {
@@ -366,7 +385,8 @@ Command VdfClientSession::ParseCommand() {
     return cmd;
 }
 
-void VdfClientSession::ExecuteCommand(Command const& cmd) {
+void VdfClientSession::ExecuteCommand(Command const& cmd)
+{
     PLOG_DEBUG << "execute command: " << Command::CommandTypeToString(cmd.type);
     if (cmd.type == Command::CommandType::OK) {
         // The session is ready for iters
@@ -397,19 +417,22 @@ void VdfClientSession::ExecuteCommand(Command const& cmd) {
     }
 }
 
-void VdfClientSession::SendChallenge(uint256 const& challenge) {
+void VdfClientSession::SendChallenge(uint256 const& challenge)
+{
     PLOG_DEBUG << "sending challenge: " << GetHex(challenge);
     Bytes challenge_buf = MakeChallengeBuf(challenge);
     m_writer.AsyncWrite(std::move(challenge_buf));
 }
 
-void VdfClientSession::SendInitForm() {
+void VdfClientSession::SendInitForm()
+{
     PLOG_DEBUG << "sending initial form";
     Bytes initial_form = MakeFormBuf(MakeZeroForm());
     m_writer.AsyncWrite(std::move(initial_form));
 }
 
-void VdfClientSession::SendIters(uint64_t iters) {
+void VdfClientSession::SendIters(uint64_t iters)
+{
     PLOG_DEBUG << "sending iters: " << iters;
     std::string iters_str = std::to_string(iters);
     std::string size_str = std::to_string(iters_str.size());
@@ -423,7 +446,8 @@ void VdfClientSession::SendIters(uint64_t iters) {
     m_writer.AsyncWrite(std::move(buf));
 }
 
-void VdfClientSession::SendStrCmd(std::string const& cmd) {
+void VdfClientSession::SendStrCmd(std::string const& cmd)
+{
     PLOG_DEBUG << "sending str command: " << cmd;
     Bytes buf(cmd.size(), '\0');
     std::memcpy(buf.data(), cmd.data(), cmd.size());
@@ -437,7 +461,8 @@ VdfClientMan::VdfClientMan(asio::io_context& ioc, std::string vdf_client_path, s
           m_port(port),
           m_proc_man(vdf_client_path, m_hostname, m_port) {}
 
-void VdfClientMan::Start(ProofReceiver receiver) {
+void VdfClientMan::Start(ProofReceiver receiver)
+{
     PLOG_DEBUG << "preparing...";
     m_receiver = std::move(receiver);
     // start listening
@@ -450,7 +475,8 @@ void VdfClientMan::Start(ProofReceiver receiver) {
     AcceptNext();
 }
 
-void VdfClientMan::Stop() {
+void VdfClientMan::Stop()
+{
     // Tell all client to stop
     PLOG_DEBUG << "stopping... total " << m_session_vec.size() << " session(s)";
     m_exiting = true;
@@ -459,7 +485,8 @@ void VdfClientMan::Stop() {
     StopAllSessions();
 }
 
-void VdfClientMan::GoChallenge(uint256 challenge, TimeType time_type, SessionNotify session_is_ready_callback) {
+void VdfClientMan::GoChallenge(uint256 challenge, TimeType time_type, SessionNotify session_is_ready_callback)
+{
     PLOG_DEBUG << "challenge is changed " << GetHex(challenge);
     m_challenge = std::move(challenge);
     m_time_type = time_type;
@@ -479,7 +506,8 @@ void VdfClientMan::GoChallenge(uint256 challenge, TimeType time_type, SessionNot
 
 uint256 const& VdfClientMan::GetCurrentChallenge() const { return m_challenge; }
 
-bool VdfClientMan::QueryIters(uint256 const& challenge, uint64_t iters, ProofRecord& out) {
+bool VdfClientMan::QueryIters(uint256 const& challenge, uint64_t iters, ProofRecord& out)
+{
     std::lock_guard<std::mutex> _guard(m_cached_proofs_mtx);
     auto i = m_cached_proofs.find(challenge);
     if (i == std::end(m_cached_proofs)) {
@@ -495,7 +523,8 @@ bool VdfClientMan::QueryIters(uint256 const& challenge, uint64_t iters, ProofRec
     return true;
 }
 
-void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters) {
+void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
+{
     {
         std::lock_guard<std::mutex> lg(m_session_mtx);
         for (VdfClientSessionPtr psession : m_session_vec) {
@@ -510,12 +539,14 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters) {
         << ", iters=" << FormatNumberStr(std::to_string(iters));
 }
 
-void VdfClientMan::Wait() {
+void VdfClientMan::Wait()
+{
     PLOG_DEBUG << "waiting all processes to exit";
     m_proc_man.Wait();
 }
 
-void VdfClientMan::AcceptNext() {
+void VdfClientMan::AcceptNext()
+{
     m_acceptor.async_accept([this](std::error_code const& ec, tcp::socket peer) {
         if (ec) {
             PLOG_ERROR << "error occurs when accepting next session... " << ec.message();
@@ -537,14 +568,16 @@ void VdfClientMan::AcceptNext() {
     });
 }
 
-void VdfClientMan::StopAllSessions() {
+void VdfClientMan::StopAllSessions()
+{
     std::lock_guard<std::mutex> lg(m_session_mtx);
     for (VdfClientSessionPtr psession : m_session_vec) {
         psession->Stop();
     }
 }
 
-void VdfClientMan::HandleSessionIsFinished(VdfClientSessionPtr psession) {
+void VdfClientMan::HandleSessionIsFinished(VdfClientSessionPtr psession)
+{
     m_ioc.post([this, psession]() {
         std::lock_guard<std::mutex> lg(m_session_mtx);
         auto i = std::remove(std::begin(m_session_vec), std::end(m_session_vec), psession);
@@ -555,7 +588,8 @@ void VdfClientMan::HandleSessionIsFinished(VdfClientSessionPtr psession) {
     });
 }
 
-void VdfClientMan::HandleProof(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge) {
+void VdfClientMan::HandleProof(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge)
+{
     {
         // Cache the proof
         std::lock_guard<std::mutex> _guard(m_cached_proofs_mtx);

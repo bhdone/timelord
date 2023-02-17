@@ -21,9 +21,11 @@ using asio::ip::tcp;
 
 #include "common_types.h"
 
-namespace vdf_client {
+namespace vdf_client
+{
 
-class VdfClientProc {
+class VdfClientProc
+{
 public:
     VdfClientProc(std::string vdf_client_path, std::string hostname, uint16_t port);
 
@@ -42,7 +44,8 @@ private:
     std::vector<pid_t> m_children;
 };
 
-class SocketWriter {
+class SocketWriter
+{
 public:
     explicit SocketWriter(tcp::socket& s);
 
@@ -56,7 +59,8 @@ private:
     tcp::socket& m_s;
 };
 
-struct Command {
+struct Command
+{
     enum class CommandType { UNKNOWN, OK, STOP, PROOF };
 
     CommandType type{CommandType::UNKNOWN};
@@ -96,7 +100,8 @@ enum class TimeType { S, N, T };
 
 std::string TimeTypeToString(TimeType type);
 
-class VdfClientSession : public std::enable_shared_from_this<VdfClientSession> {
+class VdfClientSession : public std::enable_shared_from_this<VdfClientSession>
+{
 public:
     VdfClientSession(asio::io_context& ioc, tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer);
 
@@ -148,9 +153,11 @@ private:
     std::atomic_bool m_stopping{false};
 };
 
-class VdfClientMan {
+class VdfClientMan
+{
 public:
-    struct ProofRecord {
+    struct ProofRecord
+    {
         Proof proof;
         uint64_t iters;
         uint64_t duration;

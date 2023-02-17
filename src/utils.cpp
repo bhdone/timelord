@@ -4,14 +4,16 @@
 
 #include <sstream>
 
-VdfForm MakeZeroForm() {
+VdfForm MakeZeroForm()
+{
     VdfForm form;
     memset(form.data(), 0, form.size());
     form[0] = 0x08;
     return form;
 }
 
-Bytes MakeBytes(uint256 const& source) {
+Bytes MakeBytes(uint256 const& source)
+{
     Bytes res(256/8);
     int index{0};
     // we just simply revert the whole data array because of the byte order
@@ -23,7 +25,8 @@ Bytes MakeBytes(uint256 const& source) {
 
 std::string ByteToHex(uint8_t byte);
 
-std::string GetHex(uint256 const& source) {
+std::string GetHex(uint256 const& source)
+{
     std::stringstream ss;
     for (auto ch : source) {
         ss << ByteToHex(ch);
@@ -31,7 +34,8 @@ std::string GetHex(uint256 const& source) {
     return ss.str();
 }
 
-Bytes StrToBytes(std::string str) {
+Bytes StrToBytes(std::string str)
+{
     Bytes b;
     b.resize(str.size());
     memcpy(b.data(), str.data(), str.size());
@@ -42,7 +46,8 @@ char const hex_chars[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a
 
 char Byte4bToHexChar(uint8_t hex) { return hex_chars[hex]; }
 
-uint8_t HexCharToByte4b(char ch) {
+uint8_t HexCharToByte4b(char ch)
+{
     if (ch >= 'A' && ch <= 'F') {
         ch = std::tolower(ch);
     }
@@ -58,7 +63,8 @@ uint8_t HexCharToByte4b(char ch) {
     throw std::runtime_error(err_ss.str());
 }
 
-std::string ByteToHex(uint8_t byte) {
+std::string ByteToHex(uint8_t byte)
+{
     std::string hex(2, '0');
     uint8_t hi = (byte & 0xf0) >> 4;
     uint8_t lo = byte & 0x0f;
@@ -67,7 +73,8 @@ std::string ByteToHex(uint8_t byte) {
     return hex;
 }
 
-uint8_t ByteFromHex(std::string const& hex, int* consumed) {
+uint8_t ByteFromHex(std::string const& hex, int* consumed)
+{
     int actual_len = strlen(hex.c_str());
     if (actual_len == 0) {
         if (consumed) {
@@ -88,7 +95,8 @@ uint8_t ByteFromHex(std::string const& hex, int* consumed) {
     return byte;
 }
 
-std::string BytesToHex(Bytes const& bytes) {
+std::string BytesToHex(Bytes const& bytes)
+{
     std::stringstream ss;
     for (uint8_t byte : bytes) {
         ss << ByteToHex(byte);
@@ -96,7 +104,8 @@ std::string BytesToHex(Bytes const& bytes) {
     return ss.str();
 }
 
-Bytes BytesFromHex(std::string hex) {
+Bytes BytesFromHex(std::string hex)
+{
     Bytes res;
     int consumed;
     uint8_t byte = ByteFromHex(hex, &consumed);
@@ -109,7 +118,8 @@ Bytes BytesFromHex(std::string hex) {
     return res;
 }
 
-BytesConnector& BytesConnector::Connect(Bytes const& vchData) {
+BytesConnector& BytesConnector::Connect(Bytes const& vchData)
+{
     size_t nOffset = m_vchData.size();
     m_vchData.resize(nOffset + vchData.size());
     memcpy(m_vchData.data() + nOffset, vchData.data(), vchData.size());
@@ -118,7 +128,8 @@ BytesConnector& BytesConnector::Connect(Bytes const& vchData) {
 
 Bytes const& BytesConnector::GetData() const { return m_vchData; }
 
-Bytes SubBytes(Bytes const& bytes, int start, int count) {
+Bytes SubBytes(Bytes const& bytes, int start, int count)
+{
     int n;
     if (count == 0) {
         n = bytes.size() - start;
@@ -130,7 +141,8 @@ Bytes SubBytes(Bytes const& bytes, int start, int count) {
     return res;
 }
 
-std::string FormatNumberStr(std::string const& num_str) {
+std::string FormatNumberStr(std::string const& num_str)
+{
     std::string res;
     int c{0};
     for (auto i = num_str.rbegin(); i != num_str.rend(); ++i) {
