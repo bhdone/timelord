@@ -575,4 +575,4 @@ void VdfClientMan::HandleProof(Proof const& proof, uint64_t iters, uint64_t dura
     m_receiver(proof, iters, duration, challenge);
 }
 
-}  // namespace chiapos
+}  // namespace vdf_client

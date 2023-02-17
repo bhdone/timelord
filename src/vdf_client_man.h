@@ -199,6 +199,6 @@ private:
     std::map<uint256, std::vector<ProofRecord>> m_cached_proofs;
 };
 
-}  // namespace chiapos
+}  // namespace vdf_client
 
 #endif
