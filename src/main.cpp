@@ -33,15 +33,6 @@ int main(int argc, char* argv[])
     plog::init(verbose ? plog::Severity::debug : plog::Severity::info, &appender);
     PLOGD << "debug mode";
 
-    if (parse_result.count("addr") == 0 || parse_result.count("port") == 0) {
-        PLOGE << "parameters `addr' and `port' are both need to be setup";
-        return 1;
-    }
-    if (parse_result.count("vdf_client-path") == 0) {
-        PLOGE << "you need to tell the program the full path to `vdf_client'";
-        return 1;
-    }
-
     std::string addr = parse_result["addr"].as<std::string>();
     unsigned short port = parse_result["port"].as<unsigned short>();
     std::string vdf_client_path = parse_result["vdf_client-path"].as<std::string>();

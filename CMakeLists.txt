@@ -6,6 +6,7 @@ find_package(cxxopts CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 find_package(jsoncpp CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -26,4 +27,12 @@ set(TIMELORD_SRCS
 
 add_executable(timelord ${TIMELORD_SRCS})
 target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src)
-target_link_libraries(timelord PRIVATE bhd_vdf cxxopts::cxxopts plog::plog asio::asio JsonCpp::JsonCpp)
+target_link_libraries(
+    timelord PRIVATE
+    bhd_vdf
+    cxxopts::cxxopts
+    plog::plog
+    asio::asio
+    JsonCpp::JsonCpp
+    fmt::fmt
+    )

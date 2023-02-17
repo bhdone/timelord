@@ -28,6 +28,7 @@ enum class ErrorType { CONNECT, READ, WRITE, CLOSE, PARSE };
 using ErrorHandler = std::function<void(ErrorType type, std::string_view errs)>;
 using MessageReceiver = std::function<void(std::string_view)>;
 
+using SessionConnectedHandler = std::function<void(SessionPtr psession)>;
 using SessionErrorHandler = std::function<void(SessionPtr psession, ErrorType type, std::string_view errs)>;
 using SessionMessageReceiver = std::function<void(SessionPtr psession, Json::Value const& msg)>;
 
@@ -153,8 +154,9 @@ public:
     {
     }
 
-    void Run(std::string_view addr, unsigned short port, SessionMessageReceiver session_msg_receiver)
+    void Run(std::string_view addr, unsigned short port, SessionConnectedHandler connected_handler, SessionMessageReceiver session_msg_receiver)
     {
+        connected_handler_ = std::move(connected_handler);
         session_msg_receiver_ = std::move(session_msg_receiver);
         // prepare to listen
         tcp::endpoint endpoint(asio::ip::address::from_string(std::string(addr)), port);
@@ -205,10 +207,12 @@ private:
                             PLOGE << "PARSE: the string cannot be parsed into json object";
                         }
                     });
+                    connected_handler_(psession);
                 });
     }
 
     tcp::acceptor acceptor_;
+    SessionConnectedHandler connected_handler_;
     SessionMessageReceiver session_msg_receiver_;
     SessionErrorHandler err_handler_;
 };

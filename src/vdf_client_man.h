@@ -67,7 +67,8 @@ struct Command
     std::string body;
     std::size_t consumed{0};
 
-    static std::string CommandTypeToString(CommandType type) {
+    static std::string CommandTypeToString(CommandType type)
+    {
         switch (type) {
             case CommandType::UNKNOWN:
                 return "UNKNOWN";
@@ -84,7 +85,8 @@ struct Command
 
 using CommandAnalyzer = std::function<Command(Bytes const&)>;
 
-struct Proof {
+struct Proof
+{
     Bytes y;
     Bytes proof;
     uint8_t witness_type;
@@ -161,7 +163,7 @@ public:
         Proof proof;
         uint64_t iters;
         uint64_t duration;
-         uint256 challenge;
+        uint256 challenge;
     };
 
     VdfClientMan(asio::io_context& ioc, std::string vdf_client_path, std::string hostname, uint16_t port);
