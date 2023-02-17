@@ -15,22 +15,16 @@
 
 #include "vdf_types.h"
 #include "vdf_computer.h"
+#include "vdf_utils.h"
+
+#include "utils.h"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 using std::placeholders::_4;
 
-namespace chiapos {
-
-using VdfForm = std::array<uint8_t, 100>;
-VdfForm MakeZeroForm();
-
-std::string BytesToHex(Bytes const& bytes);
-Bytes BytesFromHex(std::string const& hex);
-Bytes MakeBytes(uint256 const& source);
-std::string GetHex(uint256 const& source);
-std::string FormatNumberStr(std::string const& str);
+namespace vdf_client {
 
 namespace {
 
@@ -181,10 +175,10 @@ private:
 
 }  // namespace
 
-CVdfClientProcManager::CVdfClientProcManager(std::string vdf_client_path, std::string hostname, uint16_t port)
+VdfClientProc::VdfClientProc(std::string vdf_client_path, std::string hostname, uint16_t port)
         : m_vdf_client_path(std::move(vdf_client_path)), m_hostname(std::move(hostname)), m_port(port) {}
 
-void CVdfClientProcManager::NewProc() {
+void VdfClientProc::NewProc() {
     PLOG_DEBUG << "creating new process: " << m_vdf_client_path << " " << m_hostname << " " << m_port;
     pid_t pid;
     auto port_str = std::to_string(m_port);
@@ -197,7 +191,7 @@ void CVdfClientProcManager::NewProc() {
     }
 }
 
-int CVdfClientProcManager::RemoveDeadChildren() {
+int VdfClientProc::RemoveDeadChildren() {
     auto i = std::remove_if(std::begin(m_children), std::end(m_children),
                             [](pid_t pid) { return kill(pid, 0) == 0; });
     int d = std::distance(i, std::end(m_children));
@@ -205,7 +199,7 @@ int CVdfClientProcManager::RemoveDeadChildren() {
     return d;
 }
 
-void CVdfClientProcManager::Wait() {
+void VdfClientProc::Wait() {
     PLOG_DEBUG << "waiting all processes(total " << m_children.size() << ") of vdf_client to exit...";
     for (pid_t pid : m_children) {
         int ret;
@@ -214,9 +208,9 @@ void CVdfClientProcManager::Wait() {
     }
 }
 
-CSocketWriter::CSocketWriter(tcp::socket& s) : m_s(s) {}
+SocketWriter::SocketWriter(tcp::socket& s) : m_s(s) {}
 
-void CSocketWriter::AsyncWrite(Bytes buff) {
+void SocketWriter::AsyncWrite(Bytes buff) {
     PLOG_DEBUG << "prepare to write total " << buff.size() << " bytes";
     bool do_write = m_buffs.empty();
     m_buffs.push_back(std::move(buff));
@@ -225,7 +219,7 @@ void CSocketWriter::AsyncWrite(Bytes buff) {
     }
 }
 
-void CSocketWriter::DoWriteNext() {
+void SocketWriter::DoWriteNext() {
     assert(!m_buffs.empty());
     Bytes const& buf = m_buffs.front();
     asio::async_write(m_s, asio::buffer(buf), [this](std::error_code const& ec, std::size_t size) {
@@ -253,7 +247,7 @@ std::string TimeTypeToString(TimeType type) {
     return "(error-timetype)";
 }
 
-CTimeSession::CTimeSession(asio::io_context& ioc, tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer)
+VdfClientSession::VdfClientSession(asio::io_context& ioc, tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer)
         : m_ioc(ioc),
           m_socket(std::move(s)),
           m_challenge(std::move(challenge)),
@@ -262,7 +256,7 @@ CTimeSession::CTimeSession(asio::io_context& ioc, tcp::socket&& s, uint256 chall
           m_writer(m_socket),
           m_temp(4096, 0) {}
 
-void CTimeSession::Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver) {
+void VdfClientSession::Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver) {
     PLOG_DEBUG << "session start with challenge: " << GetHex(m_challenge);
     m_ready_callback = std::move(ready_callback);
     m_finished_callback = std::move(finished_callback);
@@ -277,7 +271,7 @@ void CTimeSession::Start(SessionNotify ready_callback, SessionNotify finished_ca
     AsyncReadSomeNext();
 }
 
-void CTimeSession::Stop() {
+void VdfClientSession::Stop() {
     if (m_stopping) {
         return;
     }
@@ -285,7 +279,7 @@ void CTimeSession::Stop() {
     // wait 5 seconds and close this session if it still exists
     auto timer = std::make_shared<asio::steady_timer>(m_ioc);
     timer->expires_from_now(std::chrono::seconds(5));
-    auto weak_self = std::weak_ptr<CTimeSession>(shared_from_this());
+    auto weak_self = std::weak_ptr<VdfClientSession>(shared_from_this());
     timer->async_wait([timer, weak_self](std::error_code const& ec) {
         if (ec) {
             // error occurs
@@ -305,15 +299,15 @@ void CTimeSession::Stop() {
     CalcIters(0);
 }
 
-void CTimeSession::Close() {
+void VdfClientSession::Close() {
     std::error_code ignored_ec;
     m_socket.shutdown(tcp::socket::shutdown_both, ignored_ec);
     m_socket.close(ignored_ec);
 }
 
-bool CTimeSession::IsStopping() const { return m_stopping; }
+bool VdfClientSession::IsStopping() const { return m_stopping; }
 
-void CTimeSession::CalcIters(uint64_t iters) {
+void VdfClientSession::CalcIters(uint64_t iters) {
     if (!m_ready) {
         PLOG_WARNING << "trying to start a calculation on an unprepared session, send it later... challenge="
                      << GetHex(m_challenge) << ", iters=" << iters;
@@ -324,17 +318,17 @@ void CTimeSession::CalcIters(uint64_t iters) {
     SendIters(iters);
 }
 
-uint256 const& CTimeSession::GetChallenge() const {
+uint256 const& VdfClientSession::GetChallenge() const {
     return m_challenge;
 }
 
-uint64_t CTimeSession::GetCurrDuration() const {
+uint64_t VdfClientSession::GetCurrDuration() const {
     auto now = std::chrono::system_clock::now();
     uint64_t duration = std::chrono::duration_cast<std::chrono::seconds>(now - m_start_time).count();
     return duration;
 }
 
-void CTimeSession::AsyncReadSomeNext() {
+void VdfClientSession::AsyncReadSomeNext() {
     auto self = shared_from_this();
     m_socket.async_read_some(asio::buffer(m_temp), [self](std::error_code const& ec, std::size_t size) {
         if (ec) {
@@ -358,7 +352,7 @@ void CTimeSession::AsyncReadSomeNext() {
     });
 }
 
-Command CTimeSession::ParseCommand() {
+Command VdfClientSession::ParseCommand() {
     PLOG_DEBUG << "analyzing command: " << m_recv[0] << m_recv[1];
     Command cmd = m_cmd_analyzer(m_recv);
     if (cmd.type != Command::CommandType::UNKNOWN) {
@@ -372,7 +366,7 @@ Command CTimeSession::ParseCommand() {
     return cmd;
 }
 
-void CTimeSession::ExecuteCommand(Command const& cmd) {
+void VdfClientSession::ExecuteCommand(Command const& cmd) {
     PLOG_DEBUG << "execute command: " << Command::CommandTypeToString(cmd.type);
     if (cmd.type == Command::CommandType::OK) {
         // The session is ready for iters
@@ -403,19 +397,19 @@ void CTimeSession::ExecuteCommand(Command const& cmd) {
     }
 }
 
-void CTimeSession::SendChallenge(uint256 const& challenge) {
+void VdfClientSession::SendChallenge(uint256 const& challenge) {
     PLOG_DEBUG << "sending challenge: " << GetHex(challenge);
     Bytes challenge_buf = MakeChallengeBuf(challenge);
     m_writer.AsyncWrite(std::move(challenge_buf));
 }
 
-void CTimeSession::SendInitForm() {
+void VdfClientSession::SendInitForm() {
     PLOG_DEBUG << "sending initial form";
     Bytes initial_form = MakeFormBuf(MakeZeroForm());
     m_writer.AsyncWrite(std::move(initial_form));
 }
 
-void CTimeSession::SendIters(uint64_t iters) {
+void VdfClientSession::SendIters(uint64_t iters) {
     PLOG_DEBUG << "sending iters: " << iters;
     std::string iters_str = std::to_string(iters);
     std::string size_str = std::to_string(iters_str.size());
@@ -429,21 +423,21 @@ void CTimeSession::SendIters(uint64_t iters) {
     m_writer.AsyncWrite(std::move(buf));
 }
 
-void CTimeSession::SendStrCmd(std::string const& cmd) {
+void VdfClientSession::SendStrCmd(std::string const& cmd) {
     PLOG_DEBUG << "sending str command: " << cmd;
     Bytes buf(cmd.size(), '\0');
     std::memcpy(buf.data(), cmd.data(), cmd.size());
     m_writer.AsyncWrite(std::move(buf));
 }
 
-CTimeLord::CTimeLord(asio::io_context& ioc, std::string vdf_client_path, std::string hostname, uint16_t port)
+VdfClientMan::VdfClientMan(asio::io_context& ioc, std::string vdf_client_path, std::string hostname, uint16_t port)
         : m_ioc(ioc),
           m_acceptor(ioc),
           m_hostname(std::move(hostname)),
           m_port(port),
           m_proc_man(vdf_client_path, m_hostname, m_port) {}
 
-void CTimeLord::Start(ProofReceiver receiver) {
+void VdfClientMan::Start(ProofReceiver receiver) {
     PLOG_DEBUG << "preparing...";
     m_receiver = std::move(receiver);
     // start listening
@@ -456,7 +450,7 @@ void CTimeLord::Start(ProofReceiver receiver) {
     AcceptNext();
 }
 
-void CTimeLord::Stop() {
+void VdfClientMan::Stop() {
     // Tell all client to stop
     PLOG_DEBUG << "stopping... total " << m_session_vec.size() << " session(s)";
     m_exiting = true;
@@ -465,7 +459,7 @@ void CTimeLord::Stop() {
     StopAllSessions();
 }
 
-void CTimeLord::GoChallenge(uint256 challenge, TimeType time_type, SessionNotify session_is_ready_callback) {
+void VdfClientMan::GoChallenge(uint256 challenge, TimeType time_type, SessionNotify session_is_ready_callback) {
     PLOG_DEBUG << "challenge is changed " << GetHex(challenge);
     m_challenge = std::move(challenge);
     m_time_type = time_type;
@@ -483,9 +477,9 @@ void CTimeLord::GoChallenge(uint256 challenge, TimeType time_type, SessionNotify
     m_proc_man.NewProc();
 }
 
-uint256 const& CTimeLord::GetCurrentChallenge() const { return m_challenge; }
+uint256 const& VdfClientMan::GetCurrentChallenge() const { return m_challenge; }
 
-bool CTimeLord::QueryIters(uint256 const& challenge, uint64_t iters, ProofRecord& out) {
+bool VdfClientMan::QueryIters(uint256 const& challenge, uint64_t iters, ProofRecord& out) {
     std::lock_guard<std::mutex> _guard(m_cached_proofs_mtx);
     auto i = m_cached_proofs.find(challenge);
     if (i == std::end(m_cached_proofs)) {
@@ -501,10 +495,10 @@ bool CTimeLord::QueryIters(uint256 const& challenge, uint64_t iters, ProofRecord
     return true;
 }
 
-void CTimeLord::CalcIters(uint256 const& challenge, uint64_t iters) {
+void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters) {
     {
         std::lock_guard<std::mutex> lg(m_session_mtx);
-        for (CTimeSessionPtr psession : m_session_vec) {
+        for (VdfClientSessionPtr psession : m_session_vec) {
             if (!psession->IsStopping() && psession->GetChallenge() == challenge) {
                 psession->CalcIters(iters);
                 return; // There should has only 1 session to do the job
@@ -513,15 +507,15 @@ void CTimeLord::CalcIters(uint256 const& challenge, uint64_t iters) {
     }
     // we cannot find a valid session for the challenge
     PLOG_DEBUG << "There is no session for challenge: " << GetHex(challenge)
-        << ", iters=" << chiapos::FormatNumberStr(std::to_string(iters));
+        << ", iters=" << FormatNumberStr(std::to_string(iters));
 }
 
-void CTimeLord::Wait() {
+void VdfClientMan::Wait() {
     PLOG_DEBUG << "waiting all processes to exit";
     m_proc_man.Wait();
 }
 
-void CTimeLord::AcceptNext() {
+void VdfClientMan::AcceptNext() {
     m_acceptor.async_accept([this](std::error_code const& ec, tcp::socket peer) {
         if (ec) {
             PLOG_ERROR << "error occurs when accepting next session... " << ec.message();
@@ -530,10 +524,10 @@ void CTimeLord::AcceptNext() {
             // Create new session
             std::lock_guard<std::mutex> lg(m_session_mtx);
             auto new_session =
-                    std::make_shared<CTimeSession>(m_ioc, std::move(peer), m_challenge, m_time_type, VDFCommandAnalyzer());
+                    std::make_shared<VdfClientSession>(m_ioc, std::move(peer), m_challenge, m_time_type, VDFCommandAnalyzer());
             new_session->Start(m_session_is_ready_callback,
-                               std::bind(&CTimeLord::HandleSessionIsFinished, this, std::placeholders::_1),
-                               std::bind(&CTimeLord::HandleProof, this, _1, _2, _3, _4));
+                               std::bind(&VdfClientMan::HandleSessionIsFinished, this, std::placeholders::_1),
+                               std::bind(&VdfClientMan::HandleProof, this, _1, _2, _3, _4));
             m_session_vec.push_back(new_session);
         }
         // Next
@@ -543,14 +537,14 @@ void CTimeLord::AcceptNext() {
     });
 }
 
-void CTimeLord::StopAllSessions() {
+void VdfClientMan::StopAllSessions() {
     std::lock_guard<std::mutex> lg(m_session_mtx);
-    for (CTimeSessionPtr psession : m_session_vec) {
+    for (VdfClientSessionPtr psession : m_session_vec) {
         psession->Stop();
     }
 }
 
-void CTimeLord::HandleSessionIsFinished(CTimeSessionPtr psession) {
+void VdfClientMan::HandleSessionIsFinished(VdfClientSessionPtr psession) {
     m_ioc.post([this, psession]() {
         std::lock_guard<std::mutex> lg(m_session_mtx);
         auto i = std::remove(std::begin(m_session_vec), std::end(m_session_vec), psession);
@@ -561,7 +555,7 @@ void CTimeLord::HandleSessionIsFinished(CTimeSessionPtr psession) {
     });
 }
 
-void CTimeLord::HandleProof(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge) {
+void VdfClientMan::HandleProof(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge) {
     {
         // Cache the proof
         std::lock_guard<std::mutex> _guard(m_cached_proofs_mtx);

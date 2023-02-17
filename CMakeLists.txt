@@ -26,6 +26,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(TIMELORD_SRCS
     ./src/main.cpp
+    ./src/utils.cpp
     ./src/vdf_client_man.cpp
     )
 

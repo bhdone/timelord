@@ -19,14 +19,13 @@
 #include <asio.hpp>
 using asio::ip::tcp;
 
-namespace chiapos {
+#include "common_types.h"
 
-using Bytes = std::vector<uint8_t>;
-using uint256 = std::array<uint8_t, 256/8>;
+namespace vdf_client {
 
-class CVdfClientProcManager {
+class VdfClientProc {
 public:
-    CVdfClientProcManager(std::string vdf_client_path, std::string hostname, uint16_t port);
+    VdfClientProc(std::string vdf_client_path, std::string hostname, uint16_t port);
 
     void NewProc();
 
@@ -43,9 +42,9 @@ private:
     std::vector<pid_t> m_children;
 };
 
-class CSocketWriter {
+class SocketWriter {
 public:
-    explicit CSocketWriter(tcp::socket& s);
+    explicit SocketWriter(tcp::socket& s);
 
     void AsyncWrite(Bytes buff);
 
@@ -89,17 +88,17 @@ struct Proof {
 
 using ProofReceiver = std::function<void(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge)>;
 
-class CTimeSession;
-using CTimeSessionPtr = std::shared_ptr<CTimeSession>;
-using SessionNotify = std::function<void(CTimeSessionPtr)>;
+class VdfClientSession;
+using VdfClientSessionPtr = std::shared_ptr<VdfClientSession>;
+using SessionNotify = std::function<void(VdfClientSessionPtr)>;
 
 enum class TimeType { S, N, T };
 
 std::string TimeTypeToString(TimeType type);
 
-class CTimeSession : public std::enable_shared_from_this<CTimeSession> {
+class VdfClientSession : public std::enable_shared_from_this<VdfClientSession> {
 public:
-    CTimeSession(asio::io_context& ioc, tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer);
+    VdfClientSession(asio::io_context& ioc, tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer);
 
     void Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver);
 
@@ -140,7 +139,7 @@ private:
     SessionNotify m_ready_callback;
     SessionNotify m_finished_callback;
     ProofReceiver m_proof_receiver;
-    CSocketWriter m_writer;
+    SocketWriter m_writer;
     Bytes m_temp;
     Bytes m_recv;
     std::vector<uint64_t> m_saved_iters;
@@ -149,7 +148,7 @@ private:
     std::atomic_bool m_stopping{false};
 };
 
-class CTimeLord {
+class VdfClientMan {
 public:
     struct ProofRecord {
         Proof proof;
@@ -158,7 +157,7 @@ public:
          uint256 challenge;
     };
 
-    CTimeLord(asio::io_context& ioc, std::string vdf_client_path, std::string hostname, uint16_t port);
+    VdfClientMan(asio::io_context& ioc, std::string vdf_client_path, std::string hostname, uint16_t port);
 
     void Start(ProofReceiver receiver);
 
@@ -179,7 +178,7 @@ private:
 
     void StopAllSessions();
 
-    void HandleSessionIsFinished(CTimeSessionPtr psession);
+    void HandleSessionIsFinished(VdfClientSessionPtr psession);
 
     void HandleProof(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge);
 
@@ -192,9 +191,9 @@ private:
     uint16_t m_port;
     SessionNotify m_session_is_ready_callback;
     ProofReceiver m_receiver;
-    std::vector<CTimeSessionPtr> m_session_vec;
+    std::vector<VdfClientSessionPtr> m_session_vec;
     std::mutex m_session_mtx;
-    CVdfClientProcManager m_proc_man;
+    VdfClientProc m_proc_man;
     bool m_exiting{false};
     std::mutex m_cached_proofs_mtx;
     std::map<uint256, std::vector<ProofRecord>> m_cached_proofs;
