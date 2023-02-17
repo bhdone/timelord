@@ -46,9 +46,18 @@ Command AnalyzeStrCmd(Bytes const& buf, char const* cmd_str, Command::CommandTyp
     return res;
 }
 
-uint64_t bswap_common(uint64_t x) { return __bswap_64(x); }
+#ifdef __APPLE__
 
+#include <libkern/OSByteOrder.h>
+uint64_t bswap_common(uint64_t x) { return OSSwapInt64(x); }
+uint32_t bswap_common(uint32_t x) { return OSSwapInt32(x); }
+
+#else
+
+uint64_t bswap_common(uint64_t x) { return __bswap_64(x); }
 uint32_t bswap_common(uint32_t x) { return __bswap_32(x); }
+
+#endif
 
 struct Slice
 {
