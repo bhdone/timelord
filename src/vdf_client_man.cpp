@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 #include <chrono>
+#include <memory>
 
 #include "vdf_types.h"
 #include "vdf_computer.h"
@@ -454,17 +455,14 @@ void VdfClientSession::SendStrCmd(std::string const& cmd)
     m_writer.AsyncWrite(std::move(buf));
 }
 
-VdfClientMan::VdfClientMan(asio::io_context& ioc, std::string vdf_client_path, std::string hostname, uint16_t port)
-        : m_ioc(ioc),
-          m_acceptor(ioc),
-          m_hostname(std::move(hostname)),
-          m_port(port),
-          m_proc_man(vdf_client_path, m_hostname, m_port) {}
+VdfClientMan::VdfClientMan(asio::io_context& ioc) : m_ioc(ioc), m_acceptor(ioc) {}
 
-void VdfClientMan::Start(ProofReceiver receiver)
+void VdfClientMan::Start(ProofReceiver receiver, std::string_view vdf_client_path, std::string_view hostname, uint16_t port)
 {
     PLOG_DEBUG << "preparing...";
     m_receiver = std::move(receiver);
+    // prepare vdf_client process manager
+    m_proc_man = std::make_unique<VdfClientProc>(std::string(vdf_client_path), std::string(hostname), port);
     // start listening
     tcp::endpoint endpoint(asio::ip::address::from_string(m_hostname), m_port);
     m_acceptor.open(endpoint.protocol());
@@ -497,11 +495,11 @@ void VdfClientMan::GoChallenge(uint256 challenge, TimeType time_type, SessionNot
     auto timer = std::make_shared<asio::steady_timer>(m_ioc);
     timer->expires_from_now(std::chrono::seconds(5));
     timer->async_wait([this, timer](std::error_code const& ec) {
-        int num_removed = m_proc_man.RemoveDeadChildren();
-        PLOG_DEBUG << "removed total " << num_removed << " dead child(children), " << m_proc_man.GetCount() << " child(children) remain(s)";
+        int num_removed = m_proc_man->RemoveDeadChildren();
+        PLOG_DEBUG << "removed total " << num_removed << " dead child(children), " << m_proc_man->GetCount() << " child(children) remain(s)";
     });
     // Create new process
-    m_proc_man.NewProc();
+    m_proc_man->NewProc();
 }
 
 uint256 const& VdfClientMan::GetCurrentChallenge() const { return m_challenge; }
@@ -542,7 +540,7 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 void VdfClientMan::Wait()
 {
     PLOG_DEBUG << "waiting all processes to exit";
-    m_proc_man.Wait();
+    m_proc_man->Wait();
 }
 
 void VdfClientMan::AcceptNext()

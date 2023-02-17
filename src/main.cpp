@@ -20,6 +20,8 @@ int main(int argc, char* argv[])
         ("addr", "Listening to address", cxxopts::value<std::string>()->default_value("127.0.0.1"))
         ("port", "Listening on this port", cxxopts::value<unsigned short>()->default_value("19191"))
         ("vdf_client-path", "The full path to `vdf_client'", cxxopts::value<std::string>()->default_value("./vdf_client"))
+        ("vdf_client-addr", "vdf_client will listen to this address", cxxopts::value<std::string>()->default_value("127.0.0.1"))
+        ("vdf_client-port", "vdf_client will listen to this port", cxxopts::value<unsigned short>()->default_value("20202"))
         ;
     auto parse_result = opts.parse(argc, argv);
     if (parse_result.count("help")) {
@@ -36,7 +38,9 @@ int main(int argc, char* argv[])
     std::string addr = parse_result["addr"].as<std::string>();
     unsigned short port = parse_result["port"].as<unsigned short>();
     std::string vdf_client_path = parse_result["vdf_client-path"].as<std::string>();
+    std::string vdf_client_addr = parse_result["vdf_client-addr"].as<std::string>();
+    unsigned short vdf_client_port = parse_result["vdf_client-port"].as<unsigned short>();
 
     Timelord timelord;
-    return timelord.Run(addr, port, vdf_client_path);
+    return timelord.Run(addr, port, vdf_client_path, vdf_client_addr, vdf_client_port);
 }

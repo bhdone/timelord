@@ -166,9 +166,9 @@ public:
         uint256 challenge;
     };
 
-    VdfClientMan(asio::io_context& ioc, std::string vdf_client_path, std::string hostname, uint16_t port);
+    explicit VdfClientMan(asio::io_context& ioc);
 
-    void Start(ProofReceiver receiver);
+    void Start(ProofReceiver receiver, std::string_view vdf_client_path, std::string_view hostname, uint16_t port);
 
     void Stop();
 
@@ -202,7 +202,7 @@ private:
     ProofReceiver m_receiver;
     std::vector<VdfClientSessionPtr> m_session_vec;
     std::mutex m_session_mtx;
-    VdfClientProc m_proc_man;
+    std::unique_ptr<VdfClientProc> m_proc_man;
     bool m_exiting{false};
     std::mutex m_cached_proofs_mtx;
     std::map<uint256, std::vector<ProofRecord>> m_cached_proofs;
