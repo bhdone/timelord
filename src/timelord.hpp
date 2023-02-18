@@ -38,7 +38,7 @@ inline void SendMsg_Proof(fe::SessionPtr psession, uint256 const& challenge, Byt
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PROOF);
-    msg["challenge"] = GetHex(challenge);
+    msg["challenge"] = Uint256ToHex(challenge);
     msg["y"] = BytesToHex(y);
     msg["proof"] = BytesToHex(proof);
     msg["witness_type"] = static_cast<Json::Int>(witness_type);
@@ -51,7 +51,7 @@ inline void SendMsg_Stopped(fe::SessionPtr psession, uint256 const& challenge)
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_STOPPED);
-    msg["challenge"] = GetHex(challenge);
+    msg["challenge"] = Uint256ToHex(challenge);
     psession->SendMessage(msg);
 }
 
@@ -59,7 +59,7 @@ inline void SendMsg_Status(fe::SessionPtr psession, uint256 const& challenge, ui
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_STATUS);
-    msg["challenge"] = GetHex(challenge);
+    msg["challenge"] = Uint256ToHex(challenge);
     msg["iters"] = iters;
     msg["duration"] = duration;
     psession->SendMessage(msg);
@@ -109,10 +109,25 @@ private:
 
     void HandleVdf_ProofIsReceived(vdf_client::Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge)
     {
+        // switch to main thread
+        ioc_.post(
+                [this, proof, iters, duration, challenge]() {
+                    fe_.SendMsgToAllSessions(
+                            [&proof, iters, duration, challenge](fe::SessionPtr psession) {
+                                SendMsg_Proof(psession, challenge, proof.y, proof.proof, proof.witness_type, iters, duration);
+                            });
+                });
     }
 
     void HandleMsg_Calc(fe::SessionPtr psession, Json::Value const& msg)
     {
+        uint256 challenge = Uint256FromHex(msg["challenge"].asString());
+        uint64_t iters = msg["iters"].asInt64();
+        // switch to vdf thread
+        ioc_vdf_.post(
+                [this, challenge, iters]() {
+                    vdf_client_man_.CalcIters(challenge, iters);
+                });
     }
 
     void HandleMsg_Stop(fe::SessionPtr psession, Json::Value const& msg)

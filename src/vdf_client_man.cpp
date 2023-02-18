@@ -279,7 +279,7 @@ VdfClientSession::VdfClientSession(asio::io_context& ioc, tcp::socket&& s, uint2
 
 void VdfClientSession::Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver)
 {
-    PLOG_DEBUG << "session start with challenge: " << GetHex(m_challenge);
+    PLOG_DEBUG << "session start with challenge: " << Uint256ToHex(m_challenge);
     m_ready_callback = std::move(ready_callback);
     m_finished_callback = std::move(finished_callback);
     m_proof_receiver = std::move(receiver);
@@ -335,7 +335,7 @@ void VdfClientSession::CalcIters(uint64_t iters)
 {
     if (!m_ready) {
         PLOG_WARNING << "trying to start a calculation on an unprepared session, send it later... challenge="
-                     << GetHex(m_challenge) << ", iters=" << iters;
+                     << Uint256ToHex(m_challenge) << ", iters=" << iters;
         std::lock_guard<std::mutex> lg(m_saved_iters_mtx);
         m_saved_iters.push_back(iters);
         return;
@@ -429,7 +429,7 @@ void VdfClientSession::ExecuteCommand(Command const& cmd)
 
 void VdfClientSession::SendChallenge(uint256 const& challenge)
 {
-    PLOG_DEBUG << "sending challenge: " << GetHex(challenge);
+    PLOG_DEBUG << "sending challenge: " << Uint256ToHex(challenge);
     Bytes challenge_buf = MakeChallengeBuf(challenge);
     m_writer.AsyncWrite(std::move(challenge_buf));
 }
@@ -494,7 +494,7 @@ void VdfClientMan::Stop()
 
 void VdfClientMan::GoChallenge(uint256 challenge, TimeType time_type, SessionNotify session_is_ready_callback)
 {
-    PLOG_DEBUG << "challenge is changed " << GetHex(challenge);
+    PLOG_DEBUG << "challenge is changed " << Uint256ToHex(challenge);
     m_challenge = std::move(challenge);
     m_time_type = time_type;
     m_session_is_ready_callback = std::move(session_is_ready_callback);
@@ -542,7 +542,7 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
         }
     }
     // we cannot find a valid session for the challenge
-    PLOG_DEBUG << "There is no session for challenge: " << GetHex(challenge)
+    PLOG_DEBUG << "There is no session for challenge: " << Uint256ToHex(challenge)
         << ", iters=" << FormatNumberStr(std::to_string(iters));
 }
 

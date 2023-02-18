@@ -11,7 +11,11 @@ VdfForm MakeZeroForm();
 
 Bytes MakeBytes(uint256 const& source);
 
-std::string GetHex(uint256 const& source);
+uint256 MakeUint256(Bytes const& bytes);
+
+std::string Uint256ToHex(uint256 const& source);
+
+uint256 Uint256FromHex(std::string const& hex);
 
 template <size_t N>
 Bytes MakeBytes(std::array<uint8_t, N> const& val)

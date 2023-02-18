@@ -167,6 +167,14 @@ public:
         PLOGI << "Listening on port: " << port;
     }
 
+    template <typename Sender>
+    void SendMsgToAllSessions(Sender sender)
+    {
+        for (auto psession : session_vec_) {
+            sender(psession);
+        }
+    }
+
     void SetErrorHandler(SessionErrorHandler err_handler)
     {
         err_handler_ = err_handler;
@@ -207,11 +215,13 @@ private:
                             PLOGE << "PARSE: the string cannot be parsed into json object";
                         }
                     });
+                    session_vec_.push_back(psession);
                     connected_handler_(psession);
                 });
     }
 
     tcp::acceptor acceptor_;
+    std::vector<SessionPtr> session_vec_;
     SessionConnectedHandler connected_handler_;
     SessionMessageReceiver session_msg_receiver_;
     SessionErrorHandler err_handler_;

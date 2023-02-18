@@ -12,26 +12,48 @@ VdfForm MakeZeroForm()
     return form;
 }
 
+template <typename Source, typename Dest>
+void SwitchByteOrder(Source& src, Dest& dst)
+{
+    int index{0};
+    for (auto i = std::crbegin(src); i != std::crend(src); ++i) {
+        dst[index++] = *i;
+    }
+}
+
 Bytes MakeBytes(uint256 const& source)
 {
     Bytes res(256/8);
-    int index{0};
-    // we just simply revert the whole data array because of the byte order
-    for (auto i = std::crbegin(source); i != std::crend(source); ++i) {
-        res[index] = *i;
-    }
+    SwitchByteOrder(source, res);
+    return res;
+}
+
+uint256 MakeUint256(Bytes const& bytes)
+{
+    uint256 res;
+    SwitchByteOrder(bytes, res);
     return res;
 }
 
 std::string ByteToHex(uint8_t byte);
 
-std::string GetHex(uint256 const& source)
+std::string Uint256ToHex(uint256 const& source)
 {
     std::stringstream ss;
     for (auto ch : source) {
         ss << ByteToHex(ch);
     }
     return ss.str();
+}
+
+uint256 Uint256FromHex(std::string const& hex)
+{
+    assert(hex.size() == 256/8 * 2);
+
+    uint256 res;
+    auto bytes = BytesFromHex(hex);
+    memcpy(res.data(), bytes.data(), res.size());
+    return res;
 }
 
 Bytes StrToBytes(std::string str)
