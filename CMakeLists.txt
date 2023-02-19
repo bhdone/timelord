@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.2)
 
 project(timelord)
 
+option(BUILD_TEST "Build and run tests" ON)
+
 find_package(cxxopts CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
@@ -36,3 +38,15 @@ target_link_libraries(
     JsonCpp::JsonCpp
     fmt::fmt
     )
+
+if (BUILD_TEST)
+    set(TEST_SRCS
+        ./src/test.cpp
+        )
+    add_executable(timelord_test ${TEST_SRCS})
+    target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src)
+    target_link_libraries(timelord_test PRIVATE GTest::gtest GTest::gtest_main)
+
+    enable_testing()
+    add_test(NAME timelord_test COMMAND ./timelord_test)
+endif()
