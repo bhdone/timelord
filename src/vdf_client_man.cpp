@@ -482,6 +482,15 @@ void VdfClientMan::Start(ProofReceiver receiver, std::string_view vdf_client_pat
     AcceptNext();
 }
 
+void VdfClientMan::StopByChallenge(uint256 const& challenge)
+{
+    for (auto psession : m_session_vec) {
+        if (psession->GetChallenge() == challenge) {
+            psession->Stop(); // TODO we need to ensure that the session is been deleted
+        }
+    }
+}
+
 void VdfClientMan::Stop()
 {
     // Tell all client to stop
@@ -552,6 +561,15 @@ void VdfClientMan::Wait()
     m_proc_man->Wait();
 }
 
+std::set<uint256> VdfClientMan::GetRunningChallenges() const
+{
+    std::set<uint256> res;
+    for (auto psession : m_session_vec) {
+        res.insert(psession->GetChallenge());
+    }
+    return res;
+}
+
 void VdfClientMan::AcceptNext()
 {
     m_acceptor.async_accept([this](std::error_code const& ec, tcp::socket peer) {
@@ -585,14 +603,15 @@ void VdfClientMan::StopAllSessions()
 
 void VdfClientMan::HandleSessionIsFinished(VdfClientSessionPtr psession)
 {
-    m_ioc.post([this, psession]() {
-        std::lock_guard<std::mutex> lg(m_session_mtx);
-        auto i = std::remove(std::begin(m_session_vec), std::end(m_session_vec), psession);
-        if (i != std::end(m_session_vec)) {
-            m_session_vec.erase(i);
-            PLOG_DEBUG << "session is removed, " << m_session_vec.size() << " session(s) left";
-        }
-    });
+    asio::post(m_ioc,
+            [this, psession]() {
+                std::lock_guard<std::mutex> lg(m_session_mtx);
+                auto i = std::remove(std::begin(m_session_vec), std::end(m_session_vec), psession);
+                if (i != std::end(m_session_vec)) {
+                    m_session_vec.erase(i);
+                    PLOG_DEBUG << "session is removed, " << m_session_vec.size() << " session(s) left";
+                }
+            });
 }
 
 void VdfClientMan::HandleProof(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge)

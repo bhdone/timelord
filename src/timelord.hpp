@@ -110,7 +110,7 @@ private:
     void HandleVdf_ProofIsReceived(vdf_client::Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge)
     {
         // switch to main thread
-        ioc_.post(
+        asio::post(ioc_,
                 [this, proof, iters, duration, challenge]() {
                     fe_.SendMsgToAllSessions(
                             [&proof, iters, duration, challenge](fe::SessionPtr psession) {
@@ -124,7 +124,7 @@ private:
         uint256 challenge = Uint256FromHex(msg["challenge"].asString());
         uint64_t iters = msg["iters"].asInt64();
         // switch to vdf thread
-        ioc_vdf_.post(
+        asio::post(ioc_vdf_,
                 [this, challenge, iters]() {
                     vdf_client_man_.CalcIters(challenge, iters);
                 });
@@ -132,10 +132,53 @@ private:
 
     void HandleMsg_Stop(fe::SessionPtr psession, Json::Value const& msg)
     {
+        asio::post(ioc_vdf_,
+                [this, challenge = Uint256FromHex(msg["challenge"].asString())]() {
+                    vdf_client_man_.StopByChallenge(challenge);
+                });
     }
 
     void HandleMsg_Query(fe::SessionPtr psession, Json::Value const& msg)
     {
+        // retrieve all running challenges and proofs have been calculated
+        if (!msg.isMember("category")) {
+            PLOGE << "field `category` cannot be found, query status without type is not allowed";
+            return;
+        }
+        // switch to vdf thread
+        asio::post(ioc_vdf_,
+                [this, category_str = msg["category"].asString(), psession]() {
+                    std::unique_ptr<Json::Value> preply_msg;
+                    if (category_str == "running") {
+                        auto running_challenges = vdf_client_man_.GetRunningChallenges();
+                        preply_msg = std::make_unique<Json::Value>(Json::arrayValue);
+                        for (auto const& challenge : running_challenges) {
+                            preply_msg->append(Uint256ToHex(challenge));
+                        }
+                    } else if (category_str == "proofs") {
+                        auto cached_proofs = vdf_client_man_.GetCachedProofs();
+                        preply_msg = std::make_unique<Json::Value>(Json::arrayValue);
+                        for (auto const& proof : cached_proofs) {
+                            Json::Value proof_vals;
+                            for (auto const& proof : proof.second) {
+                                Json::Value proof_val;
+                                proof_val["proof"] = BytesToHex(proof.proof.proof);
+                                proof_val["y"] = BytesToHex(proof.proof.y);
+                                proof_val["witness_type"] = proof.proof.witness_type;
+                                proof_val["iters"] = proof.iters;
+                                proof_val["duration"] = proof.duration;
+                                proof_vals.append(std::move(proof_val));
+                            }
+                            (*preply_msg)[Uint256ToHex(proof.first)] = proof_vals;
+                        }
+                    } else {
+                        PLOGE << fmt::format("invalid category {} to query status", category_str);
+                    }
+                    if (preply_msg) {
+                        // switch to main thread and send the message
+                        asio::post(ioc_, [psession, reply_msg = *preply_msg]() { psession->SendMessage(reply_msg); });
+                    }
+                });
     }
 
     asio::io_context ioc_;

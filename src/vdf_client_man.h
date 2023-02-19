@@ -12,6 +12,7 @@
 #include <map>
 #include <vector>
 #include <array>
+#include <set>
 
 #include <string>
 #include <string_view>
@@ -170,6 +171,8 @@ public:
 
     void Start(ProofReceiver receiver, std::string_view vdf_client_path, std::string_view hostname, uint16_t port);
 
+    void StopByChallenge(uint256 const& challenge);
+
     void Stop();
 
     void GoChallenge(uint256 challenge, TimeType time_type, SessionNotify session_is_ready_callback);
@@ -181,6 +184,10 @@ public:
     void CalcIters(uint256 const& challenge, uint64_t iters);
 
     void Wait();
+
+    std::map<uint256, std::vector<ProofRecord>> const& GetCachedProofs() const { return m_cached_proofs; }
+
+    std::set<uint256> GetRunningChallenges() const;
 
 private:
     void AcceptNext();
