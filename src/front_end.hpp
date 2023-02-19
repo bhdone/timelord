@@ -11,12 +11,13 @@
 #include <sstream>
 
 #include <asio.hpp>
-using tcp = asio::ip::tcp;
+using asio::ip::tcp;
 
 #include <json/value.h>
 #include <json/reader.h>
 
 #include <plog/Log.h>
+#include <fmt/core.h>
 
 namespace fe
 {
@@ -26,11 +27,24 @@ using SessionPtr = std::shared_ptr<Session>;
 enum class ErrorType { CONNECT, READ, WRITE, CLOSE, PARSE };
 
 using ErrorHandler = std::function<void(ErrorType type, std::string_view errs)>;
-using MessageReceiver = std::function<void(std::string_view)>;
+using MessageReceiver = std::function<void(Json::Value const& msg)>;
 
 using SessionConnectedHandler = std::function<void(SessionPtr psession)>;
 using SessionErrorHandler = std::function<void(SessionPtr psession, ErrorType type, std::string_view errs)>;
 using SessionMessageReceiver = std::function<void(SessionPtr psession, Json::Value const& msg)>;
+
+inline Json::Value ParseStringToJson(std::string_view str)
+{
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value root;
+    std::string errs;
+    bool succ = reader->parse(std::cbegin(str), std::cend(str), &root, &errs);
+    if (!succ) {
+        throw std::runtime_error(errs);
+    }
+    return root;
+}
 
 class MessageDispatcher
 {
@@ -132,8 +146,13 @@ private:
                     }
                     std::istreambuf_iterator<char> begin(&self->read_buf_), end;
                     std::string result(begin, end);
-                    assert(self->msg_receiver_);
-                    self->msg_receiver_(result);
+                    try {
+                        Json::Value msg = ParseStringToJson(result);
+                        self->msg_receiver_(msg);
+                    } catch (std::exception const& e) {
+                        PLOGE << "READ: failed to parse string into json: " << e.what();
+                        self->err_handler_(ErrorType::READ, ec.message());
+                    }
                     // read next
                     self->DoReadNext();
                 });
@@ -200,20 +219,8 @@ private:
                                     err_handler_(psession, type, errs);
                                 }
                             });
-                    psession->Start([this, psession](std::string_view msg) {
-                        Json::CharReaderBuilder builder;
-                        std::shared_ptr<Json::CharReader> reader(builder.newCharReader());
-                        Json::Value value;
-                        std::string errs;
-                        if (reader->parse(std::cbegin(msg), std::cend(msg), &value, &errs)) {
-                            assert(session_msg_receiver_);
-                            session_msg_receiver_(psession, value);
-                        } else {
-                            if (err_handler_) {
-                                err_handler_(psession, ErrorType::PARSE, "the string cannot be parsed into json object");
-                            }
-                            PLOGE << "PARSE: the string cannot be parsed into json object";
-                        }
+                    psession->Start([this, psession](Json::Value const& msg) {
+                        session_msg_receiver_(psession, msg);
                     });
                     session_vec_.push_back(psession);
                     connected_handler_(psession);
@@ -225,6 +232,130 @@ private:
     SessionConnectedHandler connected_handler_;
     SessionMessageReceiver session_msg_receiver_;
     SessionErrorHandler err_handler_;
+};
+
+class Client
+{
+public:
+    using ConnectionHandler = std::function<void()>;
+    using MessageHandler = std::function<void(Json::Value const&)>;
+    using ErrorHandler = std::function<void(ErrorType err_type, std::error_code const& ec)>;
+    using CloseHandler = std::function<void()>;
+
+    explicit Client(asio::io_context& ioc) : ioc_(ioc) {}
+
+    void Connect(std::string_view host, unsigned short port, ConnectionHandler conn_handler, MessageHandler msg_handler, ErrorHandler err_handler, CloseHandler close_handler)
+    {
+        conn_handler_ = std::move(conn_handler);
+        msg_handler_ = std::move(msg_handler);
+        err_handler_ = std::move(err_handler);
+        close_handler_ = std::move(close_handler);
+        // solve the address
+        tcp::resolver r(ioc_);
+        try {
+            PLOGD << "resolving ip from " << host << "...";
+            tcp::resolver::query q(std::string(host), std::to_string(port));
+            auto it_result = r.resolve(q);
+            if (it_result == std::cend(tcp::resolver::results_type())) {
+                // cannot resolve the ip from host name
+                throw std::runtime_error(fmt::format("cannot resolve host: `{}'", host));
+            }
+            // retrieve the first result and start the connection
+            ps_ = std::make_unique<tcp::socket>(ioc_);
+            ps_->async_connect(*it_result,
+                    [this, host = std::string(host), port](std::error_code const& ec) {
+                        if (ec) {
+                            PLOGE << ec.message();
+                            err_handler_(ErrorType::CONNECT, ec);
+                            return;
+                        }
+                        DoReadNext();
+                        conn_handler_();
+                    });
+        } catch (std::exception const& e) {
+            PLOGE << e.what();
+        }
+    }
+
+    void SendMessage(Json::Value const& msg)
+    {
+        if (ps_ == nullptr) {
+            throw std::runtime_error("please connect to server before sending message");
+        }
+        bool do_send = sending_msgs_.empty();
+        sending_msgs_.push_back(msg.toStyledString());
+        if (do_send) {
+            DoSendNext();
+        }
+    }
+
+    void Close()
+    {
+        if (ps_) {
+            std::error_code ignored_ec;
+            ps_->shutdown(tcp::socket::shutdown_both, ignored_ec);
+            ps_->close(ignored_ec);
+            ps_.reset();
+            close_handler_();
+        }
+    }
+
+private:
+    void DoReadNext()
+    {
+        asio::async_read_until(*ps_, read_buf_, '\0',
+                [this](std::error_code const& ec, std::size_t bytes) {
+                    if (ec) {
+                        if (ec != asio::error::eof) {
+                            PLOGE << ec.message();
+                            err_handler_(ErrorType::READ, ec);
+                        }
+                        Close();
+                        return;
+                    }
+                    std::istreambuf_iterator<char> begin(&read_buf_), end;
+                    std::string result(begin, end);
+                    try {
+                        Json::Value msg = ParseStringToJson(result);
+                        msg_handler_(msg);
+                    } catch (std::exception const& e) {
+                        PLOGE << "READ: " << e.what();
+                        err_handler_(ErrorType::READ, ec);
+                    }
+                    DoReadNext();
+                });
+    }
+
+    void DoSendNext()
+    {
+        assert(!sending_msgs_.empty());
+        auto const& msg = sending_msgs_.front();
+        send_buf_.resize(msg.size() + 1);
+        memcpy(send_buf_.data(), msg.data(), msg.size());
+        send_buf_[msg.size()] = '\0';
+        asio::async_write(*ps_, asio::buffer(send_buf_),
+                [this](std::error_code const& ec, std::size_t bytes) {
+                    if (ec) {
+                        err_handler_(ErrorType::WRITE, ec);
+                        Close();
+                        return;
+                    }
+                    sending_msgs_.pop_front();
+                    if (!sending_msgs_.empty()) {
+                        DoSendNext();
+                    }
+                });
+    }
+
+    asio::io_context& ioc_;
+    std::unique_ptr<tcp::socket> ps_;
+    asio::streambuf read_buf_;
+    std::vector<uint8_t> send_buf_;
+    std::deque<std::string> sending_msgs_;
+    ConnectionHandler conn_handler_;
+    MessageHandler msg_handler_;
+    ErrorHandler err_handler_;
+    CloseHandler close_handler_;
 };
 
 } // namespace fe
