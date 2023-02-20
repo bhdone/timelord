@@ -111,6 +111,16 @@ public:
         }
     }
 
+    void Close()
+    {
+        try {
+            s_.shutdown(tcp::socket::shutdown_both);
+            s_.close();
+        } catch (std::exception const& e) {
+            PLOGE << e.what();
+        }
+    }
+
     void SetErrorHandler(ErrorHandler err_handler)
     {
         err_handler_ = std::move(err_handler);
@@ -208,6 +218,14 @@ public:
         for (auto psession : session_vec_) {
             sender(psession);
         }
+    }
+
+    void Close()
+    {
+        for (auto psession : session_vec_) {
+            psession->Close();
+        }
+        session_vec_.clear();
     }
 
     void SetErrorHandler(SessionErrorHandler err_handler)
@@ -308,11 +326,14 @@ public:
     void Close()
     {
         if (ps_) {
-            std::error_code ignored_ec;
-            ps_->shutdown(tcp::socket::shutdown_both, ignored_ec);
-            ps_->close(ignored_ec);
-            ps_.reset();
-            close_handler_();
+            try {
+                ps_->shutdown(tcp::socket::shutdown_both);
+                ps_->close();
+                ps_.reset();
+                close_handler_();
+            } catch (std::exception const& e) {
+                PLOGE << e.what();
+            }
         }
     }
 
