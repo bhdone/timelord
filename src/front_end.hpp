@@ -46,6 +46,14 @@ inline Json::Value ParseStringToJson(std::string_view str)
     return root;
 }
 
+inline std::string AddressToString(void const* p)
+{
+    auto addr = reinterpret_cast<uint64_t>(p);
+    std::stringstream ss;
+    ss << "0x" << std::hex << addr;
+    return ss.str();
+}
+
 class MessageDispatcher
 {
 public:
@@ -78,7 +86,15 @@ private:
 class Session : public std::enable_shared_from_this<Session>
 {
 public:
-    explicit Session(tcp::socket&& s) : s_(std::move(s)) {}
+    explicit Session(tcp::socket&& s) : s_(std::move(s))
+    {
+        PLOGD << "Session " << AddressToString(this) << " is created";
+    }
+
+    ~Session()
+    {
+        PLOGD << "Session " << AddressToString(this) << " is going to be released";
+    }
 
     void Start(MessageReceiver msg_receiver)
     {
