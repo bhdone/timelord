@@ -220,6 +220,7 @@ public:
         acceptor_.bind(endpoint);
         acceptor_.listen();
         PLOGI << "Listening on port: " << port;
+        DoAcceptNext();
     }
 
     template <typename Sender>
