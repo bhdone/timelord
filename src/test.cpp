@@ -154,13 +154,6 @@ protected:
         }
     }
 
-    Json::Value MakeExitMsg()
-    {
-        Json::Value msg;
-        msg["id"] = "exit";
-        return msg;
-    }
-
 private:
     void HandleSessionConnected(fe::SessionPtr psession)
     {
