@@ -24,7 +24,7 @@ namespace fe
 
 class Session;
 using SessionPtr = std::shared_ptr<Session>;
-enum class ErrorType { CONNECT, READ, WRITE, CLOSE, PARSE };
+enum class ErrorType { CONNECT, READ, WRITE, CLOSE, PARSE, SHUTDOWN };
 
 using ErrorHandler = std::function<void(ErrorType type, std::string_view errs)>;
 using MessageReceiver = std::function<void(Json::Value const& msg)>;
@@ -172,6 +172,16 @@ private:
                     }
                     std::istreambuf_iterator<char> begin(&self->read_buf_), end;
                     std::string result(begin, end);
+                    PLOGD << "==== msg received ==== size: " << result.size();
+                    PLOGD << result;
+                    PLOGD << "==== end of msg ====";
+                    if (std::string(result.c_str()) == "shutdown") {
+                        if (self->err_handler_) {
+                            self->err_handler_(ErrorType::SHUTDOWN, "shutdown is requested");
+                            return;
+                        }
+                        PLOGE << "shutdown is requested but the frontend didn't install a handler for errors, the request is ignored";
+                    }
                     try {
                         Json::Value msg = ParseStringToJson(result);
                         self->msg_receiver_(msg);
@@ -254,7 +264,11 @@ private:
                     auto psession = std::make_shared<Session>(std::move(s));
                     psession->SetErrorHandler(
                             [this, psession](ErrorType type, std::string_view errs) {
-                                if (err_handler_) {
+                                if (type == ErrorType::SHUTDOWN) {
+                                    // shutdown the service
+                                    Close();
+                                    acceptor_.close();
+                                } else if (err_handler_) {
                                     err_handler_(psession, type, errs);
                                 }
                             });
@@ -323,6 +337,15 @@ public:
         }
         bool do_send = sending_msgs_.empty();
         sending_msgs_.push_back(msg.toStyledString());
+        if (do_send) {
+            DoSendNext();
+        }
+    }
+
+    void SendShutdown()
+    {
+        bool do_send = sending_msgs_.empty();
+        sending_msgs_.push_back("shutdown");
         if (do_send) {
             DoSendNext();
         }
