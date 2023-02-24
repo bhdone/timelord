@@ -233,6 +233,11 @@ public:
         err_handler_ = err_handler;
     }
 
+    std::size_t GetNumOfSessions() const
+    {
+        return session_vec_.size();
+    }
+
 private:
     void DoAcceptNext()
     {

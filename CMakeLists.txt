@@ -28,7 +28,7 @@ set(TIMELORD_SRCS
     )
 
 add_executable(timelord ${TIMELORD_SRCS})
-target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src)
+target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ./src)
 target_link_libraries(
     timelord PRIVATE
     bhd_vdf
@@ -44,8 +44,8 @@ if (BUILD_TEST)
         ./src/test.cpp
         )
     add_executable(timelord_test ${TEST_SRCS})
-    target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src)
-    target_link_libraries(timelord_test PRIVATE GTest::gtest GTest::gtest_main)
+    target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src ./src)
+    target_link_libraries(timelord_test PRIVATE GTest::gtest asio::asio JsonCpp::JsonCpp)
 
     enable_testing()
     add_test(NAME timelord_test COMMAND ./timelord_test)
