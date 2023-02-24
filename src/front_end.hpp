@@ -265,7 +265,7 @@ private:
                     }
                     auto psession = std::make_shared<Session>(std::move(s));
                     psession->SetErrorHandler(
-                            [this, pweak_session = psession->weak_from_this()](ErrorType type, std::string_view errs) {
+                            [this, pweak_session = std::weak_ptr(psession)](ErrorType type, std::string_view errs) {
                                 if (type == ErrorType::SHUTDOWN) {
                                     // shutdown the service
                                     Close();
@@ -276,7 +276,7 @@ private:
                                     }
                                 }
                             });
-                    psession->Start([this, pweak_session = psession->weak_from_this()](Json::Value const& msg) {
+                    psession->Start([this, pweak_session = std::weak_ptr(psession)](Json::Value const& msg) {
                         auto psession = pweak_session.lock();
                         if (psession) {
                             session_msg_receiver_(psession, msg);
