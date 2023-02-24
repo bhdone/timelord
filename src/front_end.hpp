@@ -254,6 +254,7 @@ private:
     {
         acceptor_.async_accept(
                 [this](std::error_code const& ec, tcp::socket&& s) {
+                    PLOGD << "Accepting new session...";
                     if (ec) {
                         if (err_handler_) {
                             err_handler_({}, ErrorType::CONNECT, ec.message());
@@ -261,7 +262,6 @@ private:
                         PLOGE << "CONNECT: " << ec.message();
                         return;
                     }
-                    PLOGD << "Accepting new session...";
                     auto psession = std::make_shared<Session>(std::move(s));
                     psession->SetErrorHandler(
                             [this, psession](ErrorType type, std::string_view errs) {
@@ -315,9 +315,11 @@ public:
                 throw std::runtime_error(fmt::format("cannot resolve host: `{}'", host));
             }
             // retrieve the first result and start the connection
+            PLOGD << "connecting...";
             ps_ = std::make_unique<tcp::socket>(ioc_);
             ps_->async_connect(*it_result,
                     [this, host = std::string(host), port](std::error_code const& ec) {
+                        PLOGD << "connected";
                         if (ec) {
                             PLOGE << ec.message();
                             err_handler_(ErrorType::CONNECT, ec);
