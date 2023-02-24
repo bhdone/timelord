@@ -159,7 +159,7 @@ private:
                             if (self->err_handler_) {
                                 self->err_handler_(ErrorType::CLOSE, ec.message());
                             }
-                            PLOGI << "READ: end of file";
+                            PLOGD << "READ: end of file";
                         } else {
                             if (self->err_handler_) {
                                 self->err_handler_(ErrorType::READ, ec.message());
@@ -217,7 +217,7 @@ public:
         acceptor_.set_option(tcp::acceptor::reuse_address(true));
         acceptor_.bind(endpoint);
         acceptor_.listen();
-        PLOGI << "Listening on port: " << port;
+        PLOGD << "Listening on port: " << port;
         DoAcceptNext();
     }
 

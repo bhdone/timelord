@@ -126,14 +126,14 @@ public:
 protected:
     void SetUp() override
     {
-        PLOGI << "Initializing";
+        PLOGD << "Initializing";
         fe_.Run(SZ_LOCAL_ADDR, LOCAL_PORT,
                 std::bind(&BaseServer::HandleSessionConnected, this, _1), std::bind(&BaseServer::HandleSessionMsg, this, _1, _2));
     }
 
     void TearDown() override
     {
-        PLOGI << "Exit.";
+        PLOGD << "Exit.";
     }
 
     std::size_t GetNumOfSessions() const
@@ -163,12 +163,12 @@ protected:
 private:
     void HandleSessionConnected(fe::SessionPtr psession)
     {
-        PLOGI << "session " << AddressToString(psession.get()) << " is connected";
+        PLOGD << "session " << AddressToString(psession.get()) << " is connected";
     }
 
     void HandleSessionMsg(fe::SessionPtr psession, Json::Value const& msg)
     {
-        PLOGI << "session " << fe::AddressToString(psession.get()) << " received a message: " << msg["id"].asString();
+        PLOGD << "session " << fe::AddressToString(psession.get()) << " received a message: " << msg["id"].asString();
     }
 
     asio::io_context ioc_;
