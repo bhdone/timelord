@@ -188,4 +188,121 @@ private:
     vdf_client::VdfClientMan vdf_client_man_;
 };
 
+class TimelordClient
+{
+public:
+    using ConnectHandler = std::function<void()>;
+    using ErrorHandler = fe::ErrorHandler;
+    using MessageHandler = std::function<void(Json::Value const& msg)>;
+
+    using ProofHandler =
+            std::function<void(uint256 const& challenge, Bytes const& y, Bytes const& proof, int witness_type, uint64_t iters, int duration)>;
+
+    TimelordClient() : client_(ioc_)
+    {
+        msg_handlers_.insert(std::make_pair(static_cast<int>(FeMsgs::MSGID_FE_PROOF),
+                [this](Json::Value const& msg) {
+                    if (proof_handler_) {
+                        auto challenge = Uint256FromHex(msg["challenge"].asString());
+                        auto y = BytesFromHex(msg["y"].asString());
+                        auto proof = BytesFromHex(msg["proof"].asString());
+                        auto witness_type = msg["witness_type"].asInt();
+                        auto iters = msg["iters"].asInt64();
+                        auto duration = msg["duration"].asInt();
+                        proof_handler_(challenge, y, proof, witness_type, iters, duration);
+                    }
+                }));
+    }
+
+    void SetConnectHandler(ConnectHandler conn_handler)
+    {
+        conn_handler_ = std::move(conn_handler);
+    }
+
+    void SetErrorHandler(ErrorHandler err_handler)
+    {
+        err_handler_ = std::move(err_handler);
+    }
+
+    void SetProofHandler(ProofHandler proof_handler)
+    {
+        proof_handler_ = std::move(proof_handler);
+    }
+
+    void Calc(uint256 const& challenge, uint64_t iters)
+    {
+        Json::Value msg;
+        msg["id"] = static_cast<Json::Int>(BhdMsgs::MSGID_BHD_CALC);
+        msg["challenge"] = Uint256ToHex(challenge);
+        msg["iters"] = iters;
+        asio::post(ioc_,
+                [this, msg]() {
+                    client_.SendMessage(msg);
+                });
+    }
+
+    void Shutdown()
+    {
+        asio::post(ioc_,
+                [this]() {
+                    client_.SendShutdown();
+                });
+    }
+
+    int Run(std::string_view host, unsigned short port)
+    {
+        try {
+            pthread_ = std::make_unique<std::thread>(
+                    [this]() {
+                        ioc_.run();
+                    });
+            client_.Connect(host, port,
+                    std::bind(&TimelordClient::HandleConnect, this),
+                    std::bind(&TimelordClient::HandleMessage, this, _1),
+                    std::bind(&TimelordClient::HandleError, this, _1, _2),
+                    std::bind(&TimelordClient::HandleClose, this));
+            return 0;
+        } catch (std::exception const& e) {
+            PLOGE << e.what();
+            return 1;
+        }
+    }
+
+private:
+    void HandleConnect()
+    {
+        if (conn_handler_) {
+            conn_handler_();
+        }
+    }
+
+    void HandleMessage(Json::Value const& msg)
+    {
+        auto msg_id = msg["id"].asInt();
+        auto it = msg_handlers_.find(msg_id);
+        if (it != std::cend(msg_handlers_)) {
+            it->second(msg);
+        }
+    }
+
+    void HandleError(fe::ErrorType type, std::string_view errs)
+    {
+        if (err_handler_) {
+            err_handler_(type, errs);
+        }
+    }
+
+    void HandleClose()
+    {
+    }
+
+    asio::io_context ioc_;
+    fe::Client client_;
+    std::unique_ptr<std::thread> pthread_;
+    std::map<int, MessageHandler> msg_handlers_;
+    ConnectHandler conn_handler_;
+    ErrorHandler err_handler_;
+    ProofHandler proof_handler_;
+};
+
 #endif
