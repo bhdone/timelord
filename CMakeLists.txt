@@ -40,12 +40,13 @@ target_link_libraries(
     )
 
 if (BUILD_TEST)
+    find_package(gflags CONFIG REQUIRED)
     set(TEST_SRCS
         ./src/test.cpp
         )
     add_executable(timelord_test ${TEST_SRCS})
     target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src ./src)
-    target_link_libraries(timelord_test PRIVATE GTest::gtest asio::asio JsonCpp::JsonCpp fmt::fmt)
+    target_link_libraries(timelord_test PRIVATE GTest::gtest asio::asio JsonCpp::JsonCpp fmt::fmt gflags::gflags)
 
     enable_testing()
     add_test(NAME timelord_test COMMAND ./timelord_test)

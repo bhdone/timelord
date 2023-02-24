@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <gflags/gflags.h>
 
 #include <plog/Log.h>
 #include <plog/Init.h>
@@ -210,12 +211,15 @@ TEST_F(BaseServer, RunWith1Session_connection)
     Join();
 }
 
+DEFINE_bool(verbose, false, "Show debug logs");
+
 int main(int argc, char* argv[])
 {
-    plog::ConsoleAppender<plog::TxtFormatter> console_appender;
-    plog::init(plog::Severity::debug, &console_appender);
-    PLOGD << "hello";
-
     ::testing::InitGoogleTest(&argc, argv);
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+    plog::ConsoleAppender<plog::TxtFormatter> console_appender;
+    plog::init(FLAGS_verbose ? plog::Severity::debug : plog::Severity::info, &console_appender);
+
     return RUN_ALL_TESTS();
 }
