@@ -93,10 +93,10 @@ private:
         }
     }
 
-    void HandleError(fe::ErrorType type, std::error_code const& ec)
+    void HandleError(fe::ErrorType type, std::string_view errs)
     {
         if (err_handler_) {
-            err_handler_(type, ec);
+            err_handler_(type, errs);
         }
     }
 

@@ -299,7 +299,7 @@ class Client
 public:
     using ConnectionHandler = std::function<void()>;
     using MessageHandler = std::function<void(Json::Value const&)>;
-    using ErrorHandler = std::function<void(ErrorType err_type, std::error_code const& ec)>;
+    using ErrorHandler = std::function<void(ErrorType err_type, std::string_view errs)>;
     using CloseHandler = std::function<void()>;
 
     explicit Client(asio::io_context& ioc) : ioc_(ioc) {}
@@ -328,7 +328,7 @@ public:
                         PLOGD << "connected";
                         if (ec) {
                             PLOGE << ec.message();
-                            err_handler_(ErrorType::CONNECT, ec);
+                            err_handler_(ErrorType::CONNECT, ec.message());
                             return;
                         }
                         DoReadNext();
@@ -380,7 +380,7 @@ private:
                     if (ec) {
                         if (ec != asio::error::eof) {
                             PLOGE << ec.message();
-                            err_handler_(ErrorType::READ, ec);
+                            err_handler_(ErrorType::READ, ec.message());
                         }
                         Close();
                         return;
@@ -392,7 +392,7 @@ private:
                         msg_handler_(msg);
                     } catch (std::exception const& e) {
                         PLOGE << "READ: " << e.what();
-                        err_handler_(ErrorType::READ, ec);
+                        err_handler_(ErrorType::READ, ec.message());
                     }
                     DoReadNext();
                 });
@@ -408,7 +408,7 @@ private:
         asio::async_write(*ps_, asio::buffer(send_buf_),
                 [this](std::error_code const& ec, std::size_t bytes) {
                     if (ec) {
-                        err_handler_(ErrorType::WRITE, ec);
+                        err_handler_(ErrorType::WRITE, ec.message());
                         Close();
                         return;
                     }
