@@ -8,6 +8,7 @@ enum class FeMsgs : int
     MSGID_FE_PROOF = 1010,
     MSGID_FE_STOPPED = 1020,
     MSGID_FE_STATUS = 1030,
+    MSGID_FE_PONG = 1040,
 };
 
 // messages send from Bhd
@@ -16,6 +17,7 @@ enum class BhdMsgs : int
     MSGID_BHD_CALC = 2000,
     MSGID_BHD_STOP = 2010,
     MSGID_BHD_QUERY = 2020,
+    MSGID_BHD_PING = 2030,
 };
 
 #endif

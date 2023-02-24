@@ -19,6 +19,8 @@ using asio::ip::tcp;
 #include <plog/Log.h>
 #include <fmt/core.h>
 
+#include "msg_ids.h"
+
 namespace fe
 {
 
@@ -182,7 +184,15 @@ private:
                     }
                     try {
                         Json::Value msg = ParseStringToJson(result);
-                        self->msg_receiver_(msg);
+                        // Check if it is ping
+                        auto msg_id = msg["id"].asInt();
+                        if (msg_id == static_cast<int>(BhdMsgs::MSGID_BHD_PING)) {
+                            // Just simply send it back
+                            msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG);
+                            self->SendMessage(msg);
+                        } else {
+                            self->msg_receiver_(msg);
+                        }
                     } catch (std::exception const& e) {
                         PLOGE << "READ: failed to parse string into json: " << e.what();
                         self->err_handler_(ErrorType::READ, ec.message());

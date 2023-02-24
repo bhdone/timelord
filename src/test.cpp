@@ -17,6 +17,7 @@ using std::placeholders::_2;
 #include <plog/Log.h>
 
 #include "front_end.hpp"
+#include "msg_ids.h"
 
 char const* SZ_LOCAL_ADDR = "127.0.0.1";
 unsigned short LOCAL_PORT = 18181;
@@ -170,7 +171,7 @@ private:
     std::unique_ptr<std::thread> pthread_;
 };
 
-TEST_F(BaseServer, RunWith1Session_connection)
+TEST_F(BaseServer, RunWith1Session_msg)
 {
     Run();
 
@@ -180,17 +181,28 @@ TEST_F(BaseServer, RunWith1Session_connection)
 
     ClientThreadWrap client_thread;
     client_thread.SetConnHandler(
-            [&m, &connected, &cv]() {
-                PLOGD << "connected, now set the condition";
-                {
-                    std::lock_guard<std::mutex> lg(m);
-                    connected = true;
+            [&client_thread]() {
+                Json::Value msg;
+                msg["id"] = static_cast<Json::Int>(BhdMsgs::MSGID_BHD_PING);
+                msg["memo"] = "hello world!";
+                PLOGD << "Ping";
+                client_thread.GetClient().SendMessage(msg);
+            });
+    client_thread.SetMsgHandler(
+            [&m, &connected, &cv](Json::Value const& msg) {
+                auto id = msg["id"].asInt();
+                if (id == static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG)) {
+                    auto memo = msg["memo"].asString();
+                    PLOGD << "Pong: " << memo;
+                    {
+                        std::lock_guard<std::mutex> lg(m);
+                        connected = true;
+                    }
+                    cv.notify_one();
                 }
-                cv.notify_one();
             });
     client_thread.Start();
 
-    PLOGD << "waiting the connection...";
     std::unique_lock<std::mutex> lk(m);
     cv.wait(lk, [&connected]() { return connected; });
 
