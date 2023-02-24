@@ -265,17 +265,22 @@ private:
                     }
                     auto psession = std::make_shared<Session>(std::move(s));
                     psession->SetErrorHandler(
-                            [this, psession](ErrorType type, std::string_view errs) {
+                            [this, pweak_session = psession->weak_from_this()](ErrorType type, std::string_view errs) {
                                 if (type == ErrorType::SHUTDOWN) {
                                     // shutdown the service
                                     Close();
-                                    acceptor_.close();
                                 } else if (err_handler_) {
-                                    err_handler_(psession, type, errs);
+                                    auto psession = pweak_session.lock();
+                                    if (psession) {
+                                        err_handler_(psession, type, errs);
+                                    }
                                 }
                             });
-                    psession->Start([this, psession](Json::Value const& msg) {
-                        session_msg_receiver_(psession, msg);
+                    psession->Start([this, pweak_session = psession->weak_from_this()](Json::Value const& msg) {
+                        auto psession = pweak_session.lock();
+                        if (psession) {
+                            session_msg_receiver_(psession, msg);
+                        }
                     });
                     session_vec_.push_back(psession);
                     connected_handler_(psession);
