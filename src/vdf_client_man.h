@@ -110,7 +110,7 @@ public:
 
     void Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver);
 
-    void Stop();
+    void StopAfterSeconds(int secs);
 
     void Close();
 

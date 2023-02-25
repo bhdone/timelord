@@ -293,7 +293,7 @@ void VdfClientSession::Start(SessionNotify ready_callback, SessionNotify finishe
     AsyncReadSomeNext();
 }
 
-void VdfClientSession::Stop()
+void VdfClientSession::StopAfterSeconds(int secs)
 {
     if (m_stopping) {
         return;
@@ -301,7 +301,7 @@ void VdfClientSession::Stop()
     m_stopping = true;
     // wait 5 seconds and close this session if it still exists
     auto timer = std::make_shared<asio::steady_timer>(m_ioc);
-    timer->expires_from_now(std::chrono::seconds(5));
+    timer->expires_from_now(std::chrono::seconds(secs));
     auto weak_self = std::weak_ptr<VdfClientSession>(shared_from_this());
     timer->async_wait([timer, weak_self](std::error_code const& ec) {
         if (ec) {
@@ -486,7 +486,7 @@ void VdfClientMan::StopByChallenge(uint256 const& challenge)
 {
     for (auto psession : m_session_vec) {
         if (psession->GetChallenge() == challenge) {
-            psession->Stop(); // TODO we need to ensure that the session is been deleted
+            psession->StopAfterSeconds(5);
         }
     }
 }
@@ -597,7 +597,7 @@ void VdfClientMan::StopAllSessions()
 {
     std::lock_guard<std::mutex> lg(m_session_mtx);
     for (VdfClientSessionPtr psession : m_session_vec) {
-        psession->Stop();
+        psession->StopAfterSeconds(60);
     }
 }
 
