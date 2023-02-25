@@ -16,6 +16,7 @@ namespace fs = std::filesystem;
 
 #include "common_types.h"
 
+#include "challenge_monitor.hpp"
 #include "front_end.hpp"
 #include "vdf_client_man.h"
 
@@ -68,7 +69,9 @@ inline void SendMsg_Status(fe::SessionPtr psession, uint256 const& challenge, ui
 class Timelord
 {
 public:
-    Timelord() : fe_(ioc_), vdf_client_man_(ioc_vdf_)
+    Timelord(std::string url, std::string cookie_path)
+            : challenge_monitor_(ioc_, url, cookie_path, 3, std::bind(&Timelord::HandleNewChallenge, this, _1))
+            , fe_(ioc_), vdf_client_man_(ioc_vdf_)
     {
         msg_dispatcher_.RegisterHandler(static_cast<int>(BhdMsgs::MSGID_BHD_CALC), std::bind(&Timelord::HandleMsg_Calc, this, _1, _2));
         msg_dispatcher_.RegisterHandler(static_cast<int>(BhdMsgs::MSGID_BHD_STOP), std::bind(&Timelord::HandleMsg_Stop, this, _1, _2));
@@ -86,6 +89,8 @@ public:
                 ioc_vdf_.run();
             });
             vdf_client_man_.Start(std::bind(&Timelord::HandleVdf_ProofIsReceived, this, _1, _2, _3, _4), vdf_client_path, vdf_client_addr, vdf_client_port);
+            // run challange monitor on main thread
+            challenge_monitor_.Start();
             // run front end on main thread
             fe_.Run(addr, port,
                     std::bind(&Timelord::HandleSessionConnected, this, _1),
@@ -93,6 +98,8 @@ public:
                     );
             PLOGI << "Timelord is running... listening " << addr << ":" << port;
             ioc_.run();
+            // exit
+            challenge_monitor_.Stop();
             vdf_client_man_.Stop();
             pthread->join();
         } catch (std::exception const& e) {
@@ -102,6 +109,10 @@ public:
     }
 
 private:
+    void HandleNewChallenge(uint256 const& new_challenge)
+    {
+    }
+
     void HandleSessionConnected(fe::SessionPtr psession)
     {
         SendMsg_Ready(psession);
@@ -184,6 +195,7 @@ private:
     asio::io_context ioc_;
     asio::io_context ioc_vdf_;
     fe::FrontEnd fe_;
+    ChallengeMonitor challenge_monitor_;
     fe::MessageDispatcher msg_dispatcher_;
     vdf_client::VdfClientMan vdf_client_man_;
 };

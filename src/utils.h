@@ -18,14 +18,6 @@ std::string Uint256ToHex(uint256 const& source);
 uint256 Uint256FromHex(std::string const& hex);
 
 template <size_t N>
-Bytes MakeBytes(std::array<uint8_t, N> const& val)
-{
-    Bytes res(N);
-    memcpy(res.data(), val.data(), N);
-    return res;
-}
-
-template <size_t N>
 std::array<uint8_t, N> MakeArray(Bytes const& val)
 {
     assert(val.size() == N);
