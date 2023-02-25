@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <gflags/gflags.h>
 
 #include <plog/Log.h>
 #include <plog/Init.h>
@@ -216,15 +215,41 @@ TEST_F(BaseServer, RunWith1Session_msg)
     Join();
 }
 
-DEFINE_bool(verbose, false, "Show debug logs");
+bool IsFlag(char const* sz_argv, char const* flag_name)
+{
+    int p{0};
+    int n = strlen(sz_argv);
+    if (n == 0 || sz_argv[0] != '-') {
+        return false;
+    }
+    for (; p < n; ++p) {
+        if (sz_argv[p] != '-') {
+            break;
+        }
+    }
+    return strcmp(sz_argv + p, flag_name) == 0;
+}
+
+void ParseCommandLineParams(int argc, char* argv[], bool& verbose)
+{
+    verbose = false;
+    for (int i = 1; i < argc; ++i) {
+        if (IsFlag(argv[i], "verbose")) {
+            verbose = true;
+            break;
+        }
+    }
+}
 
 int main(int argc, char* argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+    bool verbose;
+    ParseCommandLineParams(argc, argv, verbose);
 
     plog::ConsoleAppender<plog::TxtFormatter> console_appender;
-    plog::init(FLAGS_verbose ? plog::Severity::debug : plog::Severity::info, &console_appender);
+    plog::init(verbose ? plog::Severity::debug : plog::Severity::info, &console_appender);
 
     return RUN_ALL_TESTS();
 }

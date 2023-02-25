@@ -46,7 +46,7 @@ if (BUILD_TEST)
         )
     add_executable(timelord_test ${TEST_SRCS})
     target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src ./src)
-    target_link_libraries(timelord_test PRIVATE GTest::gtest asio::asio JsonCpp::JsonCpp fmt::fmt gflags::gflags)
+    target_link_libraries(timelord_test PRIVATE GTest::gtest asio::asio JsonCpp::JsonCpp fmt::fmt)
 
     enable_testing()
     add_test(NAME timelord_test COMMAND ./timelord_test)
