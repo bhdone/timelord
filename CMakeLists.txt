@@ -28,16 +28,22 @@ FetchContent_MakeAvailable(bhd_vdf gears)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(TIMELORD_SRCS
-    ./src/main.cpp
+set(TIMELORDLIB_SRCS
     ./src/utils.cpp
+    ./src/timelord.cpp
+    ./src/front_end.cpp
+    ./src/challenge_monitor.cpp
     ./src/vdf_client_man.cpp
     )
 
+set(TIMELORD_SRCS
+    ./src/main.cpp
+    ${TIMELORDLIB_SRCS}
+    )
+
 add_executable(timelord ${TIMELORD_SRCS})
-target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src ./src)
-target_link_libraries(
-    timelord PRIVATE
+target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
+target_link_libraries(timelord PRIVATE
     bhd_vdf
     gears
     cxxopts::cxxopts
@@ -49,13 +55,22 @@ target_link_libraries(
     )
 
 if (BUILD_TEST)
-    find_package(gflags CONFIG REQUIRED)
     set(TEST_SRCS
+        ${TIMELORDLIB_SRCS}
         ./src/test.cpp
         )
     add_executable(timelord_test ${TEST_SRCS})
-    target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src ./src)
-    target_link_libraries(timelord_test PRIVATE GTest::gtest asio::asio JsonCpp::JsonCpp fmt::fmt)
+    target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
+    target_link_libraries(timelord_test PRIVATE
+        bhd_vdf
+        gears
+        GTest::gtest
+        plog::plog
+        asio::asio
+        JsonCpp::JsonCpp
+        fmt::fmt
+        CURL::libcurl
+        )
 
     enable_testing()
     add_test(NAME timelord_test COMMAND ./timelord_test)

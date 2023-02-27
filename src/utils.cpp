@@ -12,10 +12,9 @@ VdfForm MakeZeroForm()
     return form;
 }
 
-template <typename Source, typename Dest>
-void SwitchByteOrder(Source& src, Dest& dst)
+template <typename Source, typename Dest> void SwitchByteOrder(Source& src, Dest& dst)
 {
-    int index{0};
+    int index { 0 };
     for (auto i = std::crbegin(src); i != std::crend(src); ++i) {
         dst[index++] = *i;
     }
@@ -23,7 +22,7 @@ void SwitchByteOrder(Source& src, Dest& dst)
 
 Bytes MakeBytes(uint256 const& source)
 {
-    Bytes res(256/8);
+    Bytes res(256 / 8);
     SwitchByteOrder(source, res);
     return res;
 }
@@ -48,7 +47,7 @@ std::string Uint256ToHex(uint256 const& source)
 
 uint256 Uint256FromHex(std::string const& hex)
 {
-    assert(hex.size() == 256/8 * 2);
+    assert(hex.size() == 256 / 8 * 2);
 
     uint256 res;
     auto bytes = BytesFromHex(hex);
@@ -64,9 +63,12 @@ Bytes StrToBytes(std::string str)
     return b;
 }
 
-char const hex_chars[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+char const hex_chars[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-char Byte4bToHexChar(uint8_t hex) { return hex_chars[hex]; }
+char Byte4bToHexChar(uint8_t hex)
+{
+    return hex_chars[hex];
+}
 
 uint8_t HexCharToByte4b(char ch)
 {
@@ -148,7 +150,10 @@ BytesConnector& BytesConnector::Connect(Bytes const& vchData)
     return *this;
 }
 
-Bytes const& BytesConnector::GetData() const { return m_vchData; }
+Bytes const& BytesConnector::GetData() const
+{
+    return m_vchData;
+}
 
 Bytes SubBytes(Bytes const& bytes, int start, int count)
 {
@@ -166,7 +171,7 @@ Bytes SubBytes(Bytes const& bytes, int start, int count)
 std::string FormatNumberStr(std::string const& num_str)
 {
     std::string res;
-    int c{0};
+    int c { 0 };
     for (auto i = num_str.rbegin(); i != num_str.rend(); ++i) {
         if (c == 3) {
             c = 1;

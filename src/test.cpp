@@ -1,21 +1,21 @@
 #include <gtest/gtest.h>
 
-#include <plog/Log.h>
-#include <plog/Init.h>
 #include <plog/Appenders/ConsoleAppender.h>
 #include <plog/Formatters/TxtFormatter.h>
+#include <plog/Init.h>
+#include <plog/Log.h>
 
-#include <functional>
-#include <thread>
-#include <mutex>
 #include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <thread>
 
 using std::placeholders::_1;
 using std::placeholders::_2;
 
 #include <plog/Log.h>
 
-#include "front_end.hpp"
+#include "front_end.h"
 #include "msg_ids.h"
 
 char const* SZ_LOCAL_ADDR = "127.0.0.1";
@@ -24,15 +24,15 @@ unsigned short LOCAL_PORT = 18181;
 class ClientThreadWrap
 {
 public:
-    ClientThreadWrap() : client_(ioc_) {}
+    ClientThreadWrap()
+        : client_(ioc_)
+    {
+    }
 
     void Start()
     {
-        client_.Connect(SZ_LOCAL_ADDR, LOCAL_PORT,
-                std::bind(&ClientThreadWrap::HandleConnect, this),
-                std::bind(&ClientThreadWrap::HandleMessage, this, _1),
-                std::bind(&ClientThreadWrap::HandleError, this, _1, _2),
-                std::bind(&ClientThreadWrap::HandleClose, this));
+        client_.Connect(SZ_LOCAL_ADDR, LOCAL_PORT, std::bind(&ClientThreadWrap::HandleConnect, this), std::bind(&ClientThreadWrap::HandleMessage, this, _1),
+                std::bind(&ClientThreadWrap::HandleError, this, _1, _2), std::bind(&ClientThreadWrap::HandleClose, this));
         pthread_ = std::make_unique<std::thread>(&ClientThreadWrap::ThreadProc, this);
     }
 
@@ -43,13 +43,15 @@ public:
 
     void SendMsg(Json::Value const& msg)
     {
-        asio::post(ioc_,
-                [this, msg]() {
-                    client_.SendMessage(msg);
-                });
+        asio::post(ioc_, [this, msg]() {
+            client_.SendMessage(msg);
+        });
     }
 
-    fe::Client& GetClient() { return client_; }
+    fe::Client& GetClient()
+    {
+        return client_;
+    }
 
     void SetConnHandler(fe::Client::ConnectionHandler conn_handler)
     {
@@ -120,7 +122,8 @@ private:
 class BaseServer : public testing::Test
 {
 public:
-    BaseServer() : fe_(ioc_)
+    BaseServer()
+        : fe_(ioc_)
     {
     }
 
@@ -128,8 +131,7 @@ protected:
     void SetUp() override
     {
         PLOGD << "Initializing";
-        fe_.Run(SZ_LOCAL_ADDR, LOCAL_PORT,
-                std::bind(&BaseServer::HandleSessionConnected, this, _1), std::bind(&BaseServer::HandleSessionMsg, this, _1, _2));
+        fe_.Run(SZ_LOCAL_ADDR, LOCAL_PORT, std::bind(&BaseServer::HandleSessionConnected, this, _1), std::bind(&BaseServer::HandleSessionMsg, this, _1, _2));
     }
 
     void TearDown() override
@@ -144,7 +146,9 @@ protected:
 
     void Run()
     {
-        pthread_ = std::make_unique<std::thread>([this]() { ioc_.run(); });
+        pthread_ = std::make_unique<std::thread>([this]() {
+            ioc_.run();
+        });
     }
 
     void Join()
@@ -176,34 +180,34 @@ TEST_F(BaseServer, RunWith1Session_msg)
 
     std::mutex m;
     std::condition_variable cv;
-    bool connected{false};
+    bool connected { false };
 
     ClientThreadWrap client_thread;
-    client_thread.SetConnHandler(
-            [&client_thread]() {
-                Json::Value msg;
-                msg["id"] = static_cast<Json::Int>(BhdMsgs::MSGID_BHD_PING);
-                msg["memo"] = "hello world!";
-                PLOGD << "Ping";
-                client_thread.GetClient().SendMessage(msg);
-            });
-    client_thread.SetMsgHandler(
-            [&m, &connected, &cv](Json::Value const& msg) {
-                auto id = msg["id"].asInt();
-                if (id == static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG)) {
-                    auto memo = msg["memo"].asString();
-                    PLOGD << "Pong: " << memo;
-                    {
-                        std::lock_guard<std::mutex> lg(m);
-                        connected = true;
-                    }
-                    cv.notify_one();
-                }
-            });
+    client_thread.SetConnHandler([&client_thread]() {
+        Json::Value msg;
+        msg["id"] = static_cast<Json::Int>(BhdMsgs::MSGID_BHD_PING);
+        msg["memo"] = "hello world!";
+        PLOGD << "Ping";
+        client_thread.GetClient().SendMessage(msg);
+    });
+    client_thread.SetMsgHandler([&m, &connected, &cv](Json::Value const& msg) {
+        auto id = msg["id"].asInt();
+        if (id == static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG)) {
+            auto memo = msg["memo"].asString();
+            PLOGD << "Pong: " << memo;
+            {
+                std::lock_guard<std::mutex> lg(m);
+                connected = true;
+            }
+            cv.notify_one();
+        }
+    });
     client_thread.Start();
 
     std::unique_lock<std::mutex> lk(m);
-    cv.wait(lk, [&connected]() { return connected; });
+    cv.wait(lk, [&connected]() {
+        return connected;
+    });
 
     // sending exit
     client_thread.GetClient().SendShutdown();
@@ -217,7 +221,7 @@ TEST_F(BaseServer, RunWith1Session_msg)
 
 bool IsFlag(char const* sz_argv, char const* flag_name)
 {
-    int p{0};
+    int p { 0 };
     int n = strlen(sz_argv);
     if (n == 0 || sz_argv[0] != '-') {
         return false;

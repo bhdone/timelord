@@ -3,16 +3,16 @@
 
 #include <spawn.h>
 
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>
-#include <memory>
 #include <map>
-#include <vector>
-#include <array>
+#include <memory>
 #include <set>
+#include <vector>
 
 #include <string>
 #include <string_view>
@@ -28,21 +28,34 @@ namespace vdf_client
 class VdfClientProc
 {
 public:
-    VdfClientProc(std::string vdf_client_path, std::string hostname, uint16_t port);
+    VdfClientProc(std::string vdf_client_path, std::string addr, unsigned short port);
 
-    void NewProc();
+    void NewProc(uint256 const& challenge);
 
-    int RemoveDeadChildren();
+    void KillByChallenge(uint256 const& challenge);
 
-    void Wait();
+    void KillAll();
 
-    int GetCount() const { return m_children.size(); }
+    std::string const& GetAddress() const
+    {
+        return addr_;
+    }
+
+    unsigned short GetPort() const
+    {
+        return port_;
+    }
+
+    std::size_t GetCount() const
+    {
+        return pids_.size();
+    }
 
 private:
-    std::string m_vdf_client_path;
-    std::string m_hostname;
-    uint16_t m_port;
-    std::vector<pid_t> m_children;
+    std::string vdf_client_path_;
+    std::string addr_;
+    unsigned short port_;
+    std::map<uint256, pid_t> pids_;
 };
 
 class SocketWriter
@@ -56,29 +69,28 @@ private:
     void DoWriteNext();
 
 private:
-    std::deque<Bytes> m_buffs;
-    tcp::socket& m_s;
+    std::deque<Bytes> buff_deq_;
+    tcp::socket& s_;
 };
 
-struct Command
-{
+struct Command {
     enum class CommandType { UNKNOWN, OK, STOP, PROOF };
 
-    CommandType type{CommandType::UNKNOWN};
+    CommandType type { CommandType::UNKNOWN };
     std::string body;
-    std::size_t consumed{0};
+    std::size_t consumed { 0 };
 
     static std::string CommandTypeToString(CommandType type)
     {
         switch (type) {
-            case CommandType::UNKNOWN:
-                return "UNKNOWN";
-            case CommandType::OK:
-                return "OK";
-            case CommandType::STOP:
-                return "STOP";
-            case CommandType::PROOF:
-                return "PROOF";
+        case CommandType::UNKNOWN:
+            return "UNKNOWN";
+        case CommandType::OK:
+            return "OK";
+        case CommandType::STOP:
+            return "STOP";
+        case CommandType::PROOF:
+            return "PROOF";
         }
         return "(error-command-type)";
     }
@@ -86,18 +98,11 @@ struct Command
 
 using CommandAnalyzer = std::function<Command(Bytes const&)>;
 
-struct Proof
-{
-    Bytes y;
-    Bytes proof;
-    uint8_t witness_type;
-};
-
-using ProofReceiver = std::function<void(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge)>;
-
 class VdfClientSession;
 using VdfClientSessionPtr = std::shared_ptr<VdfClientSession>;
+
 using SessionNotify = std::function<void(VdfClientSessionPtr)>;
+using ProofReceiver = std::function<void(uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration)>;
 
 enum class TimeType { S, N, T };
 
@@ -106,21 +111,32 @@ std::string TimeTypeToString(TimeType type);
 class VdfClientSession : public std::enable_shared_from_this<VdfClientSession>
 {
 public:
-    VdfClientSession(asio::io_context& ioc, tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer);
+    enum Status { INIT, READY, STOPPING };
 
-    void Start(SessionNotify ready_callback, SessionNotify finished_callback, ProofReceiver receiver);
+    VdfClientSession(tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer);
 
-    void StopAfterSeconds(int secs);
+    void SetReadyHandler(SessionNotify ready_handler);
 
-    void Close();
+    void SetFinishedHandler(SessionNotify finished_handler);
 
-    bool IsStopping() const;
+    void SetProofReceiver(ProofReceiver proof_handler);
+
+    void Start();
+
+    void Stop(std::function<void()> callback = []() {});
 
     void CalcIters(uint64_t iters);
 
     uint256 const& GetChallenge() const;
 
+    Status GetStatus() const
+    {
+        return status_;
+    }
+
 private:
+    void Close();
+
     uint64_t GetCurrDuration() const;
 
     void AsyncReadSomeNext();
@@ -138,83 +154,50 @@ private:
     void SendStrCmd(std::string const& cmd);
 
 private:
-    asio::io_context& m_ioc;
-    tcp::socket m_socket;
-    uint256 m_challenge;
-    TimeType m_time_type;
-    std::chrono::system_clock::time_point m_start_time;
-    CommandAnalyzer m_cmd_analyzer;
-    SessionNotify m_ready_callback;
-    SessionNotify m_finished_callback;
-    ProofReceiver m_proof_receiver;
-    SocketWriter m_writer;
-    Bytes m_temp;
-    Bytes m_recv;
-    std::vector<uint64_t> m_saved_iters;
-    std::mutex m_saved_iters_mtx;
-    std::atomic_bool m_ready{false};
-    std::atomic_bool m_stopping{false};
+    tcp::socket s_;
+    Bytes rd_;
+    SocketWriter wr_;
+
+    uint256 challenge_;
+    TimeType time_type_;
+
+    std::atomic<Status> status_ { Status::INIT };
+    std::chrono::system_clock::time_point start_time_;
+
+    CommandAnalyzer cmd_analyzer_;
+    SessionNotify ready_handler_;
+    SessionNotify finished_handler_;
+    ProofReceiver proof_receiver_;
 };
 
 class VdfClientMan
 {
 public:
-    struct ProofRecord
-    {
-        Proof proof;
-        uint64_t iters;
-        uint64_t duration;
-        uint256 challenge;
-    };
+    explicit VdfClientMan(asio::io_context& ioc, TimeType type, std::string vdf_client_path, std::string addr, unsigned short port);
 
-    explicit VdfClientMan(asio::io_context& ioc);
+    void SetProofReceiver(ProofReceiver handler);
 
-    void Start(ProofReceiver receiver, std::string_view vdf_client_path, std::string_view hostname, uint16_t port);
+    void Start();
 
     void StopByChallenge(uint256 const& challenge);
 
     void Stop();
 
-    void GoChallenge(uint256 challenge, TimeType time_type, SessionNotify session_is_ready_callback);
-
-    uint256 const& GetCurrentChallenge() const;
-
-    bool QueryIters(uint256 const& challenge, uint64_t iters, ProofRecord& out);
-
-    void CalcIters(uint256 const& challenge, uint64_t iters);
-
-    void Wait();
-
-    std::map<uint256, std::vector<ProofRecord>> const& GetCachedProofs() const { return m_cached_proofs; }
-
-    std::set<uint256> GetRunningChallenges() const;
+    void CalcIters(uint256 challenge, uint64_t iters);
 
 private:
     void AcceptNext();
 
-    void StopAllSessions();
-
-    void HandleSessionIsFinished(VdfClientSessionPtr psession);
-
-    void HandleProof(Proof const& proof, uint64_t iters, uint64_t duration, uint256 challenge);
-
 private:
-    asio::io_context& m_ioc;
-    tcp::acceptor m_acceptor;
-    uint256 m_challenge;
-    TimeType m_time_type;
-    std::string m_hostname;
-    uint16_t m_port;
-    SessionNotify m_session_is_ready_callback;
-    ProofReceiver m_receiver;
-    std::vector<VdfClientSessionPtr> m_session_vec;
-    std::mutex m_session_mtx;
-    std::unique_ptr<VdfClientProc> m_proc_man;
-    bool m_exiting{false};
-    std::mutex m_cached_proofs_mtx;
-    std::map<uint256, std::vector<ProofRecord>> m_cached_proofs;
+    VdfClientProc proc_man_;
+    asio::io_context& ioc_;
+    tcp::acceptor acceptor_;
+    TimeType time_type_;
+    std::set<VdfClientSessionPtr> session_set_;
+    uint256 curr_challenge_;
+    ProofReceiver proof_receiver_;
 };
 
-}  // namespace vdf_client
+} // namespace vdf_client
 
 #endif

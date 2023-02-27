@@ -17,8 +17,7 @@ std::string Uint256ToHex(uint256 const& source);
 
 uint256 Uint256FromHex(std::string const& hex);
 
-template <size_t N>
-std::array<uint8_t, N> MakeArray(Bytes const& val)
+template <size_t N> std::array<uint8_t, N> MakeArray(Bytes const& val)
 {
     assert(val.size() == N);
     std::array<uint8_t, N> res;
@@ -32,11 +31,11 @@ std::string BytesToHex(Bytes const& bytes);
 
 Bytes BytesFromHex(std::string hex);
 
-class BytesConnector {
-    static void ConnectBytesList(BytesConnector& connector) {}
+class BytesConnector
+{
+    static void ConnectBytesList(BytesConnector& connector) { }
 
-    template <typename T, typename... Ts>
-    static void ConnectBytesList(BytesConnector& connector, T const& data, Ts&&... rest)
+    template <typename T, typename... Ts> static void ConnectBytesList(BytesConnector& connector, T const& data, Ts&&... rest)
     {
         connector.Connect(data);
         ConnectBytesList(connector, std::forward<Ts>(rest)...);
@@ -45,8 +44,7 @@ class BytesConnector {
 public:
     BytesConnector& Connect(Bytes const& data);
 
-    template <size_t N>
-    BytesConnector& Connect(std::array<uint8_t, N> const& data)
+    template <size_t N> BytesConnector& Connect(std::array<uint8_t, N> const& data)
     {
         size_t nOffset = m_vchData.size();
         m_vchData.resize(nOffset + data.size());
@@ -54,8 +52,7 @@ public:
         return *this;
     }
 
-    template <typename T>
-    BytesConnector& Connect(T const& val)
+    template <typename T> BytesConnector& Connect(T const& val)
     {
         static_assert(std::is_integral<T>::value, "Connect with only buffer/number types");
         std::array<uint8_t, sizeof(T)> data;
@@ -66,8 +63,7 @@ public:
 
     Bytes const& GetData() const;
 
-    template <typename... T>
-    static Bytes Connect(T&&... dataList)
+    template <typename... T> static Bytes Connect(T&&... dataList)
     {
         BytesConnector connector;
         ConnectBytesList(connector, std::forward<T>(dataList)...);
