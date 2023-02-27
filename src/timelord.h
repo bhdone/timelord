@@ -18,7 +18,7 @@
 #include "vdf_client_man.h"
 
 #include "msg_ids.h"
-#include "utils.h"
+#include "timelord_utils.h"
 
 class Timelord
 {
@@ -28,9 +28,11 @@ class Timelord
     };
 
 public:
-    Timelord(std::string url, std::string cookie_path, std::string vdf_client_path, std::string vdf_client_addr, unsigned short vdf_client_port);
+    Timelord(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port);
 
-    int Run(std::string_view addr, unsigned short port);
+    void Run(std::string_view addr, unsigned short port);
+
+    void Exit();
 
 private:
     void StartNewChallengeCalculation(uint256 const& challenge, uint64_t iters);
@@ -43,9 +45,8 @@ private:
 
     void HandleMsg_Calc(fe::SessionPtr psession, Json::Value const& msg);
 
-    asio::io_context ioc_;
-    asio::io_context ioc_vdf_;
-    fe::FrontEnd fe_;
+    asio::io_context& ioc_;
+    fe::FrontEnd frontend_;
     std::map<uint256, std::vector<ChallengeRequest>> challenge_reqs_;
     ChallengeMonitor challenge_monitor_;
     fe::MessageDispatcher msg_dispatcher_;
@@ -61,7 +62,7 @@ public:
 
     using ProofHandler = std::function<void(uint256 const& challenge, Bytes const& y, Bytes const& proof, int witness_type, uint64_t iters, int duration)>;
 
-    TimelordClient();
+    explicit TimelordClient(asio::io_context& ioc);
 
     void SetConnectHandler(ConnectHandler conn_handler);
 
@@ -71,9 +72,11 @@ public:
 
     void Calc(uint256 const& challenge, uint64_t iters);
 
-    void Shutdown();
+    void Connect(std::string_view host, unsigned short port);
 
-    int Run(std::string_view host, unsigned short port);
+    void Exit();
+
+    void RequestServiceShutdown();
 
 private:
     void HandleConnect();
@@ -84,7 +87,7 @@ private:
 
     void HandleClose();
 
-    asio::io_context ioc_;
+    asio::io_context& ioc_;
     fe::Client client_;
     std::unique_ptr<std::thread> pthread_;
     std::map<int, MessageHandler> msg_handlers_;

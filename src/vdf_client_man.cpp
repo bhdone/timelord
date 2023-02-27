@@ -19,6 +19,7 @@
 #include "vdf_utils.h"
 
 #include "utils.h"
+#include "timelord_utils.h"
 
 namespace vdf_client
 {
@@ -494,8 +495,8 @@ void VdfClientSession::SendStrCmd(std::string const& cmd)
     wr_.AsyncWrite(std::move(buf));
 }
 
-VdfClientMan::VdfClientMan(asio::io_context& ioc, TimeType type, std::string vdf_client_path, std::string addr, unsigned short port)
-    : proc_man_(std::move(vdf_client_path), std::move(addr), port)
+VdfClientMan::VdfClientMan(asio::io_context& ioc, TimeType type, std::string_view vdf_client_path, std::string_view addr, unsigned short port)
+    : proc_man_(std::string(vdf_client_path), std::string(addr), port)
     , ioc_(ioc)
     , acceptor_(ioc)
     , time_type_(type)
@@ -507,7 +508,7 @@ void VdfClientMan::SetProofReceiver(ProofReceiver handler)
     proof_receiver_ = std::move(handler);
 }
 
-void VdfClientMan::Start()
+void VdfClientMan::Run()
 {
     tcp::endpoint endpoint(asio::ip::address::from_string(proc_man_.GetAddress()), proc_man_.GetPort());
     acceptor_.open(endpoint.protocol());
@@ -531,7 +532,7 @@ void VdfClientMan::StopByChallenge(uint256 const& challenge)
     });
 }
 
-void VdfClientMan::Stop()
+void VdfClientMan::Shutdown()
 {
     // Tell all client to stop
     PLOGD << "stopping... total " << session_set_.size() << " session(s)";

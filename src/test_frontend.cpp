@@ -17,6 +17,7 @@ using std::placeholders::_2;
 
 #include "front_end.h"
 #include "msg_ids.h"
+#include "test_utils.h"
 
 char const* SZ_LOCAL_ADDR = "127.0.0.1";
 unsigned short LOCAL_PORT = 18181;
@@ -31,8 +32,11 @@ public:
 
     void Start()
     {
-        client_.Connect(SZ_LOCAL_ADDR, LOCAL_PORT, std::bind(&ClientThreadWrap::HandleConnect, this), std::bind(&ClientThreadWrap::HandleMessage, this, _1),
-                std::bind(&ClientThreadWrap::HandleError, this, _1, _2), std::bind(&ClientThreadWrap::HandleClose, this));
+        client_.SetConnectionHandler(std::bind(&ClientThreadWrap::HandleConnect, this));
+        client_.SetMessageHandler(std::bind(&ClientThreadWrap::HandleMessage, this, _1));
+        client_.SetCloseHandler(std::bind(&ClientThreadWrap::HandleClose, this));
+        client_.SetErrorHandler(std::bind(&ClientThreadWrap::HandleError, this, _1, _2));
+        client_.Connect(SZ_LOCAL_ADDR, LOCAL_PORT);
         pthread_ = std::make_unique<std::thread>(&ClientThreadWrap::ThreadProc, this);
     }
 
@@ -123,7 +127,7 @@ class BaseServer : public testing::Test
 {
 public:
     BaseServer()
-        : fe_(ioc_)
+        : frontend_(ioc_)
     {
     }
 
@@ -131,7 +135,9 @@ protected:
     void SetUp() override
     {
         PLOGD << "Initializing";
-        fe_.Run(SZ_LOCAL_ADDR, LOCAL_PORT, std::bind(&BaseServer::HandleSessionConnected, this, _1), std::bind(&BaseServer::HandleSessionMsg, this, _1, _2));
+        frontend_.SetConnectionHandler(std::bind(&BaseServer::HandleSessionConnected, this, _1));
+        frontend_.SetMsgReceiver(std::bind(&BaseServer::HandleSessionMsg, this, _1, _2));
+        frontend_.Run(SZ_LOCAL_ADDR, LOCAL_PORT);
     }
 
     void TearDown() override
@@ -141,7 +147,7 @@ protected:
 
     std::size_t GetNumOfSessions() const
     {
-        return fe_.GetNumOfSessions();
+        return frontend_.GetNumOfSessions();
     }
 
     void Run()
@@ -170,7 +176,7 @@ private:
     }
 
     asio::io_context ioc_;
-    fe::FrontEnd fe_;
+    fe::FrontEnd frontend_;
     std::unique_ptr<std::thread> pthread_;
 };
 
@@ -217,32 +223,6 @@ TEST_F(BaseServer, RunWith1Session_msg)
     PLOGD << "exiting...";
     client_thread.Join();
     Join();
-}
-
-bool IsFlag(char const* sz_argv, char const* flag_name)
-{
-    int p { 0 };
-    int n = strlen(sz_argv);
-    if (n == 0 || sz_argv[0] != '-') {
-        return false;
-    }
-    for (; p < n; ++p) {
-        if (sz_argv[p] != '-') {
-            break;
-        }
-    }
-    return strcmp(sz_argv + p, flag_name) == 0;
-}
-
-void ParseCommandLineParams(int argc, char* argv[], bool& verbose)
-{
-    verbose = false;
-    for (int i = 1; i < argc; ++i) {
-        if (IsFlag(argv[i], "verbose")) {
-            verbose = true;
-            break;
-        }
-    }
 }
 
 int main(int argc, char* argv[])

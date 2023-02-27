@@ -173,15 +173,15 @@ private:
 class VdfClientMan
 {
 public:
-    explicit VdfClientMan(asio::io_context& ioc, TimeType type, std::string vdf_client_path, std::string addr, unsigned short port);
+    explicit VdfClientMan(asio::io_context& ioc, TimeType type, std::string_view vdf_client_path, std::string_view addr, unsigned short port);
 
     void SetProofReceiver(ProofReceiver handler);
 
-    void Start();
+    void Run();
 
     void StopByChallenge(uint256 const& challenge);
 
-    void Stop();
+    void Shutdown();
 
     void CalcIters(uint256 challenge, uint64_t iters);
 

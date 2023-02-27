@@ -29,7 +29,7 @@ FetchContent_MakeAvailable(bhd_vdf gears)
 set(CMAKE_CXX_STANDARD 17)
 
 set(TIMELORDLIB_SRCS
-    ./src/utils.cpp
+    ./src/timelord_utils.cpp
     ./src/timelord.cpp
     ./src/front_end.cpp
     ./src/challenge_monitor.cpp
@@ -55,23 +55,28 @@ target_link_libraries(timelord PRIVATE
     )
 
 if (BUILD_TEST)
-    set(TEST_SRCS
-        ${TIMELORDLIB_SRCS}
-        ./src/test.cpp
-        )
-    add_executable(timelord_test ${TEST_SRCS})
-    target_include_directories(timelord_test PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
-    target_link_libraries(timelord_test PRIVATE
-        bhd_vdf
-        gears
-        GTest::gtest
-        plog::plog
-        asio::asio
-        JsonCpp::JsonCpp
-        fmt::fmt
-        CURL::libcurl
-        )
+    function(MakeTest TEST_TARGET_NAME)
+        set(TEST_SRCS
+            ${TIMELORDLIB_SRCS}
+            ./src/test_utils.cpp
+            ./src/${TEST_TARGET_NAME}.cpp
+            )
+        add_executable(${TEST_TARGET_NAME} ${TEST_SRCS})
+        target_include_directories(${TEST_TARGET_NAME} PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
+        target_link_libraries(${TEST_TARGET_NAME} PRIVATE
+            bhd_vdf
+            gears
+            GTest::gtest
+            plog::plog
+            asio::asio
+            JsonCpp::JsonCpp
+            fmt::fmt
+            CURL::libcurl
+            )
+        add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
+    endfunction()
 
     enable_testing()
-    add_test(NAME timelord_test COMMAND ./timelord_test)
+    MakeTest(test_frontend)
+    MakeTest(test_timelord)
 endif()

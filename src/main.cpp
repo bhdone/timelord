@@ -44,6 +44,9 @@ int main(int argc, char* argv[])
     std::string url = parse_result["rpc"].as<std::string>();
     std::string cookie_path = parse_result["cookie"].as<std::string>();
 
-    Timelord timelord(url, cookie_path, std::move(vdf_client_path), std::move(vdf_client_addr), vdf_client_port);
-    return timelord.Run(addr, port);
+    asio::io_context ioc;
+    Timelord timelord(ioc, url, cookie_path, std::move(vdf_client_path), std::move(vdf_client_addr), vdf_client_port);
+    timelord.Run(addr, port);
+    ioc.run();
+    PLOGD << "exit.";
 }

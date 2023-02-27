@@ -31,7 +31,7 @@ enum class ErrorType { CONNECT, READ, WRITE, CLOSE, PARSE, SHUTDOWN };
 using ErrorHandler = std::function<void(ErrorType type, std::string_view errs)>;
 using MessageReceiver = std::function<void(Json::Value const& msg)>;
 
-using SessionConnectedHandler = std::function<void(SessionPtr psession)>;
+using SessionConnectionHandler = std::function<void(SessionPtr psession)>;
 using SessionErrorHandler = std::function<void(SessionPtr psession, ErrorType type, std::string_view errs)>;
 using SessionMessageReceiver = std::function<void(SessionPtr psession, Json::Value const& msg)>;
 
@@ -59,13 +59,15 @@ public:
 
     ~Session();
 
-    void Start(MessageReceiver msg_receiver);
+    void SetMsgReceiver(MessageReceiver receiver);
+
+    void SetErrorHandler(ErrorHandler err_handler);
+
+    void Start();
 
     void SendMessage(Json::Value const& value);
 
-    void Close();
-
-    void SetErrorHandler(ErrorHandler err_handler);
+    void Stop();
 
 private:
     void DoSendNext();
@@ -85,20 +87,25 @@ class FrontEnd
 public:
     explicit FrontEnd(asio::io_context& ioc);
 
-    void Run(std::string_view addr, unsigned short port, SessionConnectedHandler connected_handler, SessionMessageReceiver session_msg_receiver);
+    void Run(std::string_view addr, unsigned short port);
 
-    void Close();
+    void Exit();
+
+    void SetConnectionHandler(SessionConnectionHandler conn_handler);
+
+    void SetMsgReceiver(SessionMessageReceiver receiver);
 
     void SetErrorHandler(SessionErrorHandler err_handler);
 
     std::size_t GetNumOfSessions() const;
 
+private:
     void DoAcceptNext();
 
     tcp::acceptor acceptor_;
     std::vector<SessionPtr> session_vec_;
-    SessionConnectedHandler connected_handler_;
-    SessionMessageReceiver session_msg_receiver_;
+    SessionConnectionHandler conn_handler_;
+    SessionMessageReceiver msg_receiver_;
     SessionErrorHandler err_handler_;
 };
 
@@ -112,13 +119,21 @@ public:
 
     explicit Client(asio::io_context& ioc);
 
-    void Connect(std::string_view host, unsigned short port, ConnectionHandler conn_handler, MessageHandler msg_handler, ErrorHandler err_handler, CloseHandler close_handler);
+    void SetConnectionHandler(ConnectionHandler conn_handler);
+
+    void SetMessageHandler(MessageHandler msg_handler);
+
+    void SetErrorHandler(ErrorHandler err_handler);
+
+    void SetCloseHandler(CloseHandler close_handler);
+
+    void Connect(std::string_view host, unsigned short port);
 
     void SendMessage(Json::Value const& msg);
 
     void SendShutdown();
 
-    void Close();
+    void Exit();
 
 private:
     void DoReadNext();

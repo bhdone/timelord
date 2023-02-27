@@ -11,7 +11,7 @@
 #include <plog/Log.h>
 
 #include "common_types.h"
-#include "utils.h"
+#include "timelord_utils.h"
 
 #include <rpc_client.h>
 
@@ -20,15 +20,19 @@ class ChallengeMonitor
 public:
     using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge)>;
 
-    ChallengeMonitor(asio::io_context& ioc, std::string url, std::string cookie_path, int interval_seconds, NewChallengeHandler handler);
+    ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, int interval_seconds);
 
-    void Start();
+    void SetNewChallengeHandler(NewChallengeHandler handler);
 
-    void Stop();
+    void Run();
+
+    void Shutdown();
 
     void QueryChallenge();
 
 private:
+    void DoQueryNext();
+
     asio::io_context& ioc_;
     asio::steady_timer timer_;
     RPCClient rpc_;

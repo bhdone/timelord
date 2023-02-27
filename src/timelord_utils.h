@@ -27,8 +27,6 @@ template <size_t N> std::array<uint8_t, N> MakeArray(Bytes const& val)
 
 uint256 MakeUint256(Bytes const& vchBytes);
 
-std::string BytesToHex(Bytes const& bytes);
-
 Bytes BytesFromHex(std::string hex);
 
 class BytesConnector
@@ -56,7 +54,6 @@ public:
     {
         static_assert(std::is_integral<T>::value, "Connect with only buffer/number types");
         std::array<uint8_t, sizeof(T)> data;
-        // TODO matthew: maybe we need to consider the byte order here
         memcpy(data.data(), &val, sizeof(T));
         return Connect(data);
     }

@@ -1,8 +1,10 @@
-#include "utils.h"
+#include "timelord_utils.h"
 
 #include <cstring>
 
 #include <sstream>
+
+#include "utils.h"
 
 VdfForm MakeZeroForm()
 {
@@ -34,8 +36,6 @@ uint256 MakeUint256(Bytes const& bytes)
     return res;
 }
 
-std::string ByteToHex(uint8_t byte);
-
 std::string Uint256ToHex(uint256 const& source)
 {
     std::stringstream ss;
@@ -63,13 +63,6 @@ Bytes StrToBytes(std::string str)
     return b;
 }
 
-char const hex_chars[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-char Byte4bToHexChar(uint8_t hex)
-{
-    return hex_chars[hex];
-}
-
 uint8_t HexCharToByte4b(char ch)
 {
     if (ch >= 'A' && ch <= 'F') {
@@ -85,16 +78,6 @@ uint8_t HexCharToByte4b(char ch)
     std::stringstream err_ss;
     err_ss << "invalid hex character (" << static_cast<int>(ch) << ") in order to convert into number";
     throw std::runtime_error(err_ss.str());
-}
-
-std::string ByteToHex(uint8_t byte)
-{
-    std::string hex(2, '0');
-    uint8_t hi = (byte & 0xf0) >> 4;
-    uint8_t lo = byte & 0x0f;
-    hex[0] = Byte4bToHexChar(hi);
-    hex[1] = Byte4bToHexChar(lo);
-    return hex;
 }
 
 uint8_t ByteFromHex(std::string const& hex, int* consumed)
@@ -117,15 +100,6 @@ uint8_t ByteFromHex(std::string const& hex, int* consumed)
         *consumed = 2;
     }
     return byte;
-}
-
-std::string BytesToHex(Bytes const& bytes)
-{
-    std::stringstream ss;
-    for (uint8_t byte : bytes) {
-        ss << ByteToHex(byte);
-    }
-    return ss.str();
 }
 
 Bytes BytesFromHex(std::string hex)

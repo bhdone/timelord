@@ -55,9 +55,18 @@ Session::~Session()
     PLOGD << "Session " << AddressToString(this) << " is going to be released";
 }
 
-void Session::Start(MessageReceiver msg_receiver)
+void Session::SetMsgReceiver(MessageReceiver receiver)
 {
-    msg_receiver_ = std::move(msg_receiver);
+    msg_receiver_ = std::move(receiver);
+}
+
+void Session::SetErrorHandler(ErrorHandler err_handler)
+{
+    err_handler_ = std::move(err_handler);
+}
+
+void Session::Start()
+{
     DoReadNext();
 }
 
@@ -70,17 +79,12 @@ void Session::SendMessage(Json::Value const& value)
     }
 }
 
-void Session::Close()
+void Session::Stop()
 {
     std::error_code ignored_ec;
     s_.shutdown(tcp::socket::shutdown_both, ignored_ec);
     s_.close(ignored_ec);
     PLOGD << "Session " << AddressToString(this) << " is closed";
-}
-
-void Session::SetErrorHandler(ErrorHandler err_handler)
-{
-    err_handler_ = std::move(err_handler);
 }
 
 void Session::DoSendNext()
@@ -161,10 +165,8 @@ FrontEnd::FrontEnd(asio::io_context& ioc)
 {
 }
 
-void FrontEnd::Run(std::string_view addr, unsigned short port, SessionConnectedHandler connected_handler, SessionMessageReceiver session_msg_receiver)
+void FrontEnd::Run(std::string_view addr, unsigned short port)
 {
-    connected_handler_ = std::move(connected_handler);
-    session_msg_receiver_ = std::move(session_msg_receiver);
     // prepare to listen
     tcp::endpoint endpoint(asio::ip::address::from_string(std::string(addr)), port);
     acceptor_.open(endpoint.protocol());
@@ -175,15 +177,25 @@ void FrontEnd::Run(std::string_view addr, unsigned short port, SessionConnectedH
     DoAcceptNext();
 }
 
-void FrontEnd::Close()
+void FrontEnd::Exit()
 {
     for (auto psession : session_vec_) {
-        psession->Close();
+        psession->Stop();
     }
     session_vec_.clear();
     std::error_code ignored_ec;
     acceptor_.cancel(ignored_ec);
     acceptor_.close(ignored_ec);
+}
+
+void FrontEnd::SetConnectionHandler(SessionConnectionHandler conn_handler)
+{
+    conn_handler_ = std::move(conn_handler);
+}
+
+void FrontEnd::SetMsgReceiver(SessionMessageReceiver receiver)
+{
+    msg_receiver_ = std::move(receiver);
 }
 
 void FrontEnd::SetErrorHandler(SessionErrorHandler err_handler)
@@ -211,7 +223,7 @@ void FrontEnd::DoAcceptNext()
         psession->SetErrorHandler([this, pweak_session = std::weak_ptr(psession)](ErrorType type, std::string_view errs) {
             if (type == ErrorType::SHUTDOWN) {
                 // shutdown the service
-                Close();
+                Exit();
             } else if (err_handler_) {
                 auto psession = pweak_session.lock();
                 if (psession) {
@@ -219,14 +231,15 @@ void FrontEnd::DoAcceptNext()
                 }
             }
         });
-        psession->Start([this, pweak_session = std::weak_ptr(psession)](Json::Value const& msg) {
+        psession->SetMsgReceiver([this, pweak_session = std::weak_ptr(psession)](Json::Value const& msg) {
             auto psession = pweak_session.lock();
             if (psession) {
-                session_msg_receiver_(psession, msg);
+                msg_receiver_(psession, msg);
             }
         });
+        psession->Start();
         session_vec_.push_back(psession);
-        connected_handler_(psession);
+        conn_handler_(psession);
     });
 }
 
@@ -235,12 +248,28 @@ Client::Client(asio::io_context& ioc)
 {
 }
 
-void Client::Connect(std::string_view host, unsigned short port, ConnectionHandler conn_handler, MessageHandler msg_handler, ErrorHandler err_handler, CloseHandler close_handler)
+void Client::SetConnectionHandler(ConnectionHandler conn_handler)
 {
     conn_handler_ = std::move(conn_handler);
+}
+
+void Client::SetMessageHandler(MessageHandler msg_handler)
+{
     msg_handler_ = std::move(msg_handler);
+}
+
+void Client::SetErrorHandler(ErrorHandler err_handler)
+{
     err_handler_ = std::move(err_handler);
+}
+
+void Client::SetCloseHandler(CloseHandler close_handler)
+{
     close_handler_ = std::move(close_handler);
+}
+
+void Client::Connect(std::string_view host, unsigned short port)
+{
     // solve the address
     tcp::resolver r(ioc_);
     try {
@@ -290,7 +319,7 @@ void Client::SendShutdown()
     }
 }
 
-void Client::Close()
+void Client::Exit()
 {
     if (ps_) {
         std::error_code ignored_ec;
@@ -310,7 +339,7 @@ void Client::DoReadNext()
                 PLOGE << ec.message();
                 err_handler_(ErrorType::READ, ec.message());
             }
-            Close();
+            Exit();
             return;
         }
         std::istreambuf_iterator<char> begin(&read_buf_), end;
@@ -336,7 +365,7 @@ void Client::DoSendNext()
     asio::async_write(*ps_, asio::buffer(send_buf_), [this](std::error_code const& ec, std::size_t bytes) {
         if (ec) {
             err_handler_(ErrorType::WRITE, ec.message());
-            Close();
+            Exit();
             return;
         }
         sending_msgs_.pop_front();
