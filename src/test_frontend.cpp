@@ -1,10 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <plog/Appenders/ConsoleAppender.h>
-#include <plog/Formatters/TxtFormatter.h>
-#include <plog/Init.h>
-#include <plog/Log.h>
-
 #include <condition_variable>
 #include <functional>
 #include <mutex>
@@ -12,8 +7,6 @@
 
 using std::placeholders::_1;
 using std::placeholders::_2;
-
-#include <plog/Log.h>
 
 #include "front_end.h"
 #include "msg_ids.h"
@@ -223,17 +216,4 @@ TEST_F(BaseServer, RunWith1Session_msg)
     PLOGD << "exiting...";
     client_thread.Join();
     Join();
-}
-
-int main(int argc, char* argv[])
-{
-    ::testing::InitGoogleTest(&argc, argv);
-
-    bool verbose;
-    ParseCommandLineParams(argc, argv, verbose);
-
-    plog::ConsoleAppender<plog::TxtFormatter> console_appender;
-    plog::init(verbose ? plog::Severity::debug : plog::Severity::info, &console_appender);
-
-    return RUN_ALL_TESTS();
 }

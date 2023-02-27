@@ -1,12 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <plog/Appenders/ConsoleAppender.h>
-#include <plog/Formatters/TxtFormatter.h>
-#include <plog/Init.h>
-#include <plog/Log.h>
-
-#include "test_utils.h"
-
 #include "timelord.h"
 #include "utils.h"
 
@@ -41,18 +34,3 @@ private:
 };
 
 TEST_F(TimelordTest, baseTest) { }
-
-int main(int argc, char* argv[])
-{
-    ::testing::InitGoogleTest(&argc, argv);
-
-    bool verbose;
-    ParseCommandLineParams(argc, argv, verbose);
-
-    plog::ConsoleAppender<plog::TxtFormatter> appender;
-    plog::init(verbose ? plog::Severity::debug : plog::Severity::info, &appender);
-
-    PLOGD << "hello";
-
-    return RUN_ALL_TESTS();
-}

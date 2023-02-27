@@ -59,6 +59,7 @@ if (BUILD_TEST)
         set(TEST_SRCS
             ${TIMELORDLIB_SRCS}
             ./src/test_utils.cpp
+            ./src/test_main.cpp
             ./src/${TEST_TARGET_NAME}.cpp
             )
         add_executable(${TEST_TARGET_NAME} ${TEST_SRCS})
@@ -79,4 +80,5 @@ if (BUILD_TEST)
     enable_testing()
     MakeTest(test_frontend)
     MakeTest(test_timelord)
+    MakeTest(test_challenge_monitor)
 endif()
