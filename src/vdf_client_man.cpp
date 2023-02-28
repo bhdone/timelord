@@ -385,9 +385,7 @@ void VdfClientSession::CalcIters(uint64_t iters)
         PLOGE << "warning, trying to calculate iters " << iters << " on a " << VdfClientSession::StatusToString(status_) << " session";
         return;
     }
-    asio::post(s_.get_executor(), [self = shared_from_this(), iters]() {
-        self->SendIters(iters);
-    });
+    SendIters(iters);
 }
 
 uint256 const& VdfClientSession::GetChallenge() const
@@ -536,63 +534,57 @@ void VdfClientMan::Run()
 
 void VdfClientMan::StopByChallenge(uint256 const& challenge)
 {
-    asio::post(ioc_, [this, challenge]() {
-        for (auto psession : session_set_) {
-            if (psession->GetChallenge() == challenge) {
-                psession->Stop([this, challenge]() {
-                    proc_man_.KillByChallenge(challenge);
-                });
-                break;
-            }
+    for (auto psession : session_set_) {
+        if (psession->GetChallenge() == challenge) {
+            psession->Stop([this, challenge]() {
+                proc_man_.KillByChallenge(challenge);
+            });
+            break;
         }
-    });
+    }
 }
 
 void VdfClientMan::Exit()
 {
     // Tell all client to stop
     PLOGD << "stopping... total " << session_set_.size() << " session(s)";
-    asio::post(ioc_, [this]() {
-        std::error_code ignored_ec;
-        acceptor_.close(ignored_ec);
-        for (auto psession : session_set_) {
-            psession->Stop();
-        }
-        auto ptimer = std::make_unique<asio::steady_timer>(ioc_);
-        ptimer->expires_after(std::chrono::seconds(SECS_TO_WAIT_STOPPING));
-        ptimer->async_wait([this, ptimer = std::move(ptimer)](std::error_code const& ec) {
-            proc_man_.KillAll(); // so rude
-        });
+    std::error_code ignored_ec;
+    acceptor_.close(ignored_ec);
+    for (auto psession : session_set_) {
+        psession->Stop();
+    }
+    auto ptimer = std::make_unique<asio::steady_timer>(ioc_);
+    ptimer->expires_after(std::chrono::seconds(SECS_TO_WAIT_STOPPING));
+    ptimer->async_wait([this, ptimer = std::move(ptimer)](std::error_code const& ec) {
+        proc_man_.KillAll(); // so rude
     });
 }
 
 void VdfClientMan::CalcIters(uint256 challenge, uint64_t iters)
 {
-    asio::post(ioc_, [this, challenge = std::move(challenge), iters]() {
-        if (!IsZero(curr_challenge_)) {
-            // there is a running procedure to create a vdf_client, run it later
-            PLOGD << "trying to run another vdf_client while there is already one creating, try later";
-            asio::post(ioc_, std::bind(&VdfClientMan::CalcIters, this, std::move(challenge), iters));
-            return;
+    if (!IsZero(curr_challenge_)) {
+        // there is a running procedure to create a vdf_client, run it later
+        PLOGD << "trying to run another vdf_client while there is already one creating, try later";
+        asio::post(ioc_, std::bind(&VdfClientMan::CalcIters, this, std::move(challenge), iters));
+        return;
+    }
+    curr_challenge_ = std::move(challenge);
+    for (auto psession : session_set_) {
+        if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == curr_challenge_) {
+            psession->CalcIters(iters);
+            break;
         }
-        curr_challenge_ = std::move(challenge);
-        for (auto psession : session_set_) {
-            if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == curr_challenge_) {
-                psession->CalcIters(iters);
-                break;
-            }
-        }
-        auto it = waiting_iters_.find(challenge);
-        if (it == std::cend(waiting_iters_)) {
-            waiting_iters_.insert(std::make_pair(challenge, std::vector<uint64_t> { iters }));
-        } else {
-            it->second.push_back(iters);
-        }
-        // cannot find the challenge from existing sessions, check the related process from proc manager
-        if (!proc_man_.ChallengeExists(curr_challenge_)) {
-            proc_man_.NewProc(curr_challenge_);
-        }
-    });
+    }
+    auto it = waiting_iters_.find(challenge);
+    if (it == std::cend(waiting_iters_)) {
+        waiting_iters_.insert(std::make_pair(challenge, std::vector<uint64_t> { iters }));
+    } else {
+        it->second.push_back(iters);
+    }
+    // cannot find the challenge from existing sessions, check the related process from proc manager
+    if (!proc_man_.ChallengeExists(curr_challenge_)) {
+        proc_man_.NewProc(curr_challenge_);
+    }
 }
 
 std::tuple<ProofDetail, bool> VdfClientMan::QueryExistingProof(uint256 const& challenge, uint64_t iters)
