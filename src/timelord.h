@@ -23,7 +23,7 @@
 class Timelord
 {
     struct ChallengeRequest {
-        std::weak_ptr<fe::Session> pweak_session;
+        std::weak_ptr<Session> pweak_session;
         uint64_t iters;
     };
 
@@ -39,36 +39,34 @@ private:
 
     void HandleNewChallenge(uint256 const& old_challenge, uint256 const& new_challenge);
 
-    void HandleSessionConnected(fe::SessionPtr psession);
+    void HandleSessionConnected(SessionPtr psession);
 
     void HandleVdf_ProofIsReceived(uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration);
 
-    void HandleMsg_Calc(fe::SessionPtr psession, Json::Value const& msg);
+    void HandleMsg_Calc(SessionPtr psession, Json::Value const& msg);
 
     asio::io_context& ioc_;
-    fe::FrontEnd frontend_;
+    FrontEnd frontend_;
     std::map<uint256, std::vector<ChallengeRequest>> challenge_reqs_;
     ChallengeMonitor challenge_monitor_;
-    fe::MessageDispatcher msg_dispatcher_;
-    vdf_client::VdfClientMan vdf_client_man_;
+    MessageDispatcher msg_dispatcher_;
+    VdfClientMan vdf_client_man_;
 };
 
 class TimelordClient
 {
 public:
-    using ConnectHandler = std::function<void()>;
-    using ErrorHandler = fe::ErrorHandler;
+    using ConnectionHandler = std::function<void()>;
+    using ErrorHandler = ErrorHandler;
     using MessageHandler = std::function<void(Json::Value const& msg)>;
-
-    using ProofHandler = std::function<void(uint256 const& challenge, Bytes const& y, Bytes const& proof, int witness_type, uint64_t iters, int duration)>;
 
     explicit TimelordClient(asio::io_context& ioc);
 
-    void SetConnectHandler(ConnectHandler conn_handler);
+    void SetConnectionHandler(ConnectionHandler conn_handler);
 
     void SetErrorHandler(ErrorHandler err_handler);
 
-    void SetProofHandler(ProofHandler proof_handler);
+    void SetProofReceiver(ProofReceiver proof_receiver);
 
     void Calc(uint256 const& challenge, uint64_t iters);
 
@@ -83,17 +81,17 @@ private:
 
     void HandleMessage(Json::Value const& msg);
 
-    void HandleError(fe::ErrorType type, std::string_view errs);
+    void HandleError(ErrorType type, std::string_view errs);
 
     void HandleClose();
 
     asio::io_context& ioc_;
-    fe::Client client_;
+    Client client_;
     std::unique_ptr<std::thread> pthread_;
     std::map<int, MessageHandler> msg_handlers_;
-    ConnectHandler conn_handler_;
+    ConnectionHandler conn_handler_;
     ErrorHandler err_handler_;
-    ProofHandler proof_handler_;
+    ProofReceiver proof_receiver_;
 };
 
 #endif

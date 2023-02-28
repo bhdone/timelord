@@ -21,19 +21,16 @@ using asio::ip::tcp;
 
 #include "msg_ids.h"
 
-namespace fe
-{
-
 class Session;
 using SessionPtr = std::shared_ptr<Session>;
 enum class ErrorType { CONNECT, READ, WRITE, CLOSE, PARSE, SHUTDOWN };
 
 using ErrorHandler = std::function<void(ErrorType type, std::string_view errs)>;
-using MessageReceiver = std::function<void(Json::Value const& msg)>;
+using MessageHandler = std::function<void(Json::Value const& msg)>;
 
 using SessionConnectionHandler = std::function<void(SessionPtr psession)>;
 using SessionErrorHandler = std::function<void(SessionPtr psession, ErrorType type, std::string_view errs)>;
-using SessionMessageReceiver = std::function<void(SessionPtr psession, Json::Value const& msg)>;
+using SessionMessageHandler = std::function<void(SessionPtr psession, Json::Value const& msg)>;
 
 Json::Value ParseStringToJson(std::string_view str);
 
@@ -59,7 +56,7 @@ public:
 
     ~Session();
 
-    void SetMsgReceiver(MessageReceiver receiver);
+    void SetMessageHandler(MessageHandler receiver);
 
     void SetErrorHandler(ErrorHandler err_handler);
 
@@ -77,7 +74,7 @@ private:
     tcp::socket s_;
     asio::streambuf read_buf_;
     std::string send_buf_;
-    MessageReceiver msg_receiver_;
+    MessageHandler msg_handler_;
     std::deque<std::string> sending_msgs_;
     ErrorHandler err_handler_;
 };
@@ -93,7 +90,7 @@ public:
 
     void SetConnectionHandler(SessionConnectionHandler conn_handler);
 
-    void SetMsgReceiver(SessionMessageReceiver receiver);
+    void SetMessageHandler(SessionMessageHandler receiver);
 
     void SetErrorHandler(SessionErrorHandler err_handler);
 
@@ -105,7 +102,7 @@ private:
     tcp::acceptor acceptor_;
     std::vector<SessionPtr> session_vec_;
     SessionConnectionHandler conn_handler_;
-    SessionMessageReceiver msg_receiver_;
+    SessionMessageHandler msg_handler_;
     SessionErrorHandler err_handler_;
 };
 
@@ -150,7 +147,5 @@ private:
     ErrorHandler err_handler_;
     CloseHandler close_handler_;
 };
-
-} // namespace fe
 
 #endif

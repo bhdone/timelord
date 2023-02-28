@@ -1,8 +1,5 @@
 #include "front_end.h"
 
-namespace fe
-{
-
 Json::Value ParseStringToJson(std::string_view str)
 {
     Json::CharReaderBuilder builder;
@@ -55,9 +52,9 @@ Session::~Session()
     PLOGD << "Session " << AddressToString(this) << " is going to be released";
 }
 
-void Session::SetMsgReceiver(MessageReceiver receiver)
+void Session::SetMessageHandler(MessageHandler receiver)
 {
-    msg_receiver_ = std::move(receiver);
+    msg_handler_ = std::move(receiver);
 }
 
 void Session::SetErrorHandler(ErrorHandler err_handler)
@@ -149,7 +146,7 @@ void Session::DoReadNext()
                 msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG);
                 self->SendMessage(msg);
             } else {
-                self->msg_receiver_(msg);
+                self->msg_handler_(msg);
             }
         } catch (std::exception const& e) {
             PLOGE << "READ: failed to parse string into json: " << e.what();
@@ -193,9 +190,9 @@ void FrontEnd::SetConnectionHandler(SessionConnectionHandler conn_handler)
     conn_handler_ = std::move(conn_handler);
 }
 
-void FrontEnd::SetMsgReceiver(SessionMessageReceiver receiver)
+void FrontEnd::SetMessageHandler(SessionMessageHandler receiver)
 {
-    msg_receiver_ = std::move(receiver);
+    msg_handler_ = std::move(receiver);
 }
 
 void FrontEnd::SetErrorHandler(SessionErrorHandler err_handler)
@@ -231,10 +228,10 @@ void FrontEnd::DoAcceptNext()
                 }
             }
         });
-        psession->SetMsgReceiver([this, pweak_session = std::weak_ptr(psession)](Json::Value const& msg) {
+        psession->SetMessageHandler([this, pweak_session = std::weak_ptr(psession)](Json::Value const& msg) {
             auto psession = pweak_session.lock();
             if (psession) {
-                msg_receiver_(psession, msg);
+                msg_handler_(psession, msg);
             }
         });
         psession->Start();
@@ -374,5 +371,3 @@ void Client::DoSendNext()
         }
     });
 }
-
-} // namespace fe

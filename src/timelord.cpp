@@ -6,14 +6,14 @@ namespace fs = std::filesystem;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-void SendMsg_Ready(fe::SessionPtr psession)
+void SendMsg_Ready(SessionPtr psession)
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_READY);
     psession->SendMessage(msg);
 }
 
-void SendMsg_Proof(fe::SessionPtr psession, uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration)
+void SendMsg_Proof(SessionPtr psession, uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration)
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PROOF);
@@ -30,7 +30,7 @@ Timelord::Timelord(asio::io_context& ioc, std::string_view url, std::string_view
     : ioc_(ioc)
     , challenge_monitor_(ioc_, url, cookie_path, 3)
     , frontend_(ioc)
-    , vdf_client_man_(ioc_, vdf_client::TimeType::N, vdf_client_path, vdf_client_addr, vdf_client_port)
+    , vdf_client_man_(ioc_, TimeType::N, vdf_client_path, vdf_client_addr, vdf_client_port)
 {
     PLOGD << "Timelord is created with " << vdf_client_addr << ":" << vdf_client_port << ", vdf=" << vdf_client_path << " listening " << vdf_client_addr << ":" << vdf_client_port;
     if (!fs::exists(vdf_client_path) || !fs::is_regular_file(vdf_client_path)) {
@@ -52,7 +52,7 @@ void Timelord::Run(std::string_view addr, unsigned short port)
     // run front end on main thread
     frontend_.Run(addr, port);
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleSessionConnected, this, _1));
-    frontend_.SetMsgReceiver(std::bind(&fe::MessageDispatcher::DispatchMessage, &msg_dispatcher_, _1, _2));
+    frontend_.SetMessageHandler(std::bind(&MessageDispatcher::DispatchMessage, &msg_dispatcher_, _1, _2));
     PLOGI << "Timelord is running...";
     ioc_.run();
     // exit
@@ -90,7 +90,7 @@ void Timelord::HandleNewChallenge(uint256 const& old_challenge, uint256 const& n
     });
 }
 
-void Timelord::HandleSessionConnected(fe::SessionPtr psession)
+void Timelord::HandleSessionConnected(SessionPtr psession)
 {
     PLOGD << "New session is connected, sending message `ready`...";
     SendMsg_Ready(psession);
@@ -114,7 +114,7 @@ void Timelord::HandleVdf_ProofIsReceived(uint256 const& challenge, Bytes const& 
     }
 }
 
-void Timelord::HandleMsg_Calc(fe::SessionPtr psession, Json::Value const& msg)
+void Timelord::HandleMsg_Calc(SessionPtr psession, Json::Value const& msg)
 {
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
@@ -134,19 +134,19 @@ TimelordClient::TimelordClient(asio::io_context& ioc)
     , client_(ioc)
 {
     msg_handlers_.insert(std::make_pair(static_cast<int>(FeMsgs::MSGID_FE_PROOF), [this](Json::Value const& msg) {
-        if (proof_handler_) {
+        if (proof_receiver_) {
             auto challenge = Uint256FromHex(msg["challenge"].asString());
             auto y = BytesFromHex(msg["y"].asString());
             auto proof = BytesFromHex(msg["proof"].asString());
             auto witness_type = msg["witness_type"].asInt();
             auto iters = msg["iters"].asInt64();
             auto duration = msg["duration"].asInt();
-            proof_handler_(challenge, y, proof, witness_type, iters, duration);
+            proof_receiver_(challenge, y, proof, witness_type, iters, duration);
         }
     }));
 }
 
-void TimelordClient::SetConnectHandler(ConnectHandler conn_handler)
+void TimelordClient::SetConnectionHandler(ConnectionHandler conn_handler)
 {
     conn_handler_ = std::move(conn_handler);
 }
@@ -156,9 +156,9 @@ void TimelordClient::SetErrorHandler(ErrorHandler err_handler)
     err_handler_ = std::move(err_handler);
 }
 
-void TimelordClient::SetProofHandler(ProofHandler proof_handler)
+void TimelordClient::SetProofReceiver(ProofReceiver proof_receiver)
 {
-    proof_handler_ = std::move(proof_handler);
+    proof_receiver_ = std::move(proof_receiver);
 }
 
 void TimelordClient::Calc(uint256 const& challenge, uint64_t iters)
@@ -204,7 +204,7 @@ void TimelordClient::HandleMessage(Json::Value const& msg)
     }
 }
 
-void TimelordClient::HandleError(fe::ErrorType type, std::string_view errs)
+void TimelordClient::HandleError(ErrorType type, std::string_view errs)
 {
     if (err_handler_) {
         err_handler_(type, errs);

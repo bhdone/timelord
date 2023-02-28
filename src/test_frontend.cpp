@@ -45,27 +45,27 @@ public:
         });
     }
 
-    fe::Client& GetClient()
+    Client& GetClient()
     {
         return client_;
     }
 
-    void SetConnHandler(fe::Client::ConnectionHandler conn_handler)
+    void SetConnHandler(Client::ConnectionHandler conn_handler)
     {
         conn_handler_ = std::move(conn_handler);
     }
 
-    void SetMsgHandler(fe::Client::MessageHandler msg_handler)
+    void SetMsgHandler(Client::MessageHandler msg_handler)
     {
         msg_handler_ = std::move(msg_handler);
     }
 
-    void SetErrorHandler(fe::Client::ErrorHandler err_handler)
+    void SetErrorHandler(Client::ErrorHandler err_handler)
     {
         err_handler_ = std::move(err_handler);
     }
 
-    void SetCloseHandler(fe::Client::CloseHandler close_handler)
+    void SetCloseHandler(Client::CloseHandler close_handler)
     {
         close_handler_ = std::move(close_handler);
     }
@@ -92,7 +92,7 @@ private:
         }
     }
 
-    void HandleError(fe::ErrorType type, std::string_view errs)
+    void HandleError(ErrorType type, std::string_view errs)
     {
         if (err_handler_) {
             err_handler_(type, errs);
@@ -108,12 +108,12 @@ private:
 
     asio::io_context ioc_;
     std::unique_ptr<std::thread> pthread_;
-    fe::Client client_;
+    Client client_;
 
-    fe::Client::ConnectionHandler conn_handler_;
-    fe::Client::MessageHandler msg_handler_;
-    fe::Client::ErrorHandler err_handler_;
-    fe::Client::CloseHandler close_handler_;
+    Client::ConnectionHandler conn_handler_;
+    Client::MessageHandler msg_handler_;
+    Client::ErrorHandler err_handler_;
+    Client::CloseHandler close_handler_;
 };
 
 class BaseServer : public testing::Test
@@ -129,7 +129,7 @@ protected:
     {
         PLOGD << "Initializing";
         frontend_.SetConnectionHandler(std::bind(&BaseServer::HandleSessionConnected, this, _1));
-        frontend_.SetMsgReceiver(std::bind(&BaseServer::HandleSessionMsg, this, _1, _2));
+        frontend_.SetMessageHandler(std::bind(&BaseServer::HandleSessionMsg, this, _1, _2));
         frontend_.Run(SZ_LOCAL_ADDR, LOCAL_PORT);
     }
 
@@ -158,18 +158,18 @@ protected:
     }
 
 private:
-    void HandleSessionConnected(fe::SessionPtr psession)
+    void HandleSessionConnected(SessionPtr psession)
     {
         PLOGD << "session " << AddressToString(psession.get()) << " is connected";
     }
 
-    void HandleSessionMsg(fe::SessionPtr psession, Json::Value const& msg)
+    void HandleSessionMsg(SessionPtr psession, Json::Value const& msg)
     {
-        PLOGD << "session " << fe::AddressToString(psession.get()) << " received a message: " << msg["id"].asString();
+        PLOGD << "session " << AddressToString(psession.get()) << " received a message: " << msg["id"].asString();
     }
 
     asio::io_context ioc_;
-    fe::FrontEnd frontend_;
+    FrontEnd frontend_;
     std::unique_ptr<std::thread> pthread_;
 };
 

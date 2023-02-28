@@ -18,11 +18,9 @@
 #include "vdf_types.h"
 #include "vdf_utils.h"
 
-#include "utils.h"
 #include "timelord_utils.h"
+#include "utils.h"
 
-namespace vdf_client
-{
 namespace
 {
 
@@ -325,9 +323,9 @@ void VdfClientSession::SetFinishedHandler(SessionNotify finished_handler)
     finished_handler_ = std::move(finished_handler);
 }
 
-void VdfClientSession::SetProofReceiver(ProofReceiver proof_handler)
+void VdfClientSession::SetProofReceiver(ProofReceiver proof_receiver)
 {
-    proof_receiver_ = std::move(proof_handler);
+    proof_receiver_ = std::move(proof_receiver);
 }
 
 void VdfClientSession::Start()
@@ -503,9 +501,9 @@ VdfClientMan::VdfClientMan(asio::io_context& ioc, TimeType type, std::string_vie
 {
 }
 
-void VdfClientMan::SetProofReceiver(ProofReceiver handler)
+void VdfClientMan::SetProofReceiver(ProofReceiver proof_receiver)
 {
-    proof_receiver_ = std::move(handler);
+    proof_receiver_ = std::move(proof_receiver);
 }
 
 void VdfClientMan::Run()
@@ -590,5 +588,3 @@ void VdfClientMan::AcceptNext()
         AcceptNext();
     });
 }
-
-} // namespace vdf_client

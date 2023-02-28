@@ -22,9 +22,6 @@ using asio::ip::tcp;
 
 #include "common_types.h"
 
-namespace vdf_client
-{
-
 class VdfClientProc
 {
 public:
@@ -119,7 +116,7 @@ public:
 
     void SetFinishedHandler(SessionNotify finished_handler);
 
-    void SetProofReceiver(ProofReceiver proof_handler);
+    void SetProofReceiver(ProofReceiver proof_receiver);
 
     void Start();
 
@@ -175,7 +172,7 @@ class VdfClientMan
 public:
     explicit VdfClientMan(asio::io_context& ioc, TimeType type, std::string_view vdf_client_path, std::string_view addr, unsigned short port);
 
-    void SetProofReceiver(ProofReceiver handler);
+    void SetProofReceiver(ProofReceiver proof_receiver);
 
     void Run();
 
@@ -197,7 +194,5 @@ private:
     uint256 curr_challenge_;
     ProofReceiver proof_receiver_;
 };
-
-} // namespace vdf_client
 
 #endif
