@@ -17,6 +17,26 @@ std::string Uint256ToHex(uint256 const& source);
 
 uint256 Uint256FromHex(std::string const& hex);
 
+template <typename T> bool IsZero(T const& data)
+{
+    if (data.empty()) {
+        return true;
+    }
+    for (auto const& d : data) {
+        if (d != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <typename T> void MakeZero(T& data)
+{
+    for (int i = 0; i < data.size(); ++i) {
+        data[i] = 0;
+    }
+}
+
 template <size_t N> std::array<uint8_t, N> MakeArray(Bytes const& val)
 {
     assert(val.size() == N);
