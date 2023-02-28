@@ -22,12 +22,22 @@ using asio::ip::tcp;
 
 #include "common_types.h"
 
+struct ProofDetail {
+    Bytes y;
+    Bytes proof;
+    uint8_t witness_type;
+    uint64_t iters;
+    int duration;
+};
+
 class VdfClientProc
 {
 public:
     VdfClientProc(std::string vdf_client_path, std::string addr, unsigned short port);
 
     void NewProc(uint256 const& challenge);
+
+    bool ChallengeExists(uint256 const& challenge) const;
 
     void KillByChallenge(uint256 const& challenge);
 
@@ -110,7 +120,21 @@ class VdfClientSession : public std::enable_shared_from_this<VdfClientSession>
 public:
     enum Status { INIT, READY, STOPPING };
 
+    static std::string StatusToString(Status s) {
+        switch (s) {
+        case Status::INIT:
+            return "INIT";
+        case Status::READY:
+            return "READY";
+        case Status::STOPPING:
+            return "STOPPING";
+        }
+        return "UNKNOWN";
+    }
+
     VdfClientSession(tcp::socket&& s, uint256 challenge, TimeType time_type, CommandAnalyzer cmd_analyzer);
+
+    ~VdfClientSession();
 
     void SetReadyHandler(SessionNotify ready_handler);
 
@@ -182,6 +206,8 @@ public:
 
     void CalcIters(uint256 challenge, uint64_t iters);
 
+    std::tuple<ProofDetail, bool> QueryExistingProof(uint256 const& challenge, uint64_t iters);
+
 private:
     void AcceptNext();
 
@@ -193,6 +219,9 @@ private:
     std::set<VdfClientSessionPtr> session_set_;
     uint256 curr_challenge_;
     ProofReceiver proof_receiver_;
+
+    std::map<uint256, std::vector<uint64_t>> waiting_iters_;
+    std::map<uint256, std::vector<ProofDetail>> saved_proofs_;
 };
 
 #endif

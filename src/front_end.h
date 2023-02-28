@@ -34,8 +34,6 @@ using SessionMessageHandler = std::function<void(SessionPtr psession, Json::Valu
 
 Json::Value ParseStringToJson(std::string_view str);
 
-std::string AddressToString(void const* p);
-
 class MessageDispatcher
 {
 public:

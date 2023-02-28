@@ -10,7 +10,9 @@ using std::placeholders::_2;
 
 #include "front_end.h"
 #include "msg_ids.h"
+
 #include "test_utils.h"
+#include "timelord_utils.h"
 
 char const* SZ_LOCAL_ADDR = "127.0.0.1";
 unsigned short LOCAL_PORT = 18181;

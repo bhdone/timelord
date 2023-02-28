@@ -61,7 +61,9 @@ void Timelord::Run(std::string_view addr, unsigned short port)
     PLOGD << "Exit.";
 }
 
-void Timelord::Exit() { }
+void Timelord::Exit() {
+    vdf_client_man_.Exit();
+}
 
 void Timelord::StartNewChallengeCalculation(uint256 const& challenge, uint64_t iters)
 {

@@ -1,5 +1,7 @@
 #include "front_end.h"
 
+#include "timelord_utils.h"
+
 Json::Value ParseStringToJson(std::string_view str)
 {
     Json::CharReaderBuilder builder;
@@ -11,14 +13,6 @@ Json::Value ParseStringToJson(std::string_view str)
         throw std::runtime_error(errs);
     }
     return root;
-}
-
-std::string AddressToString(void const* p)
-{
-    auto addr = reinterpret_cast<uint64_t>(p);
-    std::stringstream ss;
-    ss << "0x" << std::hex << addr;
-    return ss.str();
 }
 
 void MessageDispatcher::RegisterHandler(int id, Handler handler)

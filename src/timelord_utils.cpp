@@ -6,6 +6,14 @@
 
 #include "utils.h"
 
+std::string AddressToString(void const* p)
+{
+    auto addr = reinterpret_cast<uint64_t>(p);
+    std::stringstream ss;
+    ss << "0x" << std::hex << addr;
+    return ss.str();
+}
+
 VdfForm MakeZeroForm()
 {
     VdfForm form;

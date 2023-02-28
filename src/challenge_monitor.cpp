@@ -6,7 +6,7 @@ ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, 
     , rpc_(true, std::string(url), std::string(cookie_path))
     , interval_seconds_(interval_seconds)
 {
-    MakeZero(challenge_);
+    MakeZero(challenge_, 0);
 }
 
 void ChallengeMonitor::SetNewChallengeHandler(NewChallengeHandler handler)
@@ -27,21 +27,19 @@ void ChallengeMonitor::Exit()
 
 void ChallengeMonitor::QueryChallenge()
 {
-    asio::post(ioc_, [this]() {
-        try {
-            RPCClient::Result result = rpc_.Call("querychallenge");
-            uint256 challenge = Uint256FromHex(result.result["challenge"].asString());
-            if (challenge != challenge_) {
-                auto old_challenge = challenge_;
-                challenge_ = challenge;
-                if (new_challenge_handler_) {
-                    new_challenge_handler_(old_challenge, challenge);
-                }
+    try {
+        RPCClient::Result result = rpc_.Call("querychallenge");
+        uint256 challenge = Uint256FromHex(result.result["challenge"].asString());
+        if (challenge != challenge_) {
+            auto old_challenge = challenge_;
+            challenge_ = challenge;
+            if (new_challenge_handler_) {
+                new_challenge_handler_(old_challenge, challenge);
             }
-        } catch (std::exception const& e) {
-            PLOGE << e.what();
         }
-    });
+    } catch (std::exception const& e) {
+        PLOGE << e.what();
+    }
 }
 
 void ChallengeMonitor::DoQueryNext()

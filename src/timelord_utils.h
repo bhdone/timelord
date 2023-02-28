@@ -7,6 +7,8 @@
 
 #include "common_types.h"
 
+std::string AddressToString(void const* p);
+
 VdfForm MakeZeroForm();
 
 Bytes MakeBytes(uint256 const& source);
@@ -30,10 +32,10 @@ template <typename T> bool IsZero(T const& data)
     return true;
 }
 
-template <typename T> void MakeZero(T& data)
+template <typename T, typename V> void MakeZero(T& data, V const& v)
 {
     for (int i = 0; i < data.size(); ++i) {
-        data[i] = 0;
+        data[i] = v;
     }
 }
 
