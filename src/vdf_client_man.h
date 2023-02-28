@@ -181,7 +181,7 @@ public:
 
     void StopByChallenge(uint256 const& challenge);
 
-    void Shutdown();
+    void Exit();
 
     void CalcIters(uint256 challenge, uint64_t iters);
 

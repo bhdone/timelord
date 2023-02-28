@@ -532,7 +532,7 @@ void VdfClientMan::StopByChallenge(uint256 const& challenge)
     });
 }
 
-void VdfClientMan::Shutdown()
+void VdfClientMan::Exit()
 {
     // Tell all client to stop
     PLOGD << "stopping... total " << session_set_.size() << " session(s)";
