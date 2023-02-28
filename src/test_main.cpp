@@ -15,7 +15,9 @@ int main(int argc, char* argv[])
     ParseCommandLineParams(argc, argv, verbose);
 
     plog::ConsoleAppender<plog::TxtFormatter> appender;
-    plog::init(verbose ? plog::Severity::debug : plog::Severity::info);
+    plog::init(verbose ? plog::Severity::debug : plog::Severity::info, &appender);
+
+    PLOGD << "Verbose mode";
 
     return RUN_ALL_TESTS();
 }

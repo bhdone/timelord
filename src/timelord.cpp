@@ -56,7 +56,7 @@ void Timelord::Run(std::string_view addr, unsigned short port)
     PLOGI << "Timelord is running...";
     ioc_.run();
     // exit
-    challenge_monitor_.Shutdown();
+    challenge_monitor_.Exit();
     vdf_client_man_.Shutdown();
     PLOGD << "Exit.";
 }

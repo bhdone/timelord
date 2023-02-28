@@ -26,7 +26,7 @@ public:
 
     void Run();
 
-    void Shutdown();
+    void Exit();
 
     void QueryChallenge();
 
