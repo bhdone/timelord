@@ -204,7 +204,7 @@ public:
 
     void Exit();
 
-    void CalcIters(uint256 challenge, uint64_t iters);
+    void CalcIters(uint256 const& challenge, uint64_t iters);
 
     std::tuple<ProofDetail, bool> QueryExistingProof(uint256 const& challenge, uint64_t iters);
 
@@ -217,7 +217,7 @@ private:
     tcp::acceptor acceptor_;
     TimeType time_type_;
     std::set<VdfClientSessionPtr> session_set_;
-    uint256 curr_challenge_;
+    uint256 init_challenge_;
     ProofReceiver proof_receiver_;
 
     std::map<uint256, std::vector<uint64_t>> waiting_iters_;

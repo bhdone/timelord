@@ -229,7 +229,7 @@ void VdfClientProc::NewProc(uint256 const& challenge)
     char const* argv[] = { vdf_client_path_.c_str(), addr_.c_str(), port_str.c_str(), "0", nullptr };
     int ret = posix_spawn(&pid, vdf_client_path_.c_str(), nullptr, nullptr, const_cast<char**>(argv), nullptr);
     if (ret == 0) {
-        pids_.insert(std::make_pair(std::move(challenge), pid));
+        pids_.insert(std::make_pair(challenge, pid));
     } else {
         PLOGE << "cannot create a new vdf_client process, command: " << vdf_client_path_ << " " << addr_ << " " << port_str;
     }
@@ -513,7 +513,7 @@ VdfClientMan::VdfClientMan(asio::io_context& ioc, TimeType type, std::string_vie
     , acceptor_(ioc)
     , time_type_(type)
 {
-    MakeZero(curr_challenge_, 0);
+    MakeZero(init_challenge_, 0);
 }
 
 void VdfClientMan::SetProofReceiver(ProofReceiver proof_receiver)
@@ -560,21 +560,21 @@ void VdfClientMan::Exit()
     });
 }
 
-void VdfClientMan::CalcIters(uint256 challenge, uint64_t iters)
+void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 {
-    if (!IsZero(curr_challenge_)) {
+    if (!IsZero(init_challenge_) && challenge != init_challenge_) {
         // there is a running procedure to create a vdf_client, run it later
         PLOGD << "trying to run another vdf_client while there is already one creating, try later";
-        asio::post(ioc_, std::bind(&VdfClientMan::CalcIters, this, std::move(challenge), iters));
+        asio::post(ioc_, std::bind(&VdfClientMan::CalcIters, this, challenge, iters));
         return;
     }
-    curr_challenge_ = std::move(challenge);
     for (auto psession : session_set_) {
-        if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == curr_challenge_) {
+        if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == challenge) {
             psession->CalcIters(iters);
-            break;
+            return;
         }
     }
+    // all iters will be delivered as soon as the vdf_client session is connected and ready
     auto it = waiting_iters_.find(challenge);
     if (it == std::cend(waiting_iters_)) {
         waiting_iters_.insert(std::make_pair(challenge, std::vector<uint64_t> { iters }));
@@ -582,8 +582,9 @@ void VdfClientMan::CalcIters(uint256 challenge, uint64_t iters)
         it->second.push_back(iters);
     }
     // cannot find the challenge from existing sessions, check the related process from proc manager
-    if (!proc_man_.ChallengeExists(curr_challenge_)) {
-        proc_man_.NewProc(curr_challenge_);
+    if (!proc_man_.ChallengeExists(challenge)) {
+        proc_man_.NewProc(challenge);
+        init_challenge_ = challenge;
     }
 }
 
@@ -606,8 +607,10 @@ void VdfClientMan::AcceptNext()
             return;
         } else {
             // Create new session
-            auto psession = std::make_shared<VdfClientSession>(std::move(s), std::move(curr_challenge_), time_type_, VDFCommandAnalyzer());
+            auto psession = std::make_shared<VdfClientSession>(std::move(s), init_challenge_, time_type_, VDFCommandAnalyzer());
             psession->SetReadyHandler([this](VdfClientSessionPtr psession) {
+                assert(init_challenge_ == psession->GetChallenge());
+                MakeZero(init_challenge_, 0); // reset current challenge to zero will allow user to start another vdf_client
                 // get the iters
                 auto it = waiting_iters_.find(psession->GetChallenge());
                 if (it == std::cend(waiting_iters_)) {
