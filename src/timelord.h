@@ -56,6 +56,8 @@ private:
 
     void HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psession, Json::Value const& msg);
 
+    void HandleFrontEnd_SessionQuerySpeed(FrontEndSessionPtr psession, Json::Value const&);
+
     void HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail);
 
     asio::io_context& ioc_;
@@ -68,6 +70,7 @@ private:
     vdf_client::VdfClientMan vdf_client_man_;
 
     std::set<std::shared_ptr<asio::steady_timer>> ptimer_wait_close_vdf_set_;
+    uint64_t iters_per_sec_ { 0 };
 };
 
 #endif

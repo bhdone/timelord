@@ -5,13 +5,15 @@
 enum class FeMsgs : int {
     MSGID_FE_READY = 1000,
     MSGID_FE_PROOF = 1010,
-    MSGID_FE_PONG = 1040,
+    MSGID_FE_PONG = 1020,
+    MSGID_FE_SPEED = 1030,
 };
 
 // messages send from Bhd
 enum class BhdMsgs : int {
     MSGID_BHD_CALC = 2000,
-    MSGID_BHD_PING = 2030,
+    MSGID_BHD_PING = 2010,
+    MSGID_BHD_QUERY_SPEED = 2020,
 };
 
 #endif

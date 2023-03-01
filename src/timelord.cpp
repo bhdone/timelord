@@ -29,6 +29,14 @@ void SendMsg_Proof(FrontEndSessionPtr psession, uint256 const& challenge, vdf_cl
     psession->SendMessage(msg);
 }
 
+void SendMsg_Speed(FrontEndSessionPtr psession, uint64_t iters_per_sec)
+{
+    Json::Value msg;
+    msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_SPEED);
+    msg["iters_per_sec"] = iters_per_sec;
+    psession->SendMessage(msg);
+}
+
 void MessageDispatcher::RegisterHandler(int id, Handler handler)
 {
     handlers_[id] = handler;
@@ -66,6 +74,8 @@ Timelord::Timelord(asio::io_context& ioc, std::string_view url, std::string_view
     challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2));
     msg_dispatcher_.RegisterHandler(static_cast<int>(BhdMsgs::MSGID_BHD_CALC),
             std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
+    msg_dispatcher_.RegisterHandler(static_cast<int>(BhdMsgs::MSGID_BHD_QUERY_SPEED),
+            std::bind(&Timelord::HandleFrontEnd_SessionQuerySpeed, this, _1, _2));
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleFrontEnd_NewSessionConnected, this, _1));
     frontend_.SetMessageHandler(msg_dispatcher_);
     frontend_.SetErrorHandler(std::bind(&Timelord::HandleFrontEnd_SessionError, this, _1, _2, _3));
@@ -137,8 +147,15 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     vdf_client_man_.CalcIters(challenge, iters);
 }
 
+void Timelord::HandleFrontEnd_SessionQuerySpeed(FrontEndSessionPtr psession, Json::Value const&)
+{
+    SendMsg_Speed(psession, iters_per_sec_);
+}
+
 void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail)
 {
+    // calculate the VDF speed
+    iters_per_sec_ = detail.iters / detail.duration;
     // find the related session
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {
