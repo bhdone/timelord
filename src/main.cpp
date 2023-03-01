@@ -43,15 +43,22 @@ int main(int argc, char* argv[])
 
     std::string addr = parse_result["addr"].as<std::string>();
     unsigned short port = parse_result["port"].as<unsigned short>();
-    std::string vdf_client_path = parse_result["vdf_client-path"].as<std::string>();
+    std::string vdf_client_path = ExpandEnvPath(parse_result["vdf_client-path"].as<std::string>());
     std::string vdf_client_addr = parse_result["vdf_client-addr"].as<std::string>();
     unsigned short vdf_client_port = parse_result["vdf_client-port"].as<unsigned short>();
     std::string url = parse_result["rpc"].as<std::string>();
-    std::string cookie_path = parse_result["cookie"].as<std::string>();
+    std::string cookie_path = ExpandEnvPath(parse_result["cookie"].as<std::string>());
 
     asio::io_context ioc;
-    Timelord timelord(ioc, url, cookie_path, std::move(vdf_client_path), std::move(vdf_client_addr), vdf_client_port);
+    PLOGI << "initializing timelord...";
+    PLOGI << "url: " << url;
+    PLOGI << "cookie: " << cookie_path;
+    PLOGI << "vdf: " << vdf_client_path;
+    PLOGI << "listening on " << vdf_client_addr << ":" << vdf_client_port;
+
+    Timelord timelord(ioc, url, cookie_path, vdf_client_path, vdf_client_addr, vdf_client_port);
     timelord.Run(addr, port);
+    PLOGI << "running...";
     ioc.run();
     PLOGD << "exit.";
 }
