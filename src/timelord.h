@@ -23,7 +23,7 @@
 class Timelord
 {
     struct ChallengeRequest {
-        std::weak_ptr<Session> pweak_session;
+        std::weak_ptr<FrontEndSession> pweak_session;
         uint64_t iters;
     };
 
@@ -39,11 +39,11 @@ private:
 
     void HandleNewChallenge(uint256 const& old_challenge, uint256 const& new_challenge);
 
-    void HandleSessionConnected(SessionPtr psession);
+    void HandleSessionConnected(FrontEndSessionPtr psession);
 
     void HandleVdf_ProofIsReceived(uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration);
 
-    void HandleMsg_Calc(SessionPtr psession, Json::Value const& msg);
+    void HandleMsg_Calc(FrontEndSessionPtr psession, Json::Value const& msg);
 
     asio::io_context& ioc_;
     FrontEnd frontend_;
@@ -57,7 +57,7 @@ class TimelordClient
 {
 public:
     using ConnectionHandler = std::function<void()>;
-    using ErrorHandler = ErrorHandler;
+    using ErrorHandler = FrontEndErrorHandler;
     using MessageHandler = std::function<void(Json::Value const& msg)>;
 
     explicit TimelordClient(asio::io_context& ioc);
@@ -81,12 +81,12 @@ private:
 
     void HandleMessage(Json::Value const& msg);
 
-    void HandleError(ErrorType type, std::string_view errs);
+    void HandleError(FrontEndSessionErrorType type, std::string_view errs);
 
     void HandleClose();
 
     asio::io_context& ioc_;
-    Client client_;
+    FrontEndClient client_;
     std::unique_ptr<std::thread> pthread_;
     std::map<int, MessageHandler> msg_handlers_;
     ConnectionHandler conn_handler_;

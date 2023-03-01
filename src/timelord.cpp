@@ -6,14 +6,14 @@ namespace fs = std::filesystem;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-void SendMsg_Ready(SessionPtr psession)
+void SendMsg_Ready(FrontEndSessionPtr psession)
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_READY);
     psession->SendMessage(msg);
 }
 
-void SendMsg_Proof(SessionPtr psession, uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration)
+void SendMsg_Proof(FrontEndSessionPtr psession, uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration)
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PROOF);
@@ -92,7 +92,7 @@ void Timelord::HandleNewChallenge(uint256 const& old_challenge, uint256 const& n
     });
 }
 
-void Timelord::HandleSessionConnected(SessionPtr psession)
+void Timelord::HandleSessionConnected(FrontEndSessionPtr psession)
 {
     PLOGD << "New session is connected, sending message `ready`...";
     SendMsg_Ready(psession);
@@ -116,7 +116,7 @@ void Timelord::HandleVdf_ProofIsReceived(uint256 const& challenge, Bytes const& 
     }
 }
 
-void Timelord::HandleMsg_Calc(SessionPtr psession, Json::Value const& msg)
+void Timelord::HandleMsg_Calc(FrontEndSessionPtr psession, Json::Value const& msg)
 {
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
@@ -206,7 +206,7 @@ void TimelordClient::HandleMessage(Json::Value const& msg)
     }
 }
 
-void TimelordClient::HandleError(ErrorType type, std::string_view errs)
+void TimelordClient::HandleError(FrontEndSessionErrorType type, std::string_view errs)
 {
     if (err_handler_) {
         err_handler_(type, errs);

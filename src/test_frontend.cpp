@@ -5,6 +5,10 @@
 #include <mutex>
 #include <thread>
 
+#include <json/value.h>
+
+#include <plog/Log.h>
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 
@@ -47,27 +51,27 @@ public:
         });
     }
 
-    Client& GetClient()
+    FrontEndClient& GetClient()
     {
         return client_;
     }
 
-    void SetConnHandler(Client::ConnectionHandler conn_handler)
+    void SetConnHandler(FrontEndClient::ConnectionHandler conn_handler)
     {
         conn_handler_ = std::move(conn_handler);
     }
 
-    void SetMsgHandler(Client::MessageHandler msg_handler)
+    void SetMsgHandler(FrontEndClient::MessageHandler msg_handler)
     {
         msg_handler_ = std::move(msg_handler);
     }
 
-    void SetErrorHandler(Client::ErrorHandler err_handler)
+    void SetErrorHandler(FrontEndClient::ErrorHandler err_handler)
     {
         err_handler_ = std::move(err_handler);
     }
 
-    void SetCloseHandler(Client::CloseHandler close_handler)
+    void SetCloseHandler(FrontEndClient::CloseHandler close_handler)
     {
         close_handler_ = std::move(close_handler);
     }
@@ -94,7 +98,7 @@ private:
         }
     }
 
-    void HandleError(ErrorType type, std::string_view errs)
+    void HandleError(FrontEndSessionErrorType type, std::string_view errs)
     {
         if (err_handler_) {
             err_handler_(type, errs);
@@ -110,12 +114,12 @@ private:
 
     asio::io_context ioc_;
     std::unique_ptr<std::thread> pthread_;
-    Client client_;
+    FrontEndClient client_;
 
-    Client::ConnectionHandler conn_handler_;
-    Client::MessageHandler msg_handler_;
-    Client::ErrorHandler err_handler_;
-    Client::CloseHandler close_handler_;
+    FrontEndClient::ConnectionHandler conn_handler_;
+    FrontEndClient::MessageHandler msg_handler_;
+    FrontEndClient::ErrorHandler err_handler_;
+    FrontEndClient::CloseHandler close_handler_;
 };
 
 class BaseServer : public testing::Test
@@ -160,12 +164,12 @@ protected:
     }
 
 private:
-    void HandleSessionConnected(SessionPtr psession)
+    void HandleSessionConnected(FrontEndSessionPtr psession)
     {
         PLOGD << "session " << AddressToString(psession.get()) << " is connected";
     }
 
-    void HandleSessionMsg(SessionPtr psession, Json::Value const& msg)
+    void HandleSessionMsg(FrontEndSessionPtr psession, Json::Value const& msg)
     {
         PLOGD << "session " << AddressToString(psession.get()) << " received a message: " << msg["id"].asString();
     }

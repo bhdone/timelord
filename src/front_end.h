@@ -5,58 +5,54 @@
 #include <string_view>
 
 #include <deque>
+#include <map>
+
 #include <functional>
-#include <istream>
-#include <memory>
-#include <sstream>
 
 #include <asio.hpp>
 using asio::ip::tcp;
 
-#include <json/reader.h>
-#include <json/value.h>
+namespace Json
+{
+class Value;
+} // namespace Json
 
-#include <fmt/core.h>
-#include <plog/Log.h>
+class FrontEndSession;
+using FrontEndSessionPtr = std::shared_ptr<FrontEndSession>;
+enum class FrontEndSessionErrorType { CONNECT, READ, WRITE, CLOSE, PARSE, SHUTDOWN };
 
-#include "msg_ids.h"
-
-class Session;
-using SessionPtr = std::shared_ptr<Session>;
-enum class ErrorType { CONNECT, READ, WRITE, CLOSE, PARSE, SHUTDOWN };
-
-using ErrorHandler = std::function<void(ErrorType type, std::string_view errs)>;
-using MessageHandler = std::function<void(Json::Value const& msg)>;
-
-using SessionConnectionHandler = std::function<void(SessionPtr psession)>;
-using SessionErrorHandler = std::function<void(SessionPtr psession, ErrorType type, std::string_view errs)>;
-using SessionMessageHandler = std::function<void(SessionPtr psession, Json::Value const& msg)>;
+using FrontEndErrorHandler = std::function<void(FrontEndSessionErrorType type, std::string_view errs)>;
+using FrontEndMessageHandler = std::function<void(Json::Value const& msg)>;
 
 Json::Value ParseStringToJson(std::string_view str);
 
 class MessageDispatcher
 {
 public:
-    using Handler = std::function<void(SessionPtr psession, Json::Value const& msg)>;
+    using Handler = std::function<void(FrontEndSessionPtr psession, Json::Value const& msg)>;
 
     void RegisterHandler(int id, Handler handler);
 
-    void DispatchMessage(SessionPtr psession, Json::Value const& msg);
+    void DispatchMessage(FrontEndSessionPtr psession, Json::Value const& msg);
 
 private:
     std::map<int, Handler> handlers_;
 };
 
-class Session : public std::enable_shared_from_this<Session>
+class FrontEndSession : public std::enable_shared_from_this<FrontEndSession>
 {
 public:
-    explicit Session(tcp::socket&& s);
+    using ConnectionHandler = std::function<void(FrontEndSessionPtr psession)>;
+    using ErrorHandler = std::function<void(FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs)>;
+    using MessageHandler = std::function<void(FrontEndSessionPtr psession, Json::Value const& msg)>;
 
-    ~Session();
+    explicit FrontEndSession(tcp::socket&& s);
 
-    void SetMessageHandler(MessageHandler receiver);
+    ~FrontEndSession();
 
-    void SetErrorHandler(ErrorHandler err_handler);
+    void SetMessageHandler(FrontEndMessageHandler msg_handler);
+
+    void SetErrorHandler(FrontEndErrorHandler err_handler);
 
     void Start();
 
@@ -72,9 +68,9 @@ private:
     tcp::socket s_;
     asio::streambuf read_buf_;
     std::string send_buf_;
-    MessageHandler msg_handler_;
+    FrontEndMessageHandler msg_handler_;
     std::deque<std::string> sending_msgs_;
-    ErrorHandler err_handler_;
+    FrontEndErrorHandler err_handler_;
 };
 
 class FrontEnd
@@ -82,15 +78,15 @@ class FrontEnd
 public:
     explicit FrontEnd(asio::io_context& ioc);
 
+    void SetConnectionHandler(FrontEndSession::ConnectionHandler conn_handler);
+
+    void SetMessageHandler(FrontEndSession::MessageHandler msg_handler);
+
+    void SetErrorHandler(FrontEndSession::ErrorHandler err_handler);
+
     void Run(std::string_view addr, unsigned short port);
 
     void Exit();
-
-    void SetConnectionHandler(SessionConnectionHandler conn_handler);
-
-    void SetMessageHandler(SessionMessageHandler receiver);
-
-    void SetErrorHandler(SessionErrorHandler err_handler);
 
     std::size_t GetNumOfSessions() const;
 
@@ -98,21 +94,21 @@ private:
     void DoAcceptNext();
 
     tcp::acceptor acceptor_;
-    std::vector<SessionPtr> session_vec_;
-    SessionConnectionHandler conn_handler_;
-    SessionMessageHandler msg_handler_;
-    SessionErrorHandler err_handler_;
+    std::vector<FrontEndSessionPtr> session_vec_;
+    FrontEndSession::ConnectionHandler conn_handler_;
+    FrontEndSession::MessageHandler msg_handler_;
+    FrontEndSession::ErrorHandler err_handler_;
 };
 
-class Client
+class FrontEndClient
 {
 public:
     using ConnectionHandler = std::function<void()>;
     using MessageHandler = std::function<void(Json::Value const&)>;
-    using ErrorHandler = std::function<void(ErrorType err_type, std::string_view errs)>;
+    using ErrorHandler = std::function<void(FrontEndSessionErrorType err_type, std::string_view errs)>;
     using CloseHandler = std::function<void()>;
 
-    explicit Client(asio::io_context& ioc);
+    explicit FrontEndClient(asio::io_context& ioc);
 
     void SetConnectionHandler(ConnectionHandler conn_handler);
 

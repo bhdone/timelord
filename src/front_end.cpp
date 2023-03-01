@@ -1,5 +1,13 @@
 #include "front_end.h"
 
+#include <json/reader.h>
+#include <json/value.h>
+
+#include <fmt/core.h>
+#include <plog/Log.h>
+
+#include "msg_ids.h"
+
 #include "timelord_utils.h"
 
 Json::Value ParseStringToJson(std::string_view str)
@@ -20,7 +28,7 @@ void MessageDispatcher::RegisterHandler(int id, Handler handler)
     handlers_[id] = handler;
 }
 
-void MessageDispatcher::DispatchMessage(SessionPtr psession, Json::Value const& msg)
+void MessageDispatcher::DispatchMessage(FrontEndSessionPtr psession, Json::Value const& msg)
 {
     if (!msg.isMember("id")) {
         PLOGE << "`id' is not found from the received message";
@@ -35,33 +43,33 @@ void MessageDispatcher::DispatchMessage(SessionPtr psession, Json::Value const& 
     it->second(psession, msg);
 }
 
-Session::Session(tcp::socket&& s)
+FrontEndSession::FrontEndSession(tcp::socket&& s)
     : s_(std::move(s))
 {
     PLOGD << "Session " << AddressToString(this) << " is created";
 }
 
-Session::~Session()
+FrontEndSession::~FrontEndSession()
 {
     PLOGD << "Session " << AddressToString(this) << " is going to be released";
 }
 
-void Session::SetMessageHandler(MessageHandler receiver)
+void FrontEndSession::SetMessageHandler(FrontEndMessageHandler msg_handler)
 {
-    msg_handler_ = std::move(receiver);
+    msg_handler_ = std::move(msg_handler);
 }
 
-void Session::SetErrorHandler(ErrorHandler err_handler)
+void FrontEndSession::SetErrorHandler(FrontEndErrorHandler err_handler)
 {
     err_handler_ = std::move(err_handler);
 }
 
-void Session::Start()
+void FrontEndSession::Start()
 {
     DoReadNext();
 }
 
-void Session::SendMessage(Json::Value const& value)
+void FrontEndSession::SendMessage(Json::Value const& value)
 {
     bool do_send = sending_msgs_.empty();
     sending_msgs_.push_back(value.toStyledString());
@@ -70,7 +78,7 @@ void Session::SendMessage(Json::Value const& value)
     }
 }
 
-void Session::Stop()
+void FrontEndSession::Stop()
 {
     std::error_code ignored_ec;
     s_.shutdown(tcp::socket::shutdown_both, ignored_ec);
@@ -78,7 +86,7 @@ void Session::Stop()
     PLOGD << "Session " << AddressToString(this) << " is closed";
 }
 
-void Session::DoSendNext()
+void FrontEndSession::DoSendNext()
 {
     assert(!sending_msgs_.empty());
     send_buf_ = sending_msgs_.front();
@@ -88,7 +96,7 @@ void Session::DoSendNext()
         PLOGD << "total " << bytes_wrote << " bytes wrote";
         if (ec) {
             if (self->err_handler_) {
-                self->err_handler_(ErrorType::WRITE, ec.message());
+                self->err_handler_(FrontEndSessionErrorType::WRITE, ec.message());
             }
             PLOGE << "WRITE: " << ec.message();
             return;
@@ -101,19 +109,19 @@ void Session::DoSendNext()
     });
 }
 
-void Session::DoReadNext()
+void FrontEndSession::DoReadNext()
 {
     asio::async_read_until(s_, read_buf_, '\0', [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
         PLOGD << "total " << bytes_read << " bytes are read";
         if (ec) {
             if (ec == asio::error::eof) {
                 if (self->err_handler_) {
-                    self->err_handler_(ErrorType::CLOSE, ec.message());
+                    self->err_handler_(FrontEndSessionErrorType::CLOSE, ec.message());
                 }
                 PLOGD << "READ: end of file";
             } else {
                 if (self->err_handler_) {
-                    self->err_handler_(ErrorType::READ, ec.message());
+                    self->err_handler_(FrontEndSessionErrorType::READ, ec.message());
                 }
                 PLOGE << "READ: " << ec.message();
             }
@@ -126,7 +134,7 @@ void Session::DoReadNext()
         PLOGD << "==== end of msg ====";
         if (std::string(result.c_str()) == "shutdown") {
             if (self->err_handler_) {
-                self->err_handler_(ErrorType::SHUTDOWN, "shutdown is requested");
+                self->err_handler_(FrontEndSessionErrorType::SHUTDOWN, "shutdown is requested");
                 return;
             }
             PLOGE << "shutdown is requested but the frontend didn't install a handler for errors, the request is ignored";
@@ -144,7 +152,7 @@ void Session::DoReadNext()
             }
         } catch (std::exception const& e) {
             PLOGE << "READ: failed to parse string into json: " << e.what();
-            self->err_handler_(ErrorType::READ, ec.message());
+            self->err_handler_(FrontEndSessionErrorType::READ, ec.message());
         }
         // read next
         self->DoReadNext();
@@ -154,6 +162,21 @@ void Session::DoReadNext()
 FrontEnd::FrontEnd(asio::io_context& ioc)
     : acceptor_(ioc)
 {
+}
+
+void FrontEnd::SetConnectionHandler(FrontEndSession::ConnectionHandler conn_handler)
+{
+    conn_handler_ = std::move(conn_handler);
+}
+
+void FrontEnd::SetMessageHandler(FrontEndSession::MessageHandler msg_handler)
+{
+    msg_handler_ = std::move(msg_handler);
+}
+
+void FrontEnd::SetErrorHandler(FrontEndSession::ErrorHandler err_handler)
+{
+    err_handler_ = err_handler;
 }
 
 void FrontEnd::Run(std::string_view addr, unsigned short port)
@@ -179,21 +202,6 @@ void FrontEnd::Exit()
     acceptor_.close(ignored_ec);
 }
 
-void FrontEnd::SetConnectionHandler(SessionConnectionHandler conn_handler)
-{
-    conn_handler_ = std::move(conn_handler);
-}
-
-void FrontEnd::SetMessageHandler(SessionMessageHandler receiver)
-{
-    msg_handler_ = std::move(receiver);
-}
-
-void FrontEnd::SetErrorHandler(SessionErrorHandler err_handler)
-{
-    err_handler_ = err_handler;
-}
-
 std::size_t FrontEnd::GetNumOfSessions() const
 {
     return session_vec_.size();
@@ -205,14 +213,14 @@ void FrontEnd::DoAcceptNext()
         PLOGD << "Accepting new session...";
         if (ec) {
             if (err_handler_) {
-                err_handler_({}, ErrorType::CONNECT, ec.message());
+                err_handler_({}, FrontEndSessionErrorType::CONNECT, ec.message());
             }
             PLOGE << "CONNECT: " << ec.message();
             return;
         }
-        auto psession = std::make_shared<Session>(std::move(s));
-        psession->SetErrorHandler([this, pweak_session = std::weak_ptr(psession)](ErrorType type, std::string_view errs) {
-            if (type == ErrorType::SHUTDOWN) {
+        auto psession = std::make_shared<FrontEndSession>(std::move(s));
+        psession->SetErrorHandler([this, pweak_session = std::weak_ptr(psession)](FrontEndSessionErrorType type, std::string_view errs) {
+            if (type == FrontEndSessionErrorType::SHUTDOWN) {
                 // shutdown the service
                 Exit();
             } else if (err_handler_) {
@@ -234,32 +242,32 @@ void FrontEnd::DoAcceptNext()
     });
 }
 
-Client::Client(asio::io_context& ioc)
+FrontEndClient::FrontEndClient(asio::io_context& ioc)
     : ioc_(ioc)
 {
 }
 
-void Client::SetConnectionHandler(ConnectionHandler conn_handler)
+void FrontEndClient::SetConnectionHandler(ConnectionHandler conn_handler)
 {
     conn_handler_ = std::move(conn_handler);
 }
 
-void Client::SetMessageHandler(MessageHandler msg_handler)
+void FrontEndClient::SetMessageHandler(MessageHandler msg_handler)
 {
     msg_handler_ = std::move(msg_handler);
 }
 
-void Client::SetErrorHandler(ErrorHandler err_handler)
+void FrontEndClient::SetErrorHandler(ErrorHandler err_handler)
 {
     err_handler_ = std::move(err_handler);
 }
 
-void Client::SetCloseHandler(CloseHandler close_handler)
+void FrontEndClient::SetCloseHandler(CloseHandler close_handler)
 {
     close_handler_ = std::move(close_handler);
 }
 
-void Client::Connect(std::string_view host, unsigned short port)
+void FrontEndClient::Connect(std::string_view host, unsigned short port)
 {
     // solve the address
     tcp::resolver r(ioc_);
@@ -278,7 +286,7 @@ void Client::Connect(std::string_view host, unsigned short port)
             PLOGD << "connected";
             if (ec) {
                 PLOGE << ec.message();
-                err_handler_(ErrorType::CONNECT, ec.message());
+                err_handler_(FrontEndSessionErrorType::CONNECT, ec.message());
                 return;
             }
             DoReadNext();
@@ -289,7 +297,7 @@ void Client::Connect(std::string_view host, unsigned short port)
     }
 }
 
-void Client::SendMessage(Json::Value const& msg)
+void FrontEndClient::SendMessage(Json::Value const& msg)
 {
     if (ps_ == nullptr) {
         throw std::runtime_error("please connect to server before sending message");
@@ -301,7 +309,7 @@ void Client::SendMessage(Json::Value const& msg)
     }
 }
 
-void Client::SendShutdown()
+void FrontEndClient::SendShutdown()
 {
     bool do_send = sending_msgs_.empty();
     sending_msgs_.push_back("shutdown");
@@ -310,7 +318,7 @@ void Client::SendShutdown()
     }
 }
 
-void Client::Exit()
+void FrontEndClient::Exit()
 {
     if (ps_) {
         std::error_code ignored_ec;
@@ -322,13 +330,13 @@ void Client::Exit()
     }
 }
 
-void Client::DoReadNext()
+void FrontEndClient::DoReadNext()
 {
     asio::async_read_until(*ps_, read_buf_, '\0', [this](std::error_code const& ec, std::size_t bytes) {
         if (ec) {
             if (ec != asio::error::eof) {
                 PLOGE << ec.message();
-                err_handler_(ErrorType::READ, ec.message());
+                err_handler_(FrontEndSessionErrorType::READ, ec.message());
             }
             Exit();
             return;
@@ -340,13 +348,13 @@ void Client::DoReadNext()
             msg_handler_(msg);
         } catch (std::exception const& e) {
             PLOGE << "READ: " << e.what();
-            err_handler_(ErrorType::READ, ec.message());
+            err_handler_(FrontEndSessionErrorType::READ, ec.message());
         }
         DoReadNext();
     });
 }
 
-void Client::DoSendNext()
+void FrontEndClient::DoSendNext()
 {
     assert(!sending_msgs_.empty());
     auto const& msg = sending_msgs_.front();
@@ -355,7 +363,7 @@ void Client::DoSendNext()
     send_buf_[msg.size()] = '\0';
     asio::async_write(*ps_, asio::buffer(send_buf_), [this](std::error_code const& ec, std::size_t bytes) {
         if (ec) {
-            err_handler_(ErrorType::WRITE, ec.message());
+            err_handler_(FrontEndSessionErrorType::WRITE, ec.message());
             Exit();
             return;
         }
