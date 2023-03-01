@@ -55,7 +55,8 @@ class BytesConnector
 {
     static void ConnectBytesList(BytesConnector& connector) { }
 
-    template <typename T, typename... Ts> static void ConnectBytesList(BytesConnector& connector, T const& data, Ts&&... rest)
+    template <typename T, typename... Ts>
+    static void ConnectBytesList(BytesConnector& connector, T const& data, Ts&&... rest)
     {
         connector.Connect(data);
         ConnectBytesList(connector, std::forward<Ts>(rest)...);

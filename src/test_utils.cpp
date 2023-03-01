@@ -27,4 +27,3 @@ void ParseCommandLineParams(int argc, char* argv[], bool& verbose)
         }
     }
 }
-

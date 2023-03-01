@@ -3,7 +3,6 @@
 
 #include <functional>
 #include <map>
-#include <thread>
 
 #include <string>
 #include <string_view>
@@ -20,78 +19,55 @@
 #include "msg_ids.h"
 #include "timelord_utils.h"
 
+class MessageDispatcher
+{
+public:
+    using Handler = std::function<void(FrontEndSessionPtr psession, Json::Value const& msg)>;
+
+    void RegisterHandler(int id, Handler handler);
+
+    void operator()(FrontEndSessionPtr psession, Json::Value const& msg) const;
+
+private:
+    std::map<int, Handler> handlers_;
+};
+
 class Timelord
 {
-    struct ChallengeRequest {
+    struct ChallengeRequestSession {
         std::weak_ptr<FrontEndSession> pweak_session;
         uint64_t iters;
     };
 
 public:
-    Timelord(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port);
+    Timelord(asio::io_context& ioc, std::string_view url, std::string_view cookie_path,
+            std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port);
 
     void Run(std::string_view addr, unsigned short port);
 
     void Exit();
 
 private:
-    void StartNewChallengeCalculation(uint256 const& challenge, uint64_t iters);
+    void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge);
 
-    void HandleNewChallenge(uint256 const& old_challenge, uint256 const& new_challenge);
+    void HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession);
 
-    void HandleSessionConnected(FrontEndSessionPtr psession);
+    void HandleFrontEnd_SessionError(FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs);
 
-    void HandleVdf_ProofIsReceived(uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration);
+    void HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psession, Json::Value const& msg);
 
-    void HandleMsg_Calc(FrontEndSessionPtr psession, Json::Value const& msg);
+    void HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail);
 
     asio::io_context& ioc_;
+
     FrontEnd frontend_;
-    std::map<uint256, std::vector<ChallengeRequest>> challenge_reqs_;
-    ChallengeMonitor challenge_monitor_;
     MessageDispatcher msg_dispatcher_;
+    std::map<uint256, std::vector<ChallengeRequestSession>> challenge_reqs_;
+
+    ChallengeMonitor challenge_monitor_;
     vdf_client::VdfClientMan vdf_client_man_;
-};
 
-class TimelordClient
-{
-public:
-    using ConnectionHandler = std::function<void()>;
-    using ErrorHandler = FrontEndErrorHandler;
-    using MessageHandler = std::function<void(Json::Value const& msg)>;
-
-    explicit TimelordClient(asio::io_context& ioc);
-
-    void SetConnectionHandler(ConnectionHandler conn_handler);
-
-    void SetErrorHandler(ErrorHandler err_handler);
-
-    void SetProofReceiver(vdf_client::ProofReceiver proof_receiver);
-
-    void Calc(uint256 const& challenge, uint64_t iters);
-
-    void Connect(std::string_view host, unsigned short port);
-
-    void Exit();
-
-    void RequestServiceShutdown();
-
-private:
-    void HandleConnect();
-
-    void HandleMessage(Json::Value const& msg);
-
-    void HandleError(FrontEndSessionErrorType type, std::string_view errs);
-
-    void HandleClose();
-
-    asio::io_context& ioc_;
-    FrontEndClient client_;
-    std::unique_ptr<std::thread> pthread_;
-    std::map<int, MessageHandler> msg_handlers_;
-    ConnectionHandler conn_handler_;
-    ErrorHandler err_handler_;
-    vdf_client::ProofReceiver proof_receiver_;
+    std::set<std::shared_ptr<asio::steady_timer>> ptimer_wait_close_vdf_set_;
 };
 
 #endif

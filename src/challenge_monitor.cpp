@@ -1,6 +1,7 @@
 #include "challenge_monitor.h"
 
-ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, int interval_seconds)
+ChallengeMonitor::ChallengeMonitor(
+        asio::io_context& ioc, std::string_view url, std::string_view cookie_path, int interval_seconds)
     : ioc_(ioc)
     , timer_(ioc)
     , rpc_(true, std::string(url), std::string(cookie_path))

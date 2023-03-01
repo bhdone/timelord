@@ -233,7 +233,8 @@ void VdfClientProc::NewProc(uint256 const& challenge)
     if (ret == 0) {
         pids_.insert(std::make_pair(challenge, pid));
     } else {
-        PLOGE << "cannot create a new vdf_client process, command: " << vdf_client_path_ << " " << addr_ << " " << port_str;
+        PLOGE << "cannot create a new vdf_client process, command: " << vdf_client_path_ << " " << addr_ << " "
+              << port_str;
     }
 }
 
@@ -360,7 +361,8 @@ void VdfClientSession::Stop(std::function<void()> callback)
 {
     auto timer = std::make_unique<asio::steady_timer>(s_.get_executor());
     timer->expires_after(std::chrono::seconds(SECS_TO_WAIT_STOPPING));
-    timer->async_wait([weak_self = std::weak_ptr(shared_from_this()), timer = std::move(timer), callback = std::move(callback)](std::error_code const& ec) {
+    timer->async_wait([weak_self = std::weak_ptr(shared_from_this()), timer = std::move(timer),
+                              callback = std::move(callback)](std::error_code const& ec) {
         if (ec) {
             // error occurs
             PLOGE << "error when waiting to close a session: " << ec.message();
@@ -384,7 +386,8 @@ void VdfClientSession::CalcIters(uint64_t iters)
 {
     if (status_ != Status::READY) {
         // ignore iters when the session isn't READY
-        PLOGE << "warning, trying to calculate iters " << iters << " on a " << VdfClientSession::StatusToString(status_) << " session";
+        PLOGE << "warning, trying to calculate iters " << iters << " on a " << VdfClientSession::StatusToString(status_)
+              << " session";
         return;
     }
     SendIters(iters);
@@ -412,27 +415,28 @@ uint64_t VdfClientSession::GetCurrDuration() const
 void VdfClientSession::AsyncReadSomeNext()
 {
     auto tmp = std::make_unique<Bytes>(BUFLEN, '\0');
-    s_.async_read_some(asio::buffer(*tmp), [self = shared_from_this(), tmp = std::move(tmp)](std::error_code const& ec, std::size_t size) {
-        if (ec) {
-            if (ec != asio::error::eof) {
-                // Only show the error message when it isn't `eof`.
-                PLOGE << "error occurs when reading: " << ec.message();
-            } else {
-                PLOGD << "read eof";
-            }
-            self->finished_handler_(self);
-            return;
-        }
-        if (size) {
-            PLOGD << "total read " << size << " bytes";
-            std::size_t remaining_size = self->rd_.size();
-            self->rd_.resize(self->rd_.size() + size);
-            memcpy(self->rd_.data() + remaining_size, tmp->data(), size);
-            // Parse and run command
-            self->ExecuteCommand(self->ParseCommand());
-        }
-        self->AsyncReadSomeNext();
-    });
+    s_.async_read_some(asio::buffer(*tmp),
+            [self = shared_from_this(), tmp = std::move(tmp)](std::error_code const& ec, std::size_t size) {
+                if (ec) {
+                    if (ec != asio::error::eof) {
+                        // Only show the error message when it isn't `eof`.
+                        PLOGE << "error occurs when reading: " << ec.message();
+                    } else {
+                        PLOGD << "read eof";
+                    }
+                    self->finished_handler_(self);
+                    return;
+                }
+                if (size) {
+                    PLOGD << "total read " << size << " bytes";
+                    std::size_t remaining_size = self->rd_.size();
+                    self->rd_.resize(self->rd_.size() + size);
+                    memcpy(self->rd_.data() + remaining_size, tmp->data(), size);
+                    // Parse and run command
+                    self->ExecuteCommand(self->ParseCommand());
+                }
+                self->AsyncReadSomeNext();
+            });
 }
 
 Command VdfClientSession::ParseCommand()
@@ -515,7 +519,8 @@ void VdfClientSession::SendStrCmd(std::string const& cmd)
     wr_.AsyncWrite(std::move(buf));
 }
 
-VdfClientMan::VdfClientMan(asio::io_context& ioc, TimeType type, std::string_view vdf_client_path, std::string_view addr, unsigned short port)
+VdfClientMan::VdfClientMan(asio::io_context& ioc, TimeType type, std::string_view vdf_client_path,
+        std::string_view addr, unsigned short port)
     : proc_man_(std::string(vdf_client_path), std::string(addr), port)
     , ioc_(ioc)
     , acceptor_(ioc)
@@ -623,10 +628,12 @@ void VdfClientMan::AcceptNext()
             return;
         } else {
             // Create new session
-            auto psession = std::make_shared<VdfClientSession>(std::move(s), init_challenge_, time_type_, VDFCommandAnalyzer());
+            auto psession = std::make_shared<VdfClientSession>(
+                    std::move(s), init_challenge_, time_type_, VDFCommandAnalyzer());
             psession->SetReadyHandler([this](VdfClientSessionPtr psession) {
                 assert(init_challenge_ == psession->GetChallenge());
-                MakeZero(init_challenge_, 0); // reset current challenge to zero will allow user to start another vdf_client
+                MakeZero(init_challenge_,
+                        0); // reset current challenge to zero will allow user to start another vdf_client
                 // get the iters
                 auto it = waiting_iters_.find(psession->GetChallenge());
                 if (it == std::cend(waiting_iters_)) {
@@ -634,7 +641,8 @@ void VdfClientMan::AcceptNext()
                     return;
                 }
                 for (auto iters : it->second) {
-                    PLOGD << "saved request is awaken: " << Uint256ToHex(psession->GetChallenge()) << ", iters=" << iters;
+                    PLOGD << "saved request is awaken: " << Uint256ToHex(psession->GetChallenge())
+                          << ", iters=" << iters;
                     psession->CalcIters(iters);
                 }
                 waiting_iters_.erase(it);

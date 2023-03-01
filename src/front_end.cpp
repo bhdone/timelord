@@ -23,26 +23,6 @@ Json::Value ParseStringToJson(std::string_view str)
     return root;
 }
 
-void MessageDispatcher::RegisterHandler(int id, Handler handler)
-{
-    handlers_[id] = handler;
-}
-
-void MessageDispatcher::DispatchMessage(FrontEndSessionPtr psession, Json::Value const& msg)
-{
-    if (!msg.isMember("id")) {
-        PLOGE << "`id' is not found from the received message";
-        PLOGD << msg.toStyledString();
-        return;
-    }
-    auto id = msg["id"].asInt();
-    auto it = handlers_.find(id);
-    if (it == std::cend(handlers_)) {
-        return;
-    }
-    it->second(psession, msg);
-}
-
 FrontEndSession::FrontEndSession(tcp::socket&& s)
     : s_(std::move(s))
 {
@@ -54,12 +34,12 @@ FrontEndSession::~FrontEndSession()
     PLOGD << "Session " << AddressToString(this) << " is going to be released";
 }
 
-void FrontEndSession::SetMessageHandler(FrontEndMessageHandler msg_handler)
+void FrontEndSession::SetMessageHandler(MessageHandler msg_handler)
 {
     msg_handler_ = std::move(msg_handler);
 }
 
-void FrontEndSession::SetErrorHandler(FrontEndErrorHandler err_handler)
+void FrontEndSession::SetErrorHandler(ErrorHandler err_handler)
 {
     err_handler_ = std::move(err_handler);
 }
@@ -92,71 +72,74 @@ void FrontEndSession::DoSendNext()
     send_buf_ = sending_msgs_.front();
     send_buf_.resize(send_buf_.size() + 1);
     send_buf_[send_buf_.size()] = '\0';
-    asio::async_write(s_, asio::buffer(send_buf_), [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_wrote) {
-        PLOGD << "total " << bytes_wrote << " bytes wrote";
-        if (ec) {
-            if (self->err_handler_) {
-                self->err_handler_(FrontEndSessionErrorType::WRITE, ec.message());
-            }
-            PLOGE << "WRITE: " << ec.message();
-            return;
-        }
-        assert(bytes_wrote == self->send_buf_.size());
-        self->sending_msgs_.pop_front();
-        if (!self->sending_msgs_.empty()) {
-            self->DoSendNext();
-        }
-    });
+    asio::async_write(s_, asio::buffer(send_buf_),
+            [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_wrote) {
+                PLOGD << "total " << bytes_wrote << " bytes wrote";
+                if (ec) {
+                    if (self->err_handler_) {
+                        self->err_handler_(self, FrontEndSessionErrorType::WRITE, ec.message());
+                    }
+                    PLOGE << "WRITE: " << ec.message();
+                    return;
+                }
+                assert(bytes_wrote == self->send_buf_.size());
+                self->sending_msgs_.pop_front();
+                if (!self->sending_msgs_.empty()) {
+                    self->DoSendNext();
+                }
+            });
 }
 
 void FrontEndSession::DoReadNext()
 {
-    asio::async_read_until(s_, read_buf_, '\0', [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
-        PLOGD << "total " << bytes_read << " bytes are read";
-        if (ec) {
-            if (ec == asio::error::eof) {
-                if (self->err_handler_) {
-                    self->err_handler_(FrontEndSessionErrorType::CLOSE, ec.message());
+    asio::async_read_until(
+            s_, read_buf_, '\0', [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
+                PLOGD << "total " << bytes_read << " bytes are read";
+                if (ec) {
+                    if (ec == asio::error::eof) {
+                        if (self->err_handler_) {
+                            self->err_handler_(self, FrontEndSessionErrorType::CLOSE, ec.message());
+                        }
+                        PLOGD << "READ: end of file";
+                    } else {
+                        if (self->err_handler_) {
+                            self->err_handler_(self, FrontEndSessionErrorType::READ, ec.message());
+                        }
+                        PLOGE << "READ: " << ec.message();
+                    }
+                    return;
                 }
-                PLOGD << "READ: end of file";
-            } else {
-                if (self->err_handler_) {
-                    self->err_handler_(FrontEndSessionErrorType::READ, ec.message());
+                std::istreambuf_iterator<char> begin(&self->read_buf_), end;
+                std::string result(begin, end);
+                PLOGD << "==== msg received ==== size: " << result.size();
+                PLOGD << result;
+                PLOGD << "==== end of msg ====";
+                if (std::string(result.c_str()) == "shutdown") {
+                    if (self->err_handler_) {
+                        self->err_handler_(self, FrontEndSessionErrorType::SHUTDOWN, "shutdown is requested");
+                        return;
+                    }
+                    PLOGE << "shutdown is requested but the frontend didn't install a handler for errors, the request "
+                             "is ignored";
                 }
-                PLOGE << "READ: " << ec.message();
-            }
-            return;
-        }
-        std::istreambuf_iterator<char> begin(&self->read_buf_), end;
-        std::string result(begin, end);
-        PLOGD << "==== msg received ==== size: " << result.size();
-        PLOGD << result;
-        PLOGD << "==== end of msg ====";
-        if (std::string(result.c_str()) == "shutdown") {
-            if (self->err_handler_) {
-                self->err_handler_(FrontEndSessionErrorType::SHUTDOWN, "shutdown is requested");
-                return;
-            }
-            PLOGE << "shutdown is requested but the frontend didn't install a handler for errors, the request is ignored";
-        }
-        try {
-            Json::Value msg = ParseStringToJson(result);
-            // Check if it is ping
-            auto msg_id = msg["id"].asInt();
-            if (msg_id == static_cast<int>(BhdMsgs::MSGID_BHD_PING)) {
-                // Just simply send it back
-                msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG);
-                self->SendMessage(msg);
-            } else {
-                self->msg_handler_(msg);
-            }
-        } catch (std::exception const& e) {
-            PLOGE << "READ: failed to parse string into json: " << e.what();
-            self->err_handler_(FrontEndSessionErrorType::READ, ec.message());
-        }
-        // read next
-        self->DoReadNext();
-    });
+                try {
+                    Json::Value msg = ParseStringToJson(result);
+                    // Check if it is ping
+                    auto msg_id = msg["id"].asInt();
+                    if (msg_id == static_cast<int>(BhdMsgs::MSGID_BHD_PING)) {
+                        // Just simply send it back
+                        msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG);
+                        self->SendMessage(msg);
+                    } else {
+                        self->msg_handler_(self, msg);
+                    }
+                } catch (std::exception const& e) {
+                    PLOGE << "READ: failed to parse string into json: " << e.what();
+                    self->err_handler_(self, FrontEndSessionErrorType::READ, ec.message());
+                }
+                // read next
+                self->DoReadNext();
+            });
 }
 
 FrontEnd::FrontEnd(asio::io_context& ioc)
@@ -210,7 +193,6 @@ std::size_t FrontEnd::GetNumOfSessions() const
 void FrontEnd::DoAcceptNext()
 {
     acceptor_.async_accept([this](std::error_code const& ec, tcp::socket&& s) {
-        PLOGD << "Accepting new session...";
         if (ec) {
             if (err_handler_) {
                 err_handler_({}, FrontEndSessionErrorType::CONNECT, ec.message());
@@ -219,23 +201,16 @@ void FrontEnd::DoAcceptNext()
             return;
         }
         auto psession = std::make_shared<FrontEndSession>(std::move(s));
-        psession->SetErrorHandler([this, pweak_session = std::weak_ptr(psession)](FrontEndSessionErrorType type, std::string_view errs) {
-            if (type == FrontEndSessionErrorType::SHUTDOWN) {
-                // shutdown the service
-                Exit();
-            } else if (err_handler_) {
-                auto psession = pweak_session.lock();
-                if (psession) {
-                    err_handler_(psession, type, errs);
-                }
-            }
-        });
-        psession->SetMessageHandler([this, pweak_session = std::weak_ptr(psession)](Json::Value const& msg) {
-            auto psession = pweak_session.lock();
-            if (psession) {
-                msg_handler_(psession, msg);
-            }
-        });
+        psession->SetErrorHandler(
+                [this](FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs) {
+                    if (type == FrontEndSessionErrorType::SHUTDOWN) {
+                        // shutdown the service
+                        Exit();
+                    } else if (err_handler_) {
+                        err_handler_(psession, type, errs);
+                    }
+                });
+        psession->SetMessageHandler(msg_handler_);
         psession->Start();
         session_vec_.push_back(psession);
         conn_handler_(psession);
