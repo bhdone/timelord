@@ -16,7 +16,7 @@ FetchContent_Declare(
     bhd_vdf
     GIT_REPOSITORY https://github.com/bhdone/bhd_vdf
     GIT_TAG v0.0.51
-    )
+)
 
 FetchContent_Declare(
     gears
@@ -31,15 +31,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(TIMELORDLIB_SRCS
     ./src/timelord_utils.cpp
     ./src/timelord.cpp
-    ./src/front_end.cpp
+    ./src/timelord_client.cpp
+    ./src/frontend.cpp
+    ./src/frontend_client.cpp
     ./src/challenge_monitor.cpp
     ./src/vdf_client_man.cpp
-    )
+)
 
 set(TIMELORD_SRCS
     ./src/main.cpp
     ${TIMELORDLIB_SRCS}
-    )
+)
 
 add_executable(timelord ${TIMELORD_SRCS})
 target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
@@ -52,7 +54,17 @@ target_link_libraries(timelord PRIVATE
     JsonCpp::JsonCpp
     fmt::fmt
     CURL::libcurl
-    )
+)
+
+set(TIMELORD_CLIENT_SRCS
+    ./src/timelord_client.cpp
+    ./src/timelord_utils.cpp
+    ./src/frontend_client.cpp
+)
+
+add_library(timelord_client ${TIMELORD_CLIENT_SRCS})
+target_include_directories(timelord_client PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
+target_link_libraries(timelord_client PRIVATE asio::asio)
 
 if (BUILD_TEST)
     function(MakeTest TEST_TARGET_NAME)
@@ -61,7 +73,7 @@ if (BUILD_TEST)
             ./src/test_utils.cpp
             ./src/test_main.cpp
             ./src/${TEST_TARGET_NAME}.cpp
-            )
+        )
         add_executable(${TEST_TARGET_NAME} ${TEST_SRCS})
         target_include_directories(${TEST_TARGET_NAME} PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE
@@ -73,7 +85,7 @@ if (BUILD_TEST)
             JsonCpp::JsonCpp
             fmt::fmt
             CURL::libcurl
-            )
+        )
         add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
     endfunction()
 

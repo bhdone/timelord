@@ -1,9 +1,9 @@
 #ifndef TL_UTILS_H
 #define TL_UTILS_H
 
-#include <cassert>
-
 #include <string>
+
+#include <json/value.h>
 
 #include "common_types.h"
 
@@ -113,5 +113,7 @@ Bytes SubBytes(Bytes const& bytes, int start, int count = 0);
  * @return The new string with comma
  */
 std::string FormatNumberStr(std::string const& num_str);
+
+Json::Value ParseStringToJson(std::string_view str);
 
 #endif

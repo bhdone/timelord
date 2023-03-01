@@ -46,9 +46,7 @@ void TimelordClient::Calc(uint256 const& challenge, uint64_t iters)
     msg["id"] = static_cast<Json::Int>(TimelordClientMsgs::CALC);
     msg["challenge"] = Uint256ToHex(challenge);
     msg["iters"] = iters;
-    asio::post(ioc_, [this, msg]() {
-        client_.SendMessage(msg);
-    });
+    client_.SendMessage(msg);
 }
 
 void TimelordClient::RequestServiceShutdown()

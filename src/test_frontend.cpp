@@ -12,7 +12,9 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-#include "front_end.h"
+#include "frontend.h"
+#include "frontend_client.h"
+
 #include "msg_ids.h"
 
 #include "test_utils.h"
@@ -46,9 +48,7 @@ public:
 
     void SendMsg(Json::Value const& msg)
     {
-        asio::post(ioc_, [this, msg]() {
-            client_.SendMessage(msg);
-        });
+        client_.SendMessage(msg);
     }
 
     FrontEndClient& GetClient()

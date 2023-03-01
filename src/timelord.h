@@ -13,7 +13,7 @@
 #include "common_types.h"
 
 #include "challenge_monitor.h"
-#include "front_end.h"
+#include "frontend.h"
 #include "vdf_client_man.h"
 
 #include "msg_ids.h"

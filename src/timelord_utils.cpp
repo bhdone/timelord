@@ -4,6 +4,8 @@
 
 #include <sstream>
 
+#include <json/reader.h>
+
 #include "utils.h"
 
 std::string AddressToString(void const* p)
@@ -164,4 +166,17 @@ std::string FormatNumberStr(std::string const& num_str)
         res.insert(res.begin(), 1, *i);
     }
     return res;
+}
+
+Json::Value ParseStringToJson(std::string_view str)
+{
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value root;
+    std::string errs;
+    bool succ = reader->parse(std::cbegin(str), std::cend(str), &root, &errs);
+    if (!succ) {
+        throw std::runtime_error(errs);
+    }
+    return root;
 }

@@ -7,7 +7,7 @@
 
 #include <json/value.h>
 
-#include "front_end.h"
+#include "frontend_client.h"
 #include "vdf_client_man.h"
 
 class TimelordClient
