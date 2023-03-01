@@ -22,15 +22,17 @@ public:
 
     ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, int interval_seconds);
 
+    uint256 const& GetCurrentChallenge() const;
+
     void SetNewChallengeHandler(NewChallengeHandler handler);
 
     void Run();
 
     void Exit();
 
+private:
     void QueryChallenge();
 
-private:
     void DoQueryNext();
 
     asio::io_context& ioc_;

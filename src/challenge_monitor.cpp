@@ -10,6 +10,11 @@ ChallengeMonitor::ChallengeMonitor(
     MakeZero(challenge_, 0);
 }
 
+uint256 const& ChallengeMonitor::GetCurrentChallenge() const
+{
+    return challenge_;
+}
+
 void ChallengeMonitor::SetNewChallengeHandler(NewChallengeHandler handler)
 {
     new_challenge_handler_ = std::move(handler);

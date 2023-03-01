@@ -152,6 +152,12 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
 
+    // reject when the challenge doesn't match
+    if (challenge != challenge_monitor_.GetCurrentChallenge()) {
+        SendMsg_CalcReply(psession, false, challenge, {});
+        return;
+    }
+
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {
         auto pair = challenge_reqs_.insert(std::make_pair(challenge, std::vector<ChallengeRequestSession>()));
