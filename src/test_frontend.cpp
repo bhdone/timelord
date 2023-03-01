@@ -190,14 +190,14 @@ TEST_F(BaseServer, RunWith1Session_msg)
     ClientThreadWrap client_thread;
     client_thread.SetConnHandler([&client_thread]() {
         Json::Value msg;
-        msg["id"] = static_cast<Json::Int>(BhdMsgs::MSGID_BHD_PING);
+        msg["id"] = static_cast<Json::Int>(TimelordClientMsgs::PING);
         msg["memo"] = "hello world!";
         PLOGD << "Ping";
         client_thread.GetClient().SendMessage(msg);
     });
     client_thread.SetMsgHandler([&m, &connected, &cv](Json::Value const& msg) {
         auto id = msg["id"].asInt();
-        if (id == static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG)) {
+        if (id == static_cast<Json::Int>(TimelordMsgs::PONG)) {
             auto memo = msg["memo"].asString();
             PLOGD << "Pong: " << memo;
             {

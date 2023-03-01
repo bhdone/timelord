@@ -11,7 +11,7 @@ TimelordClient::TimelordClient(asio::io_context& ioc)
     : ioc_(ioc)
     , client_(ioc)
 {
-    msg_handlers_.insert(std::make_pair(static_cast<int>(FeMsgs::MSGID_FE_PROOF), [this](Json::Value const& msg) {
+    msg_handlers_.insert(std::make_pair(static_cast<int>(TimelordMsgs::PROOF), [this](Json::Value const& msg) {
         if (proof_receiver_) {
             auto challenge = Uint256FromHex(msg["challenge"].asString());
             vdf_client::ProofDetail detail;
@@ -43,7 +43,7 @@ void TimelordClient::SetProofReceiver(vdf_client::ProofReceiver proof_receiver)
 void TimelordClient::Calc(uint256 const& challenge, uint64_t iters)
 {
     Json::Value msg;
-    msg["id"] = static_cast<Json::Int>(BhdMsgs::MSGID_BHD_CALC);
+    msg["id"] = static_cast<Json::Int>(TimelordClientMsgs::CALC);
     msg["challenge"] = Uint256ToHex(challenge);
     msg["iters"] = iters;
     asio::post(ioc_, [this, msg]() {

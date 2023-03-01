@@ -126,9 +126,9 @@ void FrontEndSession::DoReadNext()
                     Json::Value msg = ParseStringToJson(result);
                     // Check if it is ping
                     auto msg_id = msg["id"].asInt();
-                    if (msg_id == static_cast<int>(BhdMsgs::MSGID_BHD_PING)) {
+                    if (msg_id == static_cast<int>(TimelordClientMsgs::PING)) {
                         // Just simply send it back
-                        msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PONG);
+                        msg["id"] = static_cast<Json::Int>(TimelordMsgs::PONG);
                         self->SendMessage(msg);
                     } else {
                         self->msg_handler_(self, msg);

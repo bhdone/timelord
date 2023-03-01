@@ -12,14 +12,14 @@ static int const SECS_TO_WAIT_BEFORE_CLOSE_VDF = 60;
 void SendMsg_Ready(FrontEndSessionPtr psession)
 {
     Json::Value msg;
-    msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_READY);
+    msg["id"] = static_cast<Json::Int>(TimelordMsgs::READY);
     psession->SendMessage(msg);
 }
 
 void SendMsg_Proof(FrontEndSessionPtr psession, uint256 const& challenge, vdf_client::ProofDetail const& detail)
 {
     Json::Value msg;
-    msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_PROOF);
+    msg["id"] = static_cast<Json::Int>(TimelordMsgs::PROOF);
     msg["challenge"] = Uint256ToHex(challenge);
     msg["y"] = BytesToHex(detail.y);
     msg["proof"] = BytesToHex(detail.proof);
@@ -32,7 +32,7 @@ void SendMsg_Proof(FrontEndSessionPtr psession, uint256 const& challenge, vdf_cl
 void SendMsg_Speed(FrontEndSessionPtr psession, uint64_t iters_per_sec)
 {
     Json::Value msg;
-    msg["id"] = static_cast<Json::Int>(FeMsgs::MSGID_FE_SPEED);
+    msg["id"] = static_cast<Json::Int>(TimelordMsgs::SPEED);
     msg["iters_per_sec"] = iters_per_sec;
     psession->SendMessage(msg);
 }
@@ -72,9 +72,9 @@ Timelord::Timelord(asio::io_context& ioc, std::string_view url, std::string_view
     }
     vdf_client_man_.SetProofReceiver(std::bind(&Timelord::HandleVdfClient_ProofIsReceived, this, _1, _2));
     challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2));
-    msg_dispatcher_.RegisterHandler(static_cast<int>(BhdMsgs::MSGID_BHD_CALC),
+    msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::CALC),
             std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
-    msg_dispatcher_.RegisterHandler(static_cast<int>(BhdMsgs::MSGID_BHD_QUERY_SPEED),
+    msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::QUERY_SPEED),
             std::bind(&Timelord::HandleFrontEnd_SessionQuerySpeed, this, _1, _2));
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleFrontEnd_NewSessionConnected, this, _1));
     frontend_.SetMessageHandler(msg_dispatcher_);

@@ -2,18 +2,18 @@
 #define TL_MSG_IDS_H
 
 // messages send from FrontEnd
-enum class FeMsgs : int {
-    MSGID_FE_READY = 1000,
-    MSGID_FE_PROOF = 1010,
-    MSGID_FE_PONG = 1020,
-    MSGID_FE_SPEED = 1030,
+enum class TimelordMsgs : int {
+    PONG = 1000,
+    PROOF = 1010,
+    READY = 1020,
+    SPEED = 1030,
 };
 
 // messages send from Bhd
-enum class BhdMsgs : int {
-    MSGID_BHD_CALC = 2000,
-    MSGID_BHD_PING = 2010,
-    MSGID_BHD_QUERY_SPEED = 2020,
+enum class TimelordClientMsgs : int {
+    PING = 2000,
+    CALC = 2010,
+    QUERY_SPEED = 2020,
 };
 
 #endif
