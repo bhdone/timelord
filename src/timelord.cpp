@@ -37,6 +37,22 @@ void SendMsg_Speed(FrontEndSessionPtr psession, uint64_t iters_per_sec)
     psession->SendMessage(msg);
 }
 
+void SendMsg_CalcReply(FrontEndSessionPtr psession, bool calculating, uint256 const& challenge,
+        std::optional<vdf_client::ProofDetail> detail)
+{
+    Json::Value msg;
+    msg["id"] = static_cast<Json::Int>(TimelordMsgs::CALC_REPLY);
+    msg["calculating"] = calculating;
+    msg["challenge"] = Uint256ToHex(challenge);
+    if (detail.has_value()) {
+        msg["y"] = BytesToHex(detail->y);
+        msg["proof"] = BytesToHex(detail->proof);
+        msg["witness_type"] = static_cast<int>(detail->witness_type);
+        msg["iters"] = detail->iters;
+        msg["duration"] = detail->duration;
+    }
+}
+
 void MessageDispatcher::RegisterHandler(int id, Handler handler)
 {
     handlers_[id] = handler;
@@ -144,7 +160,13 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
         it->second.push_back({ std::weak_ptr(psession), iters });
     }
 
-    vdf_client_man_.CalcIters(challenge, iters);
+    auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
+    if (detail.has_value()) {
+        SendMsg_CalcReply(psession, false, challenge, detail);
+    } else {
+        vdf_client_man_.CalcIters(challenge, iters);
+        SendMsg_CalcReply(psession, true, challenge, {});
+    }
 }
 
 void Timelord::HandleFrontEnd_SessionQuerySpeed(FrontEndSessionPtr psession, Json::Value const&)

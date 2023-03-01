@@ -609,15 +609,15 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
     }
 }
 
-std::tuple<ProofDetail, bool> VdfClientMan::QueryExistingProof(uint256 const& challenge, uint64_t iters)
+std::optional<ProofDetail> VdfClientMan::QueryExistingProof(uint256 const& challenge, uint64_t iters)
 {
     auto it = saved_proofs_.find(challenge);
     for (auto const& proof_detail : it->second) {
         if (proof_detail.iters > iters) {
-            return std::make_tuple(proof_detail, true);
+            return proof_detail;
         }
     }
-    return std::make_tuple(ProofDetail {}, false);
+    return {};
 }
 
 void VdfClientMan::AcceptNext()

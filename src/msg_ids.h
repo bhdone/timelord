@@ -7,6 +7,7 @@ enum class TimelordMsgs : int {
     PROOF = 1010,
     READY = 1020,
     SPEED = 1030,
+    CALC_REPLY = 1040,
 };
 
 // messages send from Bhd

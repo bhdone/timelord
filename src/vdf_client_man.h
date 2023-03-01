@@ -8,6 +8,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <optional>
 
 #include <string>
 #include <string_view>
@@ -206,7 +207,7 @@ public:
 
     void CalcIters(uint256 const& challenge, uint64_t iters);
 
-    std::tuple<ProofDetail, bool> QueryExistingProof(uint256 const& challenge, uint64_t iters);
+    std::optional<ProofDetail> QueryExistingProof(uint256 const& challenge, uint64_t iters);
 
 private:
     void AcceptNext();
