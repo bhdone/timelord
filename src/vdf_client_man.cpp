@@ -131,7 +131,6 @@ std::tuple<Proof, uint64_t> ParseProofIters(Bytes const& buf)
     proof.proof.resize(remain_size);
     std::memcpy(proof.proof.data(), buf.data() + offset, remain_size);
     // Return proof
-    PLOGD << "proof is received:";
     PLOGD << "== y(len=" << proof.y.size() << "): " << BytesToHex(proof.y);
     PLOGD << "== proof(len=" << proof.proof.size() << "): " << BytesToHex(proof.proof);
     PLOGD << "== witness_type: " << static_cast<int>(proof.witness_type);
@@ -562,19 +561,26 @@ void VdfClientMan::Exit()
 
 void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 {
+    PLOGD << "request: " << Uint256ToHex(challenge) << ", iters=" << iters;
     if (!IsZero(init_challenge_) && challenge != init_challenge_) {
         // there is a running procedure to create a vdf_client, run it later
-        PLOGD << "trying to run another vdf_client while there is already one creating, try later";
-        asio::post(ioc_, std::bind(&VdfClientMan::CalcIters, this, challenge, iters));
+        PLOGD << "cannot run another vdf_client while there is already one creating, try it later";
+        auto ptimer = std::make_unique<asio::steady_timer>(ioc_);
+        ptimer->expires_after(std::chrono::milliseconds(100));
+        ptimer->async_wait([this, challenge, iters, ptimer = std::move(ptimer)](std::error_code const& ec) {
+            CalcIters(challenge, iters);
+        });
         return;
     }
     for (auto psession : session_set_) {
         if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == challenge) {
             psession->CalcIters(iters);
+            PLOGD << "iters for existing vdf_client is delivered";
             return;
         }
     }
     // all iters will be delivered as soon as the vdf_client session is connected and ready
+    PLOGD << "the request is save and it will be retrieved when the vdf_client is ready";
     auto it = waiting_iters_.find(challenge);
     if (it == std::cend(waiting_iters_)) {
         waiting_iters_.insert(std::make_pair(challenge, std::vector<uint64_t> { iters }));
@@ -583,6 +589,7 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
     }
     // cannot find the challenge from existing sessions, check the related process from proc manager
     if (!proc_man_.ChallengeExists(challenge)) {
+        PLOGD << "creating new vdf_client for challenge: " << Uint256ToHex(challenge);
         proc_man_.NewProc(challenge);
         init_challenge_ = challenge;
     }
@@ -618,6 +625,7 @@ void VdfClientMan::AcceptNext()
                     return;
                 }
                 for (auto iters : it->second) {
+                    PLOGD << "saved request is awaken: " << Uint256ToHex(psession->GetChallenge()) << ", iters=" << iters;
                     psession->CalcIters(iters);
                 }
                 waiting_iters_.erase(it);

@@ -38,12 +38,14 @@ protected:
         PLOGD << "exited.";
     }
 
-    void Run(uint64_t iters)
+    void PutIters(uint256 const& challenge, uint64_t iters)
     {
-        uint256 challenge;
-        MakeZero(challenge, 1);
-        pman_->Run();
         pman_->CalcIters(challenge, iters);
+    }
+
+    void Run()
+    {
+        pman_->Run();
         pthread_ = std::make_unique<std::thread>([this]() {
             ioc_.run();
         });
@@ -68,22 +70,45 @@ TEST(Path, Check)
 TEST_F(VdfClientTest, Base)
 {
     bool proof_is_ready { false };
+    std::map<uint256, std::vector<ProofDetail>> recv_proofs;
+    int num_of_waiting_proofs { 3 };
     std::condition_variable cv;
     std::mutex m;
-    SetProofReceiver([&m, &proof_is_ready, &cv](uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration) {
-        PLOGD << "==> challenge: " << Uint256ToHex(challenge);
-        PLOGD << "==> y: " << BytesToHex(y);
-        PLOGD << "==> proof: " << BytesToHex(proof);
-        PLOGD << "==> witness_type: " << (int)witness_type;
-        PLOGD << "==> iters: " << iters;
-        PLOGD << "==> duration: " << duration;
-        {
-            std::lock_guard<std::mutex> lg(m);
-            proof_is_ready = true;
-        }
-        cv.notify_one();
-    });
-    Run(VDF_TEST_ITERS);
+    SetProofReceiver(
+            [&m, &proof_is_ready, &cv, &recv_proofs, &num_of_waiting_proofs](uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration) {
+                PLOGD << "==> challenge: " << Uint256ToHex(challenge);
+                PLOGD << "==> y: " << BytesToHex(y);
+                PLOGD << "==> proof: " << BytesToHex(proof);
+                PLOGD << "==> witness_type: " << (int)witness_type;
+                PLOGD << "==> iters: " << iters;
+                PLOGD << "==> duration: " << duration;
+                PLOGD << "==> iters/sec: " << iters / duration;
+                {
+                    std::lock_guard<std::mutex> lg(m);
+                    ProofDetail detail;
+                    detail.y = y;
+                    detail.proof = proof;
+                    detail.witness_type = witness_type;
+                    detail.iters = iters;
+                    detail.duration = duration;
+                    auto it = recv_proofs.find(challenge);
+                    if (it == std::cend(recv_proofs)) {
+                        recv_proofs.insert(std::make_pair(challenge, std::vector<ProofDetail> { detail }));
+                    } else {
+                        it->second.push_back(detail);
+                    }
+                    --num_of_waiting_proofs;
+                    proof_is_ready = num_of_waiting_proofs == 0;
+                }
+                cv.notify_one();
+            });
+    uint256 challenge1, challenge2;
+    MakeZero(challenge1, 1);
+    MakeZero(challenge2, 2);
+    PutIters(challenge1, VDF_TEST_ITERS);
+    PutIters(challenge1, VDF_TEST_ITERS * 3);
+    PutIters(challenge2, VDF_TEST_ITERS * 2);
+    Run();
     std::unique_lock lk(m);
     cv.wait(lk, [&proof_is_ready]() -> bool {
         return proof_is_ready;
