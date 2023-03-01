@@ -50,7 +50,7 @@ private:
     std::map<uint256, std::vector<ChallengeRequest>> challenge_reqs_;
     ChallengeMonitor challenge_monitor_;
     MessageDispatcher msg_dispatcher_;
-    VdfClientMan vdf_client_man_;
+    vdf_client::VdfClientMan vdf_client_man_;
 };
 
 class TimelordClient
@@ -66,7 +66,7 @@ public:
 
     void SetErrorHandler(ErrorHandler err_handler);
 
-    void SetProofReceiver(ProofReceiver proof_receiver);
+    void SetProofReceiver(vdf_client::ProofReceiver proof_receiver);
 
     void Calc(uint256 const& challenge, uint64_t iters);
 
@@ -91,7 +91,7 @@ private:
     std::map<int, MessageHandler> msg_handlers_;
     ConnectionHandler conn_handler_;
     ErrorHandler err_handler_;
-    ProofReceiver proof_receiver_;
+    vdf_client::ProofReceiver proof_receiver_;
 };
 
 #endif

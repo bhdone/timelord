@@ -30,7 +30,7 @@ Timelord::Timelord(asio::io_context& ioc, std::string_view url, std::string_view
     : ioc_(ioc)
     , challenge_monitor_(ioc_, url, cookie_path, 3)
     , frontend_(ioc)
-    , vdf_client_man_(ioc_, TimeType::N, vdf_client_path, vdf_client_addr, vdf_client_port)
+    , vdf_client_man_(ioc_, vdf_client::TimeType::N, vdf_client_path, vdf_client_addr, vdf_client_port)
 {
     PLOGD << "Timelord is created with " << vdf_client_addr << ":" << vdf_client_port << ", vdf=" << vdf_client_path << " listening " << vdf_client_addr << ":" << vdf_client_port;
     if (!fs::exists(vdf_client_path) || !fs::is_regular_file(vdf_client_path)) {
@@ -61,7 +61,8 @@ void Timelord::Run(std::string_view addr, unsigned short port)
     PLOGD << "Exit.";
 }
 
-void Timelord::Exit() {
+void Timelord::Exit()
+{
     vdf_client_man_.Exit();
 }
 
@@ -138,12 +139,13 @@ TimelordClient::TimelordClient(asio::io_context& ioc)
     msg_handlers_.insert(std::make_pair(static_cast<int>(FeMsgs::MSGID_FE_PROOF), [this](Json::Value const& msg) {
         if (proof_receiver_) {
             auto challenge = Uint256FromHex(msg["challenge"].asString());
-            auto y = BytesFromHex(msg["y"].asString());
-            auto proof = BytesFromHex(msg["proof"].asString());
-            auto witness_type = msg["witness_type"].asInt();
-            auto iters = msg["iters"].asInt64();
-            auto duration = msg["duration"].asInt();
-            proof_receiver_(challenge, y, proof, witness_type, iters, duration);
+            vdf_client::ProofDetail detail;
+            detail.y = BytesFromHex(msg["y"].asString());
+            detail.proof = BytesFromHex(msg["proof"].asString());
+            detail.witness_type = msg["witness_type"].asInt();
+            detail.iters = msg["iters"].asInt64();
+            detail.duration = msg["duration"].asInt();
+            proof_receiver_(challenge, detail);
         }
     }));
 }
@@ -158,7 +160,7 @@ void TimelordClient::SetErrorHandler(ErrorHandler err_handler)
     err_handler_ = std::move(err_handler);
 }
 
-void TimelordClient::SetProofReceiver(ProofReceiver proof_receiver)
+void TimelordClient::SetProofReceiver(vdf_client::ProofReceiver proof_receiver)
 {
     proof_receiver_ = std::move(proof_receiver);
 }

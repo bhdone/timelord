@@ -25,7 +25,7 @@ class VdfClientTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        pman_ = std::make_unique<VdfClientMan>(ioc_, TimeType::T, ExpandEnvPath(VDF_CLIENT_PATH), VDF_CLIENT_ADDR, VDF_CLIENT_PORT);
+        pman_ = std::make_unique<vdf_client::VdfClientMan>(ioc_, vdf_client::TimeType::T, ExpandEnvPath(VDF_CLIENT_PATH), VDF_CLIENT_ADDR, VDF_CLIENT_PORT);
     }
 
     void TearDown() override
@@ -51,7 +51,7 @@ protected:
         });
     }
 
-    void SetProofReceiver(ProofReceiver proof_receiver)
+    void SetProofReceiver(vdf_client::ProofReceiver proof_receiver)
     {
         pman_->SetProofReceiver(std::move(proof_receiver));
     }
@@ -59,7 +59,7 @@ protected:
 private:
     asio::io_context ioc_;
     std::unique_ptr<std::thread> pthread_;
-    std::unique_ptr<VdfClientMan> pman_;
+    std::unique_ptr<vdf_client::VdfClientMan> pman_;
 };
 
 TEST(Path, Check)
@@ -70,38 +70,31 @@ TEST(Path, Check)
 TEST_F(VdfClientTest, Base)
 {
     bool proof_is_ready { false };
-    std::map<uint256, std::vector<ProofDetail>> recv_proofs;
+    std::map<uint256, std::vector<vdf_client::ProofDetail>> recv_proofs;
     int num_of_waiting_proofs { 3 };
     std::condition_variable cv;
     std::mutex m;
-    SetProofReceiver(
-            [&m, &proof_is_ready, &cv, &recv_proofs, &num_of_waiting_proofs](uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration) {
-                PLOGD << "==> challenge: " << Uint256ToHex(challenge);
-                PLOGD << "==> y: " << BytesToHex(y);
-                PLOGD << "==> proof: " << BytesToHex(proof);
-                PLOGD << "==> witness_type: " << (int)witness_type;
-                PLOGD << "==> iters: " << iters;
-                PLOGD << "==> duration: " << duration;
-                PLOGD << "==> iters/sec: " << iters / duration;
-                {
-                    std::lock_guard<std::mutex> lg(m);
-                    ProofDetail detail;
-                    detail.y = y;
-                    detail.proof = proof;
-                    detail.witness_type = witness_type;
-                    detail.iters = iters;
-                    detail.duration = duration;
-                    auto it = recv_proofs.find(challenge);
-                    if (it == std::cend(recv_proofs)) {
-                        recv_proofs.insert(std::make_pair(challenge, std::vector<ProofDetail> { detail }));
-                    } else {
-                        it->second.push_back(detail);
-                    }
-                    --num_of_waiting_proofs;
-                    proof_is_ready = num_of_waiting_proofs == 0;
-                }
-                cv.notify_one();
-            });
+    SetProofReceiver([&m, &proof_is_ready, &cv, &recv_proofs, &num_of_waiting_proofs](uint256 const& challenge, vdf_client::ProofDetail const& detail) {
+        PLOGD << "==> challenge: " << Uint256ToHex(challenge);
+        PLOGD << "==> y: " << BytesToHex(detail.y);
+        PLOGD << "==> proof: " << BytesToHex(detail.proof);
+        PLOGD << "==> witness_type: " << (int)detail.witness_type;
+        PLOGD << "==> iters: " << detail.iters;
+        PLOGD << "==> duration: " << detail.duration;
+        PLOGD << "==> iters/sec: " << detail.iters / detail.duration;
+        {
+            std::lock_guard<std::mutex> lg(m);
+            auto it = recv_proofs.find(challenge);
+            if (it == std::cend(recv_proofs)) {
+                recv_proofs.insert(std::make_pair(challenge, std::vector<vdf_client::ProofDetail> { detail }));
+            } else {
+                it->second.push_back(detail);
+            }
+            --num_of_waiting_proofs;
+            proof_is_ready = num_of_waiting_proofs == 0;
+        }
+        cv.notify_one();
+    });
     uint256 challenge1, challenge2;
     MakeZero(challenge1, 1);
     MakeZero(challenge2, 2);

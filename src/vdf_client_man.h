@@ -1,12 +1,7 @@
 #ifndef BTCHD_VDF_RECEIVER_H
 #define BTCHD_VDF_RECEIVER_H
 
-#include <spawn.h>
-
-#include <array>
-#include <atomic>
-#include <cstddef>
-#include <cstdint>
+#include <chrono>
 #include <deque>
 #include <functional>
 #include <map>
@@ -21,6 +16,9 @@
 using asio::ip::tcp;
 
 #include "common_types.h"
+
+namespace vdf_client
+{
 
 struct ProofDetail {
     Bytes y;
@@ -109,7 +107,7 @@ class VdfClientSession;
 using VdfClientSessionPtr = std::shared_ptr<VdfClientSession>;
 
 using SessionNotify = std::function<void(VdfClientSessionPtr)>;
-using ProofReceiver = std::function<void(uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration)>;
+using ProofReceiver = std::function<void(uint256 const&, ProofDetail const&)>;
 
 enum class TimeType { S, N, T };
 
@@ -120,7 +118,8 @@ class VdfClientSession : public std::enable_shared_from_this<VdfClientSession>
 public:
     enum Status { INIT, READY, STOPPING };
 
-    static std::string StatusToString(Status s) {
+    static std::string StatusToString(Status s)
+    {
         switch (s) {
         case Status::INIT:
             return "INIT";
@@ -182,7 +181,7 @@ private:
     uint256 challenge_;
     TimeType time_type_;
 
-    std::atomic<Status> status_ { Status::INIT };
+    Status status_ { Status::INIT };
     std::chrono::system_clock::time_point start_time_;
 
     CommandAnalyzer cmd_analyzer_;
@@ -223,5 +222,7 @@ private:
     std::map<uint256, std::vector<uint64_t>> waiting_iters_;
     std::map<uint256, std::vector<ProofDetail>> saved_proofs_;
 };
+
+} // namespace vdf_client
 
 #endif

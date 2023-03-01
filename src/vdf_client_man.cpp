@@ -1,5 +1,6 @@
 #include "vdf_client_man.h"
 
+#include <spawn.h>
 #include <sys/wait.h>
 
 #include <plog/Log.h>
@@ -21,6 +22,8 @@
 #include "timelord_utils.h"
 #include "utils.h"
 
+namespace vdf_client
+{
 namespace
 {
 
@@ -465,7 +468,13 @@ void VdfClientSession::ExecuteCommand(Command const& cmd)
         Proof proof;
         uint64_t iters;
         std::tie(proof, iters) = ParseProofIters(BytesFromHex(cmd.body));
-        proof_receiver_(challenge_, proof.y, proof.proof, proof.witness_type, iters, GetCurrDuration());
+        ProofDetail detail;
+        detail.y = proof.y;
+        detail.proof = proof.proof;
+        detail.witness_type = proof.witness_type;
+        detail.iters = iters;
+        detail.duration = GetCurrDuration();
+        proof_receiver_(challenge_, detail);
     }
 }
 
@@ -633,14 +642,8 @@ void VdfClientMan::AcceptNext()
             psession->SetFinishedHandler([this](VdfClientSessionPtr psession) {
                 session_set_.erase(psession);
             });
-            psession->SetProofReceiver([this](uint256 const& challenge, Bytes const& y, Bytes const& proof, uint8_t witness_type, uint64_t iters, int duration) {
+            psession->SetProofReceiver([this](uint256 const& challenge, ProofDetail const& detail) {
                 // we need to save the proof to memories as well
-                ProofDetail detail;
-                detail.y = y;
-                detail.proof = proof;
-                detail.witness_type = witness_type;
-                detail.iters = iters;
-                detail.duration = duration;
                 auto it = saved_proofs_.find(challenge);
                 if (it == std::cend(saved_proofs_)) {
                     saved_proofs_.insert(std::make_pair(challenge, std::vector<ProofDetail> { std::move(detail) }));
@@ -648,7 +651,7 @@ void VdfClientMan::AcceptNext()
                     it->second.push_back(std::move(detail));
                 }
                 // invoke callback
-                proof_receiver_(challenge, y, proof, witness_type, iters, duration);
+                proof_receiver_(challenge, detail);
             });
             psession->Start();
             session_set_.insert(psession);
@@ -656,3 +659,5 @@ void VdfClientMan::AcceptNext()
         AcceptNext();
     });
 }
+
+} // namespace vdf_client
