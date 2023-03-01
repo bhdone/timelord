@@ -3,6 +3,7 @@
 #include <cxxopts.hpp>
 
 #include <plog/Appenders/ConsoleAppender.h>
+#include <plog/Appenders/RollingFileAppender.h>
 #include <plog/Formatters/TxtFormatter.h>
 #include <plog/Init.h>
 #include <plog/Log.h>
@@ -15,11 +16,14 @@ int main(int argc, char* argv[])
 {
     cxxopts::Options opts(SZ_APP_NAME);
     opts.add_options()("help", "Show help document") // --help
+            ("logfile", "Store logs into file",
+                    cxxopts::value<std::string>()->default_value("./timelord.log")) // --logfile
             ("verbose,v", "Show more logs") // --verbose
             ("addr", "Listening to address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --addr
             ("port", "Listening on this port", cxxopts::value<unsigned short>()->default_value("19191")) // --port
             ("vdf_client-path", "The full path to `vdf_client'",
-                    cxxopts::value<std::string>()->default_value("./vdf_client")) // --vdf_client-path
+                    cxxopts::value<std::string>()->default_value(
+                            "$HOME/Workspace/BitcoinHD/chiavdf/src/vdf_client")) // --vdf_client-path
             ("vdf_client-addr", "vdf_client will listen to this address",
                     cxxopts::value<std::string>()->default_value("127.0.0.1")) // --vdf_client-addr
             ("vdf_client-port", "vdf_client will listen to this port",
@@ -36,9 +40,14 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    std::string logfile = ExpandEnvPath(parse_result["logfile"].as<std::string>());
+    plog::RollingFileAppender<plog::TxtFormatter> rollingfile_appender(logfile.c_str(), 1024 * 1024 * 10, 10);
+    plog::init(plog::Severity::debug, &rollingfile_appender);
+
     bool verbose = parse_result.count("verbose");
-    plog::ConsoleAppender<plog::TxtFormatter> appender;
-    plog::init(verbose ? plog::Severity::debug : plog::Severity::info, &appender);
+    plog::ConsoleAppender<plog::TxtFormatter> console_appender;
+    plog::init(verbose ? plog::Severity::debug : plog::Severity::info, &console_appender);
+
     PLOGD << "debug mode";
 
     std::string addr = parse_result["addr"].as<std::string>();
