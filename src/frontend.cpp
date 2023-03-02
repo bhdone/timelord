@@ -95,11 +95,7 @@ void FrontEndSession::DoReadNext()
                     }
                     return;
                 }
-                std::istreambuf_iterator<char> begin(&self->read_buf_), end;
-                std::string result(begin, end);
-                PLOGD << "==== msg received ==== size: " << result.size();
-                PLOGD << result;
-                PLOGD << "==== end of msg ====";
+                std::string result = static_cast<char const*>(self->read_buf_.data().data());
                 if (std::string(result.c_str()) == "shutdown") {
                     if (self->err_handler_) {
                         self->err_handler_(self, FrontEndSessionErrorType::SHUTDOWN, "shutdown is requested");
@@ -108,6 +104,7 @@ void FrontEndSession::DoReadNext()
                     PLOGE << "shutdown is requested but the frontend didn't install a handler for errors, the request "
                              "is ignored";
                 }
+                self->read_buf_.consume(bytes_read);
                 try {
                     Json::Value msg = ParseStringToJson(result);
                     // Check if it is ping
@@ -121,6 +118,7 @@ void FrontEndSession::DoReadNext()
                     }
                 } catch (std::exception const& e) {
                     PLOGE << "READ: failed to parse string into json: " << e.what();
+                    PLOGE << "DATA total=" << bytes_read << ": " << result;
                     self->err_handler_(self, FrontEndSessionErrorType::READ, ec.message());
                 }
                 // read next
@@ -200,5 +198,6 @@ void FrontEnd::DoAcceptNext()
         psession->Start();
         session_vec_.push_back(psession);
         conn_handler_(psession);
+        DoAcceptNext();
     });
 }

@@ -48,21 +48,13 @@ uint256 MakeUint256(Bytes const& bytes)
 
 std::string Uint256ToHex(uint256 const& source)
 {
-    std::stringstream ss;
-    for (auto ch : source) {
-        ss << ByteToHex(ch);
-    }
-    return ss.str();
+    return BytesToHex(MakeBytes(source));
 }
 
 uint256 Uint256FromHex(std::string const& hex)
 {
     assert(hex.size() == 256 / 8 * 2);
-
-    uint256 res;
-    auto bytes = BytesFromHex(hex);
-    memcpy(res.data(), bytes.data(), res.size());
-    return res;
+    return MakeUint256(BytesFromHex(hex));
 }
 
 Bytes StrToBytes(std::string str)
@@ -70,6 +62,7 @@ Bytes StrToBytes(std::string str)
     Bytes b;
     b.resize(str.size());
     memcpy(b.data(), str.data(), str.size());
+    SwitchByteOrder(b, b);
     return b;
 }
 

@@ -51,6 +51,7 @@ void SendMsg_CalcReply(FrontEndSessionPtr psession, bool calculating, uint256 co
         msg["iters"] = detail->iters;
         msg["duration"] = detail->duration;
     }
+    psession->SendMessage(msg);
 }
 
 void MessageDispatcher::RegisterHandler(int id, Handler handler)
@@ -117,9 +118,7 @@ void Timelord::Exit()
 
 void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge)
 {
-    PLOGD << "Challenge is changed to " << Uint256ToHex(new_challenge)
-          << ", stop all related sessions (old_challenge=" << Uint256ToHex(old_challenge) << ") after "
-          << SECS_TO_WAIT_BEFORE_CLOSE_VDF << " seconds";
+    PLOGI << "challenge is changed to " << Uint256ToHex(new_challenge);
     auto ptimer = std::make_shared<asio::steady_timer>(ioc_);
     ptimer->expires_after(std::chrono::seconds(SECS_TO_WAIT_BEFORE_CLOSE_VDF));
     ptimer->async_wait([this, ptimer, challenge = old_challenge](std::error_code const& ec) {
@@ -131,6 +130,7 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
             // canceled
             return;
         }
+        PLOGD << "stop vdf_client (challenge=" << Uint256ToHex(challenge) << ")";
         vdf_client_man_.StopByChallenge(challenge);
     });
     ptimer_wait_close_vdf_set_.insert(std::move(ptimer));
@@ -152,27 +152,41 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
 
+    PLOGI << "received a challenge request: " << Uint256ToHex(challenge) << ", iters=" << iters;
+
     // reject when the challenge doesn't match
     if (challenge != challenge_monitor_.GetCurrentChallenge()) {
+        PLOGE << "the challenge is invalid, skip the request";
         SendMsg_CalcReply(psession, false, challenge, {});
+        return;
+    }
+
+    auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
+    if (detail.has_value()) {
+        PLOGI << "the proof already exists, just send it back to miner";
+        SendMsg_CalcReply(psession, false, challenge, detail);
         return;
     }
 
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {
-        auto pair = challenge_reqs_.insert(std::make_pair(challenge, std::vector<ChallengeRequestSession>()));
-        pair.first->second.push_back({ std::weak_ptr(psession), iters });
+        ChallengeRequestSession entry;
+        entry.pweak_session = std::weak_ptr(psession);
+        entry.iters = iters;
+        challenge_reqs_.insert(std::make_pair(challenge, std::vector<ChallengeRequestSession> { entry }));
     } else {
-        it->second.push_back({ std::weak_ptr(psession), iters });
+        // find the session first
+        auto it2 = std::find_if(
+                std::begin(it->second), std::end(it->second), [psession](ChallengeRequestSession const& req) {
+                    return req.pweak_session.lock() == psession;
+                });
+        if (it2 == std::end(it->second)) {
+            it->second.push_back({ std::weak_ptr(psession), iters });
+        }
     }
 
-    auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
-    if (detail.has_value()) {
-        SendMsg_CalcReply(psession, false, challenge, detail);
-    } else {
-        vdf_client_man_.CalcIters(challenge, iters);
-        SendMsg_CalcReply(psession, true, challenge, {});
-    }
+    vdf_client_man_.CalcIters(challenge, iters);
+    SendMsg_CalcReply(psession, true, challenge, {});
 }
 
 void Timelord::HandleFrontEnd_SessionQuerySpeed(FrontEndSessionPtr psession, Json::Value const&)
@@ -184,18 +198,31 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
 {
     // calculate the VDF speed
     iters_per_sec_ = detail.iters / detail.duration;
+    PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", " << (iters_per_sec_ / 1000)
+          << "k iters/second";
     // find the related session
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {
         // the proof is ready, but the session which requests for the proof cannot be found
+        PLOGE << "the session relates to the proof cannot be found";
         return;
     }
+    bool more_req { false };
     for (auto const& req : it->second) {
         if (req.iters <= detail.iters) {
             auto psession = req.pweak_session.lock();
             if (psession) {
                 SendMsg_Proof(psession, challenge, detail);
+            } else {
+                PLOGE << "session is lost";
             }
+        } else {
+            more_req = true;
         }
+    }
+    if (!more_req) {
+        // we need to close this vdf_client
+        PLOGI << "no more request, close related vdf_client";
+        vdf_client_man_.StopByChallenge(challenge);
     }
 }

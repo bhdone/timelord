@@ -575,7 +575,12 @@ void VdfClientMan::Exit()
 
 void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 {
-    PLOGD << "request: " << Uint256ToHex(challenge) << ", iters=" << iters;
+    PLOGI << "request: " << Uint256ToHex(challenge) << ", iters=" << iters;
+    auto exist_detail = QueryExistingProof(challenge, iters);
+    if (exist_detail.has_value()) {
+        PLOGI << "the request is already calculated, skip";
+        return;
+    }
     if (!IsZero(init_challenge_) && challenge != init_challenge_) {
         // there is a running procedure to create a vdf_client, run it later
         PLOGD << "cannot run another vdf_client while there is already one creating, try it later";
@@ -612,8 +617,11 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 std::optional<ProofDetail> VdfClientMan::QueryExistingProof(uint256 const& challenge, uint64_t iters)
 {
     auto it = saved_proofs_.find(challenge);
+    if (it == std::cend(saved_proofs_)) {
+        return {};
+    }
     for (auto const& proof_detail : it->second) {
-        if (proof_detail.iters > iters) {
+        if (proof_detail.iters >= iters) {
             return proof_detail;
         }
     }
@@ -654,9 +662,9 @@ void VdfClientMan::AcceptNext()
                 // we need to save the proof to memories as well
                 auto it = saved_proofs_.find(challenge);
                 if (it == std::cend(saved_proofs_)) {
-                    saved_proofs_.insert(std::make_pair(challenge, std::vector<ProofDetail> { std::move(detail) }));
+                    saved_proofs_.insert(std::make_pair(challenge, std::vector<ProofDetail> { detail }));
                 } else {
-                    it->second.push_back(std::move(detail));
+                    it->second.push_back(detail);
                 }
                 // invoke callback
                 proof_receiver_(challenge, detail);
