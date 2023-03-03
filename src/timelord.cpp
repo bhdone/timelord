@@ -134,6 +134,14 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
         vdf_client_man_.StopByChallenge(challenge);
     });
     ptimer_wait_close_vdf_set_.insert(std::move(ptimer));
+
+    // need to start a new vdf_client?
+    auto it = challenge_reqs_.find(new_challenge);
+    if (it != std::cend(challenge_reqs_)) {
+        for (auto req : it->second) {
+            vdf_client_man_.CalcIters(new_challenge, req.iters);
+        }
+    }
 }
 
 void Timelord::HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession)
@@ -153,13 +161,6 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint64_t iters = msg["iters"].asInt64();
 
     PLOGI << "received a challenge request: " << Uint256ToHex(challenge) << ", iters=" << iters;
-
-    // reject when the challenge doesn't match
-    if (challenge != challenge_monitor_.GetCurrentChallenge()) {
-        PLOGE << "the challenge is invalid, skip the request";
-        SendMsg_CalcReply(psession, false, challenge, {});
-        return;
-    }
 
     auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
     if (detail.has_value()) {
@@ -183,6 +184,13 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
         if (it2 == std::end(it->second)) {
             it->second.push_back({ std::weak_ptr(psession), iters });
         }
+    }
+
+    // reject when the challenge doesn't match
+    if (challenge != challenge_monitor_.GetCurrentChallenge()) {
+        PLOGE << "the challenge is invalid, but the request is saved";
+        SendMsg_CalcReply(psession, false, challenge, {});
+        return;
     }
 
     vdf_client_man_.CalcIters(challenge, iters);
