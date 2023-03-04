@@ -1,12 +1,16 @@
 #include "challenge_monitor.h"
 
-ChallengeMonitor::ChallengeMonitor(
-        asio::io_context& ioc, std::string_view url, std::string_view cookie_path, int interval_seconds)
+ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path,
+        std::string_view rpc_user, std::string_view rpc_password, int interval_seconds)
     : ioc_(ioc)
     , timer_(ioc)
-    , rpc_(true, std::string(url), std::string(cookie_path))
     , interval_seconds_(interval_seconds)
 {
+    if (!rpc_user.empty() && !rpc_password.empty()) {
+        prpc_ = std::make_unique<RPCClient>(true, std::string(url), std::string(rpc_user), std::string(rpc_password));
+    } else {
+        prpc_ = std::make_unique<RPCClient>(true, std::string(url), std::string(cookie_path));
+    }
     MakeZero(challenge_, 0);
 }
 
@@ -34,7 +38,7 @@ void ChallengeMonitor::Exit()
 void ChallengeMonitor::QueryChallenge()
 {
     try {
-        RPCClient::Result result = rpc_.Call("querychallenge");
+        RPCClient::Result result = prpc_->Call("querychallenge");
         uint256 challenge = Uint256FromHex(result.result["challenge"].asString());
         if (challenge != challenge_) {
             auto old_challenge = challenge_;

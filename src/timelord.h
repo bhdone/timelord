@@ -40,8 +40,9 @@ class Timelord
     };
 
 public:
-    Timelord(asio::io_context& ioc, std::string_view url, std::string_view cookie_path,
-            std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port);
+    Timelord(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, std::string_view rpc_user,
+            std::string_view rpc_password, std::string_view vdf_client_path, std::string_view vdf_client_addr,
+            unsigned short vdf_client_port);
 
     void Run(std::string_view addr, unsigned short port);
 

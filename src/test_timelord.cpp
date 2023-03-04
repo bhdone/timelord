@@ -18,8 +18,8 @@ class TimelordTest : public ::testing::Test
 {
 public:
     TimelordTest()
-        : timelord_(ioc_, SZ_URL, ExpandEnvPath(SZ_COOKIE_PATH), ExpandEnvPath(SZ_VDF_CLIENT_PATH), SZ_VDF_CLIENT_ADDR,
-                VDF_CLIENT_PORT)
+        : timelord_(ioc_, SZ_URL, ExpandEnvPath(SZ_COOKIE_PATH), "", "", ExpandEnvPath(SZ_VDF_CLIENT_PATH),
+                SZ_VDF_CLIENT_ADDR, VDF_CLIENT_PORT)
     {
     }
 

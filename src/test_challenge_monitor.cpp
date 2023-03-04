@@ -18,7 +18,7 @@ protected:
     void SetUp() override
     {
         pchallenge_monitor_ = std::make_unique<ChallengeMonitor>(
-                ChallengeMonitor(ioc_, SZ_RPC_URL, ExpandEnvPath(SZ_COOKIE_PATH), INTERVAL_SECONDS));
+                ChallengeMonitor(ioc_, SZ_RPC_URL, "", "", ExpandEnvPath(SZ_COOKIE_PATH), INTERVAL_SECONDS));
     }
 
     void TearDown() override

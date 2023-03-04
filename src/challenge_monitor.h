@@ -4,6 +4,7 @@
 #include <asio.hpp>
 
 #include <tuple>
+#include <memory>
 
 #include <string>
 #include <string_view>
@@ -20,7 +21,8 @@ class ChallengeMonitor
 public:
     using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge)>;
 
-    ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, int interval_seconds);
+    ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path,
+            std::string_view rpc_user, std::string_view rpc_password, int interval_seconds);
 
     uint256 const& GetCurrentChallenge() const;
 
@@ -37,7 +39,7 @@ private:
 
     asio::io_context& ioc_;
     asio::steady_timer timer_;
-    RPCClient rpc_;
+    std::unique_ptr<RPCClient> prpc_;
     int interval_seconds_;
     uint256 challenge_;
     NewChallengeHandler new_challenge_handler_;

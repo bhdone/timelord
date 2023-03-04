@@ -74,12 +74,14 @@ void MessageDispatcher::operator()(FrontEndSessionPtr psession, Json::Value cons
     it->second(psession, msg);
 }
 
-Timelord::Timelord(asio::io_context& ioc, std::string_view url, std::string_view cookie_path,
-        std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port)
+Timelord::Timelord(asio::io_context& ioc, std::string_view url, std::string_view cookie_path, std::string_view rpc_user,
+        std::string_view rpc_password, std::string_view vdf_client_path, std::string_view vdf_client_addr,
+        unsigned short vdf_client_port)
     : ioc_(ioc)
-    , challenge_monitor_(ioc_, url, cookie_path, 3)
+    , challenge_monitor_(ioc_, url, cookie_path, rpc_user, rpc_password, 3)
     , frontend_(ioc)
-    , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(std::string(vdf_client_path)), vdf_client_addr, vdf_client_port)
+    , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(std::string(vdf_client_path)), vdf_client_addr,
+              vdf_client_port)
 {
     PLOGD << "Timelord is created with " << vdf_client_addr << ":" << vdf_client_port << ", vdf=" << vdf_client_path
           << " listening " << vdf_client_addr << ":" << vdf_client_port;
