@@ -1,6 +1,8 @@
 #ifndef TL_UTILS_H
 #define TL_UTILS_H
 
+#include <cassert>
+
 #include <string>
 
 #include <json/value.h>

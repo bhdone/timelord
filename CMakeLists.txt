@@ -4,6 +4,7 @@ project(timelord)
 
 option(BUILD_TEST "Build and run tests" ON)
 
+find_package(Threads REQUIRED)
 find_package(cxxopts CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
@@ -21,7 +22,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     gears
     GIT_REPOSITORY https://github.com/bhdone/gears
-    GIT_TAG fb9a444fd7a6f028f51d115d8e69d324a531f27d
+    GIT_TAG 47ad5874230628feaf0e0e688e21a7dc9dce51c6
 )
 
 FetchContent_MakeAvailable(bhd_vdf gears)

@@ -79,11 +79,11 @@ Timelord::Timelord(asio::io_context& ioc, std::string_view url, std::string_view
     : ioc_(ioc)
     , challenge_monitor_(ioc_, url, cookie_path, 3)
     , frontend_(ioc)
-    , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(vdf_client_path), vdf_client_addr, vdf_client_port)
+    , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(std::string(vdf_client_path)), vdf_client_addr, vdf_client_port)
 {
     PLOGD << "Timelord is created with " << vdf_client_addr << ":" << vdf_client_port << ", vdf=" << vdf_client_path
           << " listening " << vdf_client_addr << ":" << vdf_client_port;
-    auto full_path = ExpandEnvPath(vdf_client_path);
+    auto full_path = ExpandEnvPath(std::string(vdf_client_path));
     if (!fs::exists(full_path) || !fs::is_regular_file(full_path)) {
         throw std::runtime_error(fmt::format("the full path to `vdf_client' is incorrect, path={}", vdf_client_path));
     }
