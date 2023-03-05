@@ -39,6 +39,7 @@ private:
 
     asio::io_context& ioc_;
     asio::steady_timer timer_;
+    std::string cookie_path_str_;
     std::unique_ptr<RPCClient> prpc_;
     int interval_seconds_;
     uint256 challenge_;

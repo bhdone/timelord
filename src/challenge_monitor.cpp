@@ -1,15 +1,19 @@
 #include "challenge_monitor.h"
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path,
         std::string_view rpc_user, std::string_view rpc_password, int interval_seconds)
     : ioc_(ioc)
     , timer_(ioc)
+    , cookie_path_str_(cookie_path)
     , interval_seconds_(interval_seconds)
 {
     if (!rpc_user.empty() && !rpc_password.empty()) {
         prpc_ = std::make_unique<RPCClient>(true, std::string(url), std::string(rpc_user), std::string(rpc_password));
     } else {
-        prpc_ = std::make_unique<RPCClient>(true, std::string(url), std::string(cookie_path));
+        prpc_ = std::make_unique<RPCClient>(true, std::string(url), cookie_path_str_);
     }
     MakeZero(challenge_, 0);
 }
@@ -45,6 +49,13 @@ void ChallengeMonitor::QueryChallenge()
             challenge_ = challenge;
             if (new_challenge_handler_) {
                 new_challenge_handler_(old_challenge, challenge);
+            }
+        }
+    } catch (NetError const& e) {
+        // The wallet is not available, cookie should be reload to ensure the login is correct
+        if (!cookie_path_str_.empty()) {
+            if (fs::exists(cookie_path_str_) && fs::is_regular_file(cookie_path_str_)) {
+                prpc_->LoadCookie(cookie_path_str_);
             }
         }
     } catch (std::exception const& e) {
