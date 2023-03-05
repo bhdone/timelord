@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
             ("logfile", "Store logs into file",
                     cxxopts::value<std::string>()->default_value("./timelord.log")) // --logfile
             ("verbose,v", "Show more logs") // --verbose
-            ("addr", "Listening to address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --addr
+            ("bind", "Listening to address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --addr
             ("port", "Listening on this port", cxxopts::value<unsigned short>()->default_value("19191")) // --port
             ("vdf_client-path", "The full path to `vdf_client'",
                     cxxopts::value<std::string>()->default_value("$HOME/chiavdf/src/vdf_client")) // --vdf_client-path
