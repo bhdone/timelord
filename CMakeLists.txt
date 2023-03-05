@@ -12,6 +12,8 @@ find_package(jsoncpp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
 
+set(ENABLE_TEST OFF CACHE INTERNAL "Turn off gears test")
+
 include(FetchContent)
 FetchContent_Declare(
     bhd_vdf
@@ -22,7 +24,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     gears
     GIT_REPOSITORY https://github.com/bhdone/gears
-    GIT_TAG 47ad5874230628feaf0e0e688e21a7dc9dce51c6
+    GIT_TAG 7d7c89ce1f293613eb5f96a78df99ba943d003b4
 )
 
 FetchContent_MakeAvailable(bhd_vdf gears)
