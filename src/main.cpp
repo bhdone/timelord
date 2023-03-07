@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
             ("logfile", "Store logs into file",
                     cxxopts::value<std::string>()->default_value("./timelord.log")) // --logfile
             ("verbose,v", "Show more logs") // --verbose
-            ("bind", "Listening to address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --addr
+            ("bind", "Listening to address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --bind
             ("port", "Listening on this port", cxxopts::value<unsigned short>()->default_value("19191")) // --port
             ("vdf_client-path", "The full path to `vdf_client'",
                     cxxopts::value<std::string>()->default_value("$HOME/chiavdf/src/vdf_client")) // --vdf_client-path
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 
     PLOGD << "debug mode";
 
-    std::string timelord_addr = parse_result["addr"].as<std::string>();
+    std::string timelord_addr = parse_result["bind"].as<std::string>();
     unsigned short timelord_port = parse_result["port"].as<unsigned short>();
 
     std::string vdf_client_path = ExpandEnvPath(parse_result["vdf_client-path"].as<std::string>());
