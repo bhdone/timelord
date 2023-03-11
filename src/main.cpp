@@ -15,7 +15,8 @@ char const* SZ_APP_NAME = "Timelord";
 int main(int argc, char* argv[])
 {
     cxxopts::Options opts(SZ_APP_NAME);
-    opts.add_options()("help", "Show help document") // --help
+    opts.add_options() // All options here
+            ("help,h", "Show help document") // --help
             ("logfile", "Store logs into file",
                     cxxopts::value<std::string>()->default_value("./timelord.log")) // --logfile
             ("verbose,v", "Show more logs") // --verbose
