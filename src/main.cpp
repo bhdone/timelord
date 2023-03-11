@@ -79,6 +79,7 @@ int main(int argc, char* argv[])
         PLOGI << "initializing timelord...";
         PLOGI << "url: " << url;
         PLOGI << "cookie: " << cookie_path;
+        PLOGI << "use_cookie: " << (use_cookie ? "yes" : "no");
         PLOGI << "vdf: " << vdf_client_path;
         PLOGI << "listening on " << timelord_addr << ":" << timelord_port;
 
