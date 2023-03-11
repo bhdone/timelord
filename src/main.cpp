@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
             ("bind", "Listening to address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --bind
             ("port", "Listening on this port", cxxopts::value<unsigned short>()->default_value("19191")) // --port
             ("vdf_client-path", "The full path to `vdf_client'",
-                    cxxopts::value<std::string>()->default_value("$HOME/chiavdf/src/vdf_client")) // --vdf_client-path
+                    cxxopts::value<std::string>()->default_value("$HOME/vdf_client")) // --vdf_client-path
             ("vdf_client-addr", "vdf_client will listen to this address",
                     cxxopts::value<std::string>()->default_value("127.0.0.1")) // --vdf_client-addr
             ("vdf_client-port", "vdf_client will listen to this port",
