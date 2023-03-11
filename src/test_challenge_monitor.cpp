@@ -5,6 +5,8 @@
 
 #include <asio.hpp>
 
+#include <plog/Log.h>
+
 #include "challenge_monitor.h"
 #include "test_utils.h"
 
