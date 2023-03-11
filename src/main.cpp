@@ -1,5 +1,8 @@
 #include <string>
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 #include <cxxopts.hpp>
 
 #include <plog/Appenders/ConsoleAppender.h>
@@ -52,26 +55,35 @@ int main(int argc, char* argv[])
 
     PLOGD << "debug mode";
 
-    std::string timelord_addr = parse_result["bind"].as<std::string>();
-    unsigned short timelord_port = parse_result["port"].as<unsigned short>();
+    try {
+        std::string timelord_addr = parse_result["bind"].as<std::string>();
+        unsigned short timelord_port = parse_result["port"].as<unsigned short>();
 
-    std::string vdf_client_path = ExpandEnvPath(parse_result["vdf_client-path"].as<std::string>());
-    std::string vdf_client_addr = parse_result["vdf_client-addr"].as<std::string>();
-    unsigned short vdf_client_port = parse_result["vdf_client-port"].as<unsigned short>();
-    std::string url = parse_result["rpc"].as<std::string>();
-    std::string cookie_path = ExpandEnvPath(parse_result["cookie"].as<std::string>());
-    std::string rpc_user = parse_result["rpc-user"].as<std::string>();
-    std::string rpc_password = parse_result["rpc-password"].as<std::string>();
+        std::string vdf_client_path = ExpandEnvPath(parse_result["vdf_client-path"].as<std::string>());
+        std::string vdf_client_addr = parse_result["vdf_client-addr"].as<std::string>();
+        unsigned short vdf_client_port = parse_result["vdf_client-port"].as<unsigned short>();
+        std::string url = parse_result["rpc"].as<std::string>();
+        std::string cookie_path = ExpandEnvPath(parse_result["cookie"].as<std::string>());
+        std::string rpc_user;
+        std::string rpc_password;
+        if (!fs::exists(cookie_path)) {
+            rpc_user = parse_result["rpc-user"].as<std::string>();
+            rpc_password = parse_result["rpc-password"].as<std::string>();
+        }
 
-    asio::io_context ioc;
-    PLOGI << "initializing timelord...";
-    PLOGI << "url: " << url;
-    PLOGI << "cookie: " << cookie_path;
-    PLOGI << "vdf: " << vdf_client_path;
-    PLOGI << "listening on " << timelord_addr << ":" << timelord_port;
+        asio::io_context ioc;
+        PLOGI << "initializing timelord...";
+        PLOGI << "url: " << url;
+        PLOGI << "cookie: " << cookie_path;
+        PLOGI << "vdf: " << vdf_client_path;
+        PLOGI << "listening on " << timelord_addr << ":" << timelord_port;
 
-    Timelord timelord(ioc, url, cookie_path, rpc_user, rpc_password, vdf_client_path, vdf_client_addr, vdf_client_port);
-    timelord.Run(timelord_addr, timelord_port);
-    ioc.run();
-    PLOGD << "exit.";
+        Timelord timelord(
+                ioc, url, cookie_path, rpc_user, rpc_password, vdf_client_path, vdf_client_addr, vdf_client_port);
+        timelord.Run(timelord_addr, timelord_port);
+        ioc.run();
+        PLOGD << "exit.";
+    } catch (std::exception const& e) {
+        PLOGE << e.what();
+    }
 }
