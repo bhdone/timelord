@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 
 project(timelord)
 
@@ -24,12 +24,18 @@ FetchContent_Declare(
 FetchContent_Declare(
     gears
     GIT_REPOSITORY https://github.com/bhdone/gears
-    GIT_TAG 7d7c89ce1f293613eb5f96a78df99ba943d003b4
+    GIT_TAG e4081740f9da4d6590740aa959fc00ceb879152b
 )
 
 FetchContent_MakeAvailable(bhd_vdf gears)
 
 set(CMAKE_CXX_STANDARD 17)
+
+include_directories(${CMAKE_BINARY_DIR}/include)
+set(univaluelib
+    ${CMAKE_BINARY_DIR}/lib/libunivalue.a
+)
+set_source_files_properties(${univaluelib} PROPERTIES GENERATED TRUE)
 
 set(TIMELORDLIB_SRCS
     ./src/timelord_utils.cpp
@@ -46,6 +52,8 @@ set(TIMELORD_SRCS
     ${TIMELORDLIB_SRCS}
 )
 
+message(STATUS "univaluelib: ${univaluelib}")
+
 add_executable(timelord ${TIMELORD_SRCS})
 target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
 target_link_libraries(timelord PRIVATE
@@ -57,6 +65,7 @@ target_link_libraries(timelord PRIVATE
     JsonCpp::JsonCpp
     fmt::fmt
     CURL::libcurl
+    ${univaluelib}
 )
 
 set(TIMELORD_CLIENT_SRCS
@@ -88,6 +97,7 @@ if (BUILD_TEST)
             JsonCpp::JsonCpp
             fmt::fmt
             CURL::libcurl
+            ${univaluelib}
         )
         add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
     endfunction()
