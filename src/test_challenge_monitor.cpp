@@ -24,8 +24,12 @@ protected:
     void TearDown() override
     {
         PLOGD << "exiting...";
-        pchallenge_monitor_->Exit();
-        pthread_->join();
+		if (pchallenge_monitor_) {
+			pchallenge_monitor_->Exit();
+		}
+		if (pthread_) {
+			pthread_->join();
+		}
         PLOGD << "exited.";
     }
 
