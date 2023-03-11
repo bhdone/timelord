@@ -3,18 +3,12 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, std::string_view cookie_path,
-        std::string_view rpc_user, std::string_view rpc_password, int interval_seconds)
+ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, RPCLogin login, int interval_seconds)
     : ioc_(ioc)
     , timer_(ioc)
-    , cookie_path_str_(cookie_path)
+    , rpc_(true, std::string(url), std::move(login))
     , interval_seconds_(interval_seconds)
 {
-    if (!rpc_user.empty() && !rpc_password.empty()) {
-        prpc_ = std::make_unique<RPCClient>(true, std::string(url), std::string(rpc_user), std::string(rpc_password));
-    } else {
-        prpc_ = std::make_unique<RPCClient>(true, std::string(url), cookie_path_str_);
-    }
     MakeZero(challenge_, 0);
 }
 
@@ -42,8 +36,8 @@ void ChallengeMonitor::Exit()
 void ChallengeMonitor::QueryChallenge()
 {
     try {
-        RPCClient::Result result = prpc_->Call("querychallenge");
-        uint256 challenge = Uint256FromHex(result.result["challenge"].asString());
+        RPCClient::Result result = rpc_.Call("querychallenge");
+        uint256 challenge = Uint256FromHex(result.result["challenge"].get_str());
         if (challenge != challenge_) {
             auto old_challenge = challenge_;
             challenge_ = challenge;
@@ -53,11 +47,6 @@ void ChallengeMonitor::QueryChallenge()
         }
     } catch (NetError const& e) {
         // The wallet is not available, cookie should be reload to ensure the login is correct
-        if (!cookie_path_str_.empty()) {
-            if (fs::exists(cookie_path_str_) && fs::is_regular_file(cookie_path_str_)) {
-                prpc_->LoadCookie(cookie_path_str_);
-            }
-        }
     } catch (std::exception const& e) {
         PLOGE << e.what();
     }
