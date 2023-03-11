@@ -3,6 +3,8 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+#include <plog/Log.h>
+
 ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, RPCLogin login, int interval_seconds)
     : ioc_(ioc)
     , timer_(ioc)
@@ -46,9 +48,9 @@ void ChallengeMonitor::QueryChallenge()
             }
         }
     } catch (NetError const& e) {
-        // The wallet is not available, cookie should be reload to ensure the login is correct
+        PLOGE << "NetError: " << e.what();
     } catch (std::exception const& e) {
-        PLOGE << e.what();
+        PLOGE << "exception: " << e.what();
     }
 }
 

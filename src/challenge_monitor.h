@@ -9,8 +9,6 @@
 #include <string>
 #include <string_view>
 
-#include <plog/Log.h>
-
 #include "common_types.h"
 #include "timelord_utils.h"
 
