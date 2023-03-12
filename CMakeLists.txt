@@ -24,14 +24,14 @@ FetchContent_Declare(
 FetchContent_Declare(
     gears
     GIT_REPOSITORY https://github.com/bhdone/gears
-    GIT_TAG 0c3607c3d9a54027813cdf5dbb196f61ec4f9663
+    GIT_TAG d2fde492e2c1b4065d8fad4cc3e9ded1ae6dae73
 )
 
 FetchContent_MakeAvailable(bhd_vdf gears)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(${CMAKE_BINARY_DIR}/include)
+include_directories(${CMAKE_BINARY_DIR}/include ${tinyformat_Include})
 set(univaluelib
     ${CMAKE_BINARY_DIR}/lib/libunivalue.a
 )
