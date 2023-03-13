@@ -7,7 +7,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 
-static int const SECS_TO_WAIT_BEFORE_CLOSE_VDF = 60;
+static int const SECS_TO_WAIT_BEFORE_CLOSE_VDF = 5;
 
 void SendMsg_Ready(FrontEndSessionPtr psession)
 {
