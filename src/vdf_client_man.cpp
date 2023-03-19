@@ -575,7 +575,7 @@ void VdfClientMan::Exit()
 
 void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 {
-    PLOGI << "request: " << Uint256ToHex(challenge) << ", iters=" << iters;
+    PLOGD << "request: " << Uint256ToHex(challenge) << ", iters=" << iters;
     auto exist_detail = QueryExistingProof(challenge, iters);
     if (exist_detail.has_value()) {
         PLOGI << "the request is already calculated, skip";

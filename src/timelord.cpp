@@ -161,7 +161,7 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
 
-    PLOGI << "received a challenge request: " << Uint256ToHex(challenge) << ", iters=" << iters;
+    PLOGI << "challenge: (iters=" << FormatNumberStr(std::to_string(iters)) << ")" << Uint256ToHex(challenge);
 
     auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
     if (detail.has_value()) {
