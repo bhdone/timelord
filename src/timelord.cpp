@@ -69,6 +69,7 @@ void MessageDispatcher::operator()(FrontEndSessionPtr psession, Json::Value cons
         return;
     }
     auto id = msg["id"].asInt();
+    PLOGD << tinyformat::format("msg %d is received", id);
     auto it = handlers_.find(id);
     if (it == std::cend(handlers_)) {
         return;
