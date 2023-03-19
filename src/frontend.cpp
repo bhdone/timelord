@@ -60,7 +60,6 @@ void FrontEndSession::DoSendNext()
     send_buf_[send_buf_.size()] = '\0';
     asio::async_write(s_, asio::buffer(send_buf_),
             [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_wrote) {
-                PLOGD << "total " << bytes_wrote << " bytes wrote";
                 if (ec) {
                     if (self->err_handler_) {
                         self->err_handler_(self, FrontEndSessionErrorType::WRITE, ec.message());
@@ -80,7 +79,6 @@ void FrontEndSession::DoReadNext()
 {
     asio::async_read_until(
             s_, read_buf_, '\0', [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
-                PLOGD << "total " << bytes_read << " bytes are read";
                 if (ec) {
                     if (ec == asio::error::eof) {
                         if (self->err_handler_) {
