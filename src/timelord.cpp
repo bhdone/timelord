@@ -3,6 +3,8 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+#include <tinyformat.h>
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
@@ -162,14 +164,15 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
 
-    PLOGI << "challenge: (iters=" << FormatNumberStr(std::to_string(iters)) << ")" << Uint256ToHex(challenge);
-
     auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
     if (detail.has_value()) {
-        PLOGI << "the proof already exists, just send it back to miner";
+        PLOGD << tinyformat::format("the proof already exists, just send it back to miner, challenge: (iters=%s)%s",
+                FormatNumberStr(std::to_string(iters)), Uint256ToHex(challenge));
         SendMsg_CalcReply(psession, false, challenge, detail);
         return;
     }
+
+    PLOGD << "challenge: (iters=" << FormatNumberStr(std::to_string(iters)) << ")" << Uint256ToHex(challenge);
 
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {
@@ -190,7 +193,7 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
 
     // reject when the challenge doesn't match
     if (challenge != challenge_monitor_.GetCurrentChallenge()) {
-        PLOGE << "the challenge doesn't match, but the request is saved";
+        PLOGD << "the challenge doesn't match, but the request is saved";
         SendMsg_CalcReply(psession, false, challenge, {});
         return;
     }
