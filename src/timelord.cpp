@@ -180,8 +180,8 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     } else {
         // find the session first
         auto it2 = std::find_if(
-                std::begin(it->second), std::end(it->second), [psession](ChallengeRequestSession const& req) {
-                    return req.pweak_session.lock() == psession;
+                std::begin(it->second), std::end(it->second), [psession, iters](ChallengeRequestSession const& req) {
+                    return req.pweak_session.lock() == psession && req.iters == iters;
                 });
         if (it2 == std::end(it->second)) {
             it->second.push_back({ std::weak_ptr(psession), iters });
