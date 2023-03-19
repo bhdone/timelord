@@ -181,6 +181,7 @@ private:
 
     uint256 challenge_;
     TimeType time_type_;
+    std::set<uint64_t> delivered_iters_;
 
     Status status_ { Status::INIT };
     std::chrono::system_clock::time_point start_time_;

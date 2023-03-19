@@ -498,6 +498,11 @@ void VdfClientSession::SendInitForm()
 
 void VdfClientSession::SendIters(uint64_t iters)
 {
+    if (delivered_iters_.find(iters) != std::end(delivered_iters_)) {
+        // already delivered
+        return;
+    }
+    delivered_iters_.insert(iters);
     PLOGD << "sending iters: " << iters;
     std::string iters_str = std::to_string(iters);
     std::string size_str = std::to_string(iters_str.size());
