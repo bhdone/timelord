@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 
 #include <plog/Log.h>
+#include <tinyformat.h>
 
 #include <chrono>
 #include <cstddef>
@@ -580,6 +581,8 @@ void VdfClientMan::Exit()
 
 void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 {
+    PLOGD << tinyformat::format("(%s estimate %s)%s", FormatNumberStr(std::to_string(iters)),
+            FormatTime(iters / vdf_speed_), Uint256ToHex(challenge));
     PLOGD << "request: " << Uint256ToHex(challenge) << ", iters=" << iters;
     auto exist_detail = QueryExistingProof(challenge, iters);
     if (exist_detail.has_value()) {
@@ -670,6 +673,10 @@ void VdfClientMan::AcceptNext()
                     saved_proofs_.insert(std::make_pair(challenge, std::vector<ProofDetail> { detail }));
                 } else {
                     it->second.push_back(detail);
+                }
+                // update vdf speed
+                if (detail.duration > 3) {
+                    vdf_speed_ = detail.iters / detail.duration;
                 }
                 // invoke callback
                 proof_receiver_(challenge, detail);

@@ -173,3 +173,11 @@ Json::Value ParseStringToJson(std::string_view str)
     }
     return root;
 }
+
+std::string FormatTime(int seconds)
+{
+    int min = seconds / 60;
+    int sec = seconds % 60;
+    int hour = min / 60;
+    return std::to_string(hour) + ":" + std::to_string(min) + ":" + std::to_string(sec);
+}

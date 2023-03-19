@@ -224,6 +224,8 @@ private:
 
     std::map<uint256, std::vector<uint64_t>> waiting_iters_;
     std::map<uint256, std::vector<ProofDetail>> saved_proofs_;
+
+    uint64_t vdf_speed_ { 100000 };
 };
 
 } // namespace vdf_client

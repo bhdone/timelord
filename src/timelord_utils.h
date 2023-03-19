@@ -118,4 +118,6 @@ std::string FormatNumberStr(std::string const& num_str);
 
 Json::Value ParseStringToJson(std::string_view str);
 
+std::string FormatTime(int seconds);
+
 #endif
