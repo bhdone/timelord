@@ -207,9 +207,13 @@ void Timelord::HandleFrontEnd_SessionQuerySpeed(FrontEndSessionPtr psession, Jso
 void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail)
 {
     // calculate the VDF speed
-    iters_per_sec_ = detail.iters / detail.duration;
-    PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", " << (iters_per_sec_ / 1000)
-          << "k iters/second";
+    if (detail.duration == 0) {
+        PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", n/a iters/second";
+    } else {
+        iters_per_sec_ = detail.iters / detail.duration;
+        PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", " << (iters_per_sec_ / 1000)
+              << "k iters/second";
+    }
     // find the related session
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {
