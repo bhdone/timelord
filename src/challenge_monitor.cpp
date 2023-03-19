@@ -1,8 +1,5 @@
 #include "challenge_monitor.h"
 
-#include <filesystem>
-namespace fs = std::filesystem;
-
 #include <plog/Log.h>
 
 ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, RPCLogin login, int interval_seconds)
