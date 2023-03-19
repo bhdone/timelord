@@ -414,9 +414,9 @@ uint64_t VdfClientSession::GetCurrDuration() const
 
 void VdfClientSession::AsyncReadSomeNext()
 {
-    auto tmp = std::make_unique<Bytes>(BUFLEN, '\0');
+    auto tmp = std::make_shared<Bytes>(BUFLEN, '\0');
     s_.async_read_some(asio::buffer(*tmp),
-            [self = shared_from_this(), tmp = std::move(tmp)](std::error_code const& ec, std::size_t size) {
+            [self = shared_from_this(), tmp](std::error_code const& ec, std::size_t size) {
                 if (ec) {
                     if (ec != asio::error::eof) {
                         // Only show the error message when it isn't `eof`.
