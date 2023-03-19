@@ -591,7 +591,7 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
     }
     if (!IsZero(init_challenge_) && challenge != init_challenge_) {
         // there is a running procedure to create a vdf_client, run it later
-        PLOGD << "cannot run another vdf_client while there is already one creating, try it later";
+        PLOGE << "cannot run another vdf_client while there is already one creating, try it later";
         auto ptimer = std::make_unique<asio::steady_timer>(ioc_);
         ptimer->expires_after(std::chrono::milliseconds(100));
         ptimer->async_wait([this, challenge, iters, ptimer = std::move(ptimer)](std::error_code const& ec) {
@@ -607,16 +607,17 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
         }
     }
     // all iters will be delivered as soon as the vdf_client session is connected and ready
-    PLOGD << "the request is save and it will be retrieved when the vdf_client is ready";
     auto it = waiting_iters_.find(challenge);
     if (it == std::cend(waiting_iters_)) {
         waiting_iters_.insert(std::make_pair(challenge, std::vector<uint64_t> { iters }));
     } else {
         it->second.push_back(iters);
     }
+    PLOGD << "the request is saved and it will be retrieved when the vdf_client is ready";
     // cannot find the challenge from existing sessions, check the related process from proc manager
     if (!proc_man_.ChallengeExists(challenge)) {
-        PLOGD << "creating new vdf_client for challenge: " << Uint256ToHex(challenge);
+        PLOGI << tinyformat::format(
+                "creating vdf_client for challenge %s, proc count=%d", Uint256ToHex(challenge), proc_man_.GetCount());
         proc_man_.NewProc(challenge);
         init_challenge_ = challenge;
     }
