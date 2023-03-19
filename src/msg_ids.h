@@ -16,7 +16,6 @@ enum class TimelordMsgs : int {
 enum class TimelordClientMsgs : int {
     PING = 2000,
     CALC = 2010,
-    QUERY_SPEED = 2020,
 };
 
 inline std::string MsgIdToString(TimelordMsgs id)
@@ -33,6 +32,7 @@ inline std::string MsgIdToString(TimelordMsgs id)
     case TimelordMsgs::CALC_REPLY:
         return "(TimelordMsgs)CALC_REPLY";
     }
+    return "{unknown}";
 }
 
 inline std::string MsgIdToString(TimelordClientMsgs id)
@@ -42,9 +42,8 @@ inline std::string MsgIdToString(TimelordClientMsgs id)
         return "(TimelordClientMsgs)PING";
     case TimelordClientMsgs::CALC:
         return "(TimelordClientMsgs)CALC";
-    case TimelordClientMsgs::QUERY_SPEED:
-        return "(TimelordClientMsgs)QUERY_SPEED";
     }
+    return "{unknown}";
 }
 
 #endif

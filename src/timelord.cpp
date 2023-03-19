@@ -95,8 +95,6 @@ Timelord::Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, 
     challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2));
     msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::CALC),
             std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
-    msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::QUERY_SPEED),
-            std::bind(&Timelord::HandleFrontEnd_SessionQuerySpeed, this, _1, _2));
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleFrontEnd_NewSessionConnected, this, _1));
     frontend_.SetMessageHandler(msg_dispatcher_);
     frontend_.SetErrorHandler(std::bind(&Timelord::HandleFrontEnd_SessionError, this, _1, _2, _3));
@@ -201,11 +199,6 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
 
     vdf_client_man_.CalcIters(challenge, iters);
     SendMsg_CalcReply(psession, true, challenge, {});
-}
-
-void Timelord::HandleFrontEnd_SessionQuerySpeed(FrontEndSessionPtr psession, Json::Value const&)
-{
-    SendMsg_Speed(psession, iters_per_sec_);
 }
 
 void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail)

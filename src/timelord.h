@@ -56,8 +56,6 @@ private:
 
     void HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psession, Json::Value const& msg);
 
-    void HandleFrontEnd_SessionQuerySpeed(FrontEndSessionPtr psession, Json::Value const&);
-
     void HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail);
 
     asio::io_context& ioc_;
