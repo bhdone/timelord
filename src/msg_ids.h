@@ -1,6 +1,8 @@
 #ifndef TL_MSG_IDS_H
 #define TL_MSG_IDS_H
 
+#include <string>
+
 // messages send from FrontEnd
 enum class TimelordMsgs : int {
     PONG = 1000,
@@ -16,5 +18,33 @@ enum class TimelordClientMsgs : int {
     CALC = 2010,
     QUERY_SPEED = 2020,
 };
+
+inline std::string MsgIdToString(TimelordMsgs id)
+{
+    switch (id) {
+    case TimelordMsgs::PONG:
+        return "(TimelordMsgs)PONG";
+    case TimelordMsgs::PROOF:
+        return "(TimelordMsgs)PROOF";
+    case TimelordMsgs::READY:
+        return "(TimelordMsgs)READY";
+    case TimelordMsgs::SPEED:
+        return "(TimelordMsgs)SPEED";
+    case TimelordMsgs::CALC_REPLY:
+        return "(TimelordMsgs)CALC_REPLY";
+    }
+}
+
+inline std::string MsgIdToString(TimelordClientMsgs id)
+{
+    switch (id) {
+    case TimelordClientMsgs::PING:
+        return "(TimelordClientMsgs)PING";
+    case TimelordClientMsgs::CALC:
+        return "(TimelordClientMsgs)CALC";
+    case TimelordClientMsgs::QUERY_SPEED:
+        return "(TimelordClientMsgs)QUERY_SPEED";
+    }
+}
 
 #endif
