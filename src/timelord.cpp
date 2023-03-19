@@ -139,6 +139,7 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     // need to start a new vdf_client?
     auto it = challenge_reqs_.find(new_challenge);
     if (it != std::cend(challenge_reqs_)) {
+        PLOGI << "delivering total " << it->second.size() << " saved request(s)";
         for (auto req : it->second) {
             vdf_client_man_.CalcIters(new_challenge, req.iters);
         }
@@ -189,7 +190,7 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
 
     // reject when the challenge doesn't match
     if (challenge != challenge_monitor_.GetCurrentChallenge()) {
-        PLOGE << "the challenge is invalid, but the request is saved";
+        PLOGE << "the challenge doesn't match, but the request is saved";
         SendMsg_CalcReply(psession, false, challenge, {});
         return;
     }
