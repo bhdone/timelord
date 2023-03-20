@@ -226,6 +226,7 @@ private:
     std::map<uint256, std::vector<ProofDetail>> saved_proofs_;
 
     uint64_t vdf_speed_ { 100000 };
+    uint64_t best_iters_ { 0 };
 };
 
 } // namespace vdf_client

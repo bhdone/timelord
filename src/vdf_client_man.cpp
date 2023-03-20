@@ -597,14 +597,21 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
         });
         return;
     }
+    if (best_iters_ == 0) {
+        best_iters_ = iters;
+    } else if (best_iters_ > iters) {
+        best_iters_ = iters;
+    }
     PLOGI << tinyformat::format(
-            "iters=%s estimate %s", FormatNumberStr(std::to_string(iters)), FormatTime(iters / vdf_speed_));
+            "best{%s} curr{%s}", FormatTime(best_iters_ / vdf_speed_), FormatTime(iters / vdf_speed_));
     for (auto psession : session_set_) {
         if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == challenge) {
             psession->CalcIters(iters);
             return;
         }
     }
+    // no session can be found? the request should be the first one
+    best_iters_ = 0;
     // all iters will be delivered as soon as the vdf_client session is connected and ready
     auto it = waiting_iters_.find(challenge);
     if (it == std::cend(waiting_iters_)) {
