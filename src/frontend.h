@@ -78,6 +78,7 @@ private:
 
     asio::io_context& ioc_;
     tcp::acceptor acceptor_;
+    std::atomic_int num_of_sessions_ { 0 };
     std::vector<FrontEndSessionPtr> session_vec_;
     FrontEndSession::ConnectionHandler conn_handler_;
     FrontEndSession::MessageHandler msg_handler_;
