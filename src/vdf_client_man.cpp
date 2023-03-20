@@ -608,9 +608,9 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
     // all iters will be delivered as soon as the vdf_client session is connected and ready
     auto it = waiting_iters_.find(challenge);
     if (it == std::cend(waiting_iters_)) {
-        waiting_iters_.insert(std::make_pair(challenge, std::vector<uint64_t> { iters }));
+        waiting_iters_.insert(std::make_pair(challenge, std::set<uint64_t> { iters }));
     } else {
-        it->second.push_back(iters);
+        it->second.insert(iters);
     }
     PLOGD << "the request is saved and it will be retrieved when the vdf_client is ready";
     // cannot find the challenge from existing sessions, check the related process from proc manager

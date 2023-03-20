@@ -222,7 +222,7 @@ private:
     uint256 init_challenge_;
     ProofReceiver proof_receiver_;
 
-    std::map<uint256, std::vector<uint64_t>> waiting_iters_;
+    std::map<uint256, std::set<uint64_t>> waiting_iters_;
     std::map<uint256, std::vector<ProofDetail>> saved_proofs_;
 
     uint64_t vdf_speed_ { 100000 };
