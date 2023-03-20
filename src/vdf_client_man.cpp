@@ -30,7 +30,7 @@ namespace
 
 Command AnalyzeStrCmd(Bytes const& buf, char const* cmd_str, Command::CommandType type)
 {
-    PLOGD << "checking command: " << cmd_str;
+    PLOGD << "checking for command: " << cmd_str;
     Command res;
     if (buf.size() < std::strlen(cmd_str)) {
         return res;
@@ -373,8 +373,6 @@ void VdfClientSession::Stop(std::function<void()> callback)
         if (self) {
             PLOGE << "force to close a session";
             self->Close(); // force to close the session
-        } else {
-            PLOGD << "the session is already deleted, cannot force to close it, skipping...";
         }
         callback();
     });
@@ -442,20 +440,22 @@ void VdfClientSession::AsyncReadSomeNext()
 
 Command VdfClientSession::ParseCommand()
 {
-    PLOGD << "analyzing command: " << rd_[0] << rd_[1];
     Command cmd = cmd_analyzer_(rd_);
     if (cmd.type != Command::CommandType::UNKNOWN) {
         assert(cmd.body.empty() == false && cmd.consumed != 0 && cmd.consumed >= cmd.body.size());
         Bytes new_recv(rd_.size() - cmd.consumed);
         memcpy(new_recv.data(), rd_.data() + cmd.consumed, rd_.size() - cmd.consumed);
         rd_ = new_recv;
+        PLOGD << "parsed command: " << Command::CommandTypeToString(cmd.type) << ", remains " << rd_.size() << " bytes";
     }
-    PLOGD << "parsed command: " << Command::CommandTypeToString(cmd.type) << ", remains " << rd_.size() << " bytes";
     return cmd;
 }
 
 void VdfClientSession::ExecuteCommand(Command const& cmd)
 {
+    if (cmd.type == Command::CommandType::UNKNOWN) {
+        return;
+    }
     PLOGD << "execute command: " << Command::CommandTypeToString(cmd.type);
     if (cmd.type == Command::CommandType::OK) {
         // The session is ready for iters
