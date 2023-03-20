@@ -94,14 +94,6 @@ void FrontEndSession::DoReadNext()
                     return;
                 }
                 std::string result = static_cast<char const*>(self->read_buf_.data().data());
-                if (std::string(result.c_str()) == "shutdown") {
-                    if (self->err_handler_) {
-                        self->err_handler_(self, FrontEndSessionErrorType::SHUTDOWN, "shutdown is requested");
-                        return;
-                    }
-                    PLOGE << "shutdown is requested but the frontend didn't install a handler for errors, the request "
-                             "is ignored";
-                }
                 self->read_buf_.consume(bytes_read);
                 try {
                     Json::Value msg = ParseStringToJson(result);
@@ -185,10 +177,8 @@ void FrontEnd::DoAcceptNext()
         auto psession = std::make_shared<FrontEndSession>(std::move(s));
         psession->SetErrorHandler(
                 [this](FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs) {
-                    if (type == FrontEndSessionErrorType::SHUTDOWN) {
-                        // shutdown the service
-                        Exit();
-                    } else if (err_handler_) {
+                    // report to supervisor
+                    if (err_handler_) {
                         err_handler_(psession, type, errs);
                     }
                 });

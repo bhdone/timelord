@@ -19,7 +19,7 @@ class Value;
 
 class FrontEndSession;
 using FrontEndSessionPtr = std::shared_ptr<FrontEndSession>;
-enum class FrontEndSessionErrorType { CONNECT, READ, WRITE, CLOSE, PARSE, SHUTDOWN };
+enum class FrontEndSessionErrorType { CONNECT, READ, WRITE, CLOSE };
 
 class FrontEndSession : public std::enable_shared_from_this<FrontEndSession>
 {
