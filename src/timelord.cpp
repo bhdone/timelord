@@ -149,13 +149,14 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
 
 void Timelord::HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession)
 {
+    PLOGD << "session count " << frontend_.GetNumOfSessions();
     SendMsg_Ready(psession);
 }
 
 void Timelord::HandleFrontEnd_SessionError(
         FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs)
 {
-    PLOGD << "session error occurs: " << errs;
+    PLOGD << "session error occurs: " << errs << ", session count " << frontend_.GetNumOfSessions();
 }
 
 void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psession, Json::Value const& msg)
