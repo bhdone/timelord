@@ -163,6 +163,11 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
 
+    if (iters == 0) {
+        SendMsg_CalcReply(psession, false, challenge, {});
+        return;
+    }
+
     auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
     if (detail.has_value()) {
         PLOGD << tinyformat::format("the proof already exists, just send it back to miner, challenge: (iters=%s)%s",
