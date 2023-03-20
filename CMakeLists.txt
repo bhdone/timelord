@@ -24,7 +24,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     gears
     GIT_REPOSITORY https://github.com/bhdone/gears
-    GIT_TAG 6171c8040524ca9db06d973a5e88ecbb8a83d659
+    GIT_TAG 31b20148ceb2846b8dcfbbd515fe13248549e5f0
 )
 
 FetchContent_MakeAvailable(bhd_vdf gears)
