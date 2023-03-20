@@ -117,7 +117,8 @@ void FrontEndSession::DoReadNext()
 }
 
 FrontEnd::FrontEnd(asio::io_context& ioc)
-    : acceptor_(ioc)
+    : ioc_(ioc)
+    , acceptor_(ioc)
 {
 }
 
@@ -150,18 +151,19 @@ void FrontEnd::Run(std::string_view addr, unsigned short port)
 
 void FrontEnd::Exit()
 {
-    for (auto psession : session_vec_) {
-        psession->Stop();
-    }
-    session_vec_.clear();
-    std::error_code ignored_ec;
-    acceptor_.cancel(ignored_ec);
-    acceptor_.close(ignored_ec);
+    asio::post(ioc_, [this]() {
+        for (auto psession : session_vec_) {
+            psession->Stop();
+        }
+        std::error_code ignored_ec;
+        acceptor_.cancel(ignored_ec);
+        acceptor_.close(ignored_ec);
+    });
 }
 
 std::size_t FrontEnd::GetNumOfSessions() const
 {
-    return session_vec_.size();
+    return num_of_sessions_;
 }
 
 void FrontEnd::DoAcceptNext()
@@ -177,6 +179,11 @@ void FrontEnd::DoAcceptNext()
         auto psession = std::make_shared<FrontEndSession>(std::move(s));
         psession->SetErrorHandler(
                 [this](FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs) {
+                    psession->Stop();
+                    auto it = std::find(std::begin(session_vec_), std::end(session_vec_), psession);
+                    if (it != std::end(session_vec_)) {
+                        session_vec_.erase(it);
+                    }
                     // report to supervisor
                     if (err_handler_) {
                         err_handler_(psession, type, errs);

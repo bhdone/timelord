@@ -76,6 +76,7 @@ public:
 private:
     void DoAcceptNext();
 
+    asio::io_context& ioc_;
     tcp::acceptor acceptor_;
     std::vector<FrontEndSessionPtr> session_vec_;
     FrontEndSession::ConnectionHandler conn_handler_;
