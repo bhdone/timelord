@@ -1,8 +1,5 @@
 #include <string>
 
-#include <filesystem>
-namespace fs = std::filesystem;
-
 #include <cxxopts.hpp>
 
 #include <plog/Appenders/ConsoleAppender.h>
