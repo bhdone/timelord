@@ -2,7 +2,7 @@
 
 #include <cxxopts.hpp>
 
-#include <plog/Appenders/ConsoleAppender.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
 #include <plog/Appenders/RollingFileAppender.h>
 #include <plog/Formatters/TxtFormatter.h>
 #include <plog/Init.h>
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
     plog::RollingFileAppender<plog::TxtFormatter> rollingfile_appender(logfile.c_str(), 1024 * 1024 * 10, 10);
 
     bool verbose = parse_result.count("verbose") > 0;
-    plog::ConsoleAppender<plog::TxtFormatter> console_appender;
+    plog::ColorConsoleAppender<plog::TxtFormatter> console_appender;
     plog::init((verbose ? plog::Severity::debug : plog::Severity::info), &console_appender)
             .addAppender(&rollingfile_appender);
 
