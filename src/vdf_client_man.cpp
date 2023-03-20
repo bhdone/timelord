@@ -581,8 +581,6 @@ void VdfClientMan::Exit()
 
 void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
 {
-    PLOGD << tinyformat::format("(%s estimate %s)%s", FormatNumberStr(std::to_string(iters)),
-            FormatTime(iters / vdf_speed_), Uint256ToHex(challenge));
     PLOGD << "request: " << Uint256ToHex(challenge) << ", iters=" << iters;
     auto exist_detail = QueryExistingProof(challenge, iters);
     if (exist_detail.has_value()) {
@@ -599,10 +597,11 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
         });
         return;
     }
+    PLOGI << tinyformat::format(
+            "iters=%s estimate %s", FormatNumberStr(std::to_string(iters)), FormatTime(iters / vdf_speed_));
     for (auto psession : session_set_) {
         if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == challenge) {
             psession->CalcIters(iters);
-            PLOGD << "iters for existing vdf_client is delivered";
             return;
         }
     }
