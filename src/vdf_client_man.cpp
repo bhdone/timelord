@@ -553,6 +553,7 @@ void VdfClientMan::Run()
 
 void VdfClientMan::StopByChallenge(uint256 const& challenge)
 {
+    best_iters_ = 0;
     for (auto psession : session_set_) {
         if (psession->GetChallenge() == challenge) {
             psession->Stop([this, challenge]() {
