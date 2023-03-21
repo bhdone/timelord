@@ -228,11 +228,14 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
         return;
     }
     bool more_req { false };
+    int sent_count{0};
     for (auto const& req : it->second) {
         if (req.iters <= detail.iters) {
             auto psession = req.pweak_session.lock();
             if (psession) {
+                PLOGI << tinyformat::format("sending proof to session %s...", AddressToString(psession.get()));
                 SendMsg_Proof(psession, challenge, detail);
+                ++sent_count;
             } else {
                 PLOGE << "session is lost";
             }
@@ -240,6 +243,7 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
             more_req = true;
         }
     }
+    PLOGI << tinyformat::format("sent proof count %d", sent_count);
     if (!more_req) {
         // we need to close this vdf_client
         PLOGI << "no more request, close related vdf_client";
