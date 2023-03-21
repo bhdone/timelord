@@ -137,7 +137,10 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     });
     ptimer_wait_close_vdf_set_.insert(std::move(ptimer));
 
-    // need to start a new vdf_client?
+    // the challenge must be calculated as soon as possible
+    vdf_client_man_.CalcIters(new_challenge, 100000 * 60 * 60);
+
+    // need to deliver iters to vdf_client?
     auto it = challenge_reqs_.find(new_challenge);
     if (it != std::cend(challenge_reqs_)) {
         PLOGI << "delivering total " << it->second.size() << " saved request(s)";
