@@ -381,15 +381,28 @@ void VdfClientSession::Stop(std::function<void()> callback)
     status_ = Status::STOPPING;
 }
 
-void VdfClientSession::CalcIters(uint64_t iters)
+bool VdfClientSession::CalcIters(uint64_t iters)
 {
     if (status_ != Status::READY) {
         // ignore iters when the session isn't READY
         PLOGE << "warning, trying to calculate iters " << iters << " on a " << VdfClientSession::StatusToString(status_)
               << " session";
-        return;
+        return false;
     }
-    SendIters(iters);
+    if (SendIters(iters)) {
+        if (best_iters_ == 0) {
+            best_iters_ = iters;
+        } else if (best_iters_ > iters) {
+            best_iters_ = iters;
+        }
+        return true;
+    }
+    return false;
+}
+
+uint64_t VdfClientSession::GetBestIters() const
+{
+    return best_iters_;
 }
 
 uint256 const& VdfClientSession::GetChallenge() const
@@ -497,11 +510,11 @@ void VdfClientSession::SendInitForm()
     wr_.AsyncWrite(std::move(initial_form));
 }
 
-void VdfClientSession::SendIters(uint64_t iters)
+bool VdfClientSession::SendIters(uint64_t iters)
 {
     if (delivered_iters_.find(iters) != std::end(delivered_iters_)) {
         // already delivered
-        return;
+        return false;
     }
     delivered_iters_.insert(iters);
     PLOGD << "sending iters: " << iters;
@@ -515,6 +528,7 @@ void VdfClientSession::SendIters(uint64_t iters)
     std::memcpy(buf.data(), size_str.data(), 2);
     std::memcpy(buf.data() + 2, iters_str.data(), iters_str.size());
     wr_.AsyncWrite(std::move(buf));
+    return true;
 }
 
 void VdfClientSession::SendStrCmd(std::string const& cmd)
@@ -553,7 +567,6 @@ void VdfClientMan::Run()
 
 void VdfClientMan::StopByChallenge(uint256 const& challenge)
 {
-    best_iters_ = 0;
     for (auto psession : session_set_) {
         if (psession->GetChallenge() == challenge) {
             psession->Stop([this, challenge]() {
@@ -598,21 +611,14 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
         });
         return;
     }
-    if (best_iters_ == 0) {
-        best_iters_ = iters;
-    } else if (best_iters_ > iters) {
-        best_iters_ = iters;
-    }
-    PLOGI << tinyformat::format(
-            "best{%s} curr{%s}", FormatTime(best_iters_ / vdf_speed_), FormatTime(iters / vdf_speed_));
     for (auto psession : session_set_) {
         if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == challenge) {
-            psession->CalcIters(iters);
+            if (psession->CalcIters(iters)) {
+                ShowTheBest(psession->GetChallenge(), psession->GetBestIters());
+            }
             return;
         }
     }
-    // no session can be found? the request should be the first one
-    best_iters_ = 0;
     // all iters will be delivered as soon as the vdf_client session is connected and ready
     auto it = waiting_iters_.find(challenge);
     if (it == std::cend(waiting_iters_)) {
@@ -665,9 +671,11 @@ void VdfClientMan::AcceptNext()
                     return;
                 }
                 for (auto iters : it->second) {
-                    PLOGD << "saved request is awaken: " << Uint256ToHex(psession->GetChallenge())
+                    PLOGI << "saved request is awaken: " << Uint256ToHex(psession->GetChallenge())
                           << ", iters=" << iters;
-                    psession->CalcIters(iters);
+                    if (psession->CalcIters(iters)) {
+                        ShowTheBest(psession->GetChallenge(), psession->GetBestIters());
+                    }
                 }
                 waiting_iters_.erase(it);
             });
@@ -694,6 +702,11 @@ void VdfClientMan::AcceptNext()
         }
         AcceptNext();
     });
+}
+
+void VdfClientMan::ShowTheBest(uint256 const& challenge, uint64_t iters)
+{
+    PLOGI << tinyformat::format("next block %s, challenge=%s", FormatTime(iters / vdf_speed_), Uint256ToHex(challenge));
 }
 
 } // namespace vdf_client

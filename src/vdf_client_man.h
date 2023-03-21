@@ -146,7 +146,9 @@ public:
 
     void Stop(std::function<void()> callback = []() {});
 
-    void CalcIters(uint64_t iters);
+    bool CalcIters(uint64_t iters);
+
+    uint64_t GetBestIters() const;
 
     uint256 const& GetChallenge() const;
 
@@ -170,7 +172,7 @@ private:
 
     void SendInitForm();
 
-    void SendIters(uint64_t iters);
+    bool SendIters(uint64_t iters);
 
     void SendStrCmd(std::string const& cmd);
 
@@ -190,6 +192,8 @@ private:
     SessionNotify ready_handler_;
     SessionNotify finished_handler_;
     ProofReceiver proof_receiver_;
+
+    uint64_t best_iters_ { 0 };
 };
 
 class VdfClientMan
@@ -213,6 +217,8 @@ public:
 private:
     void AcceptNext();
 
+    void ShowTheBest(uint256 const& challenge, uint64_t iters);
+
 private:
     VdfClientProc proc_man_;
     asio::io_context& ioc_;
@@ -226,7 +232,6 @@ private:
     std::map<uint256, std::vector<ProofDetail>> saved_proofs_;
 
     uint64_t vdf_speed_ { 100000 };
-    uint64_t best_iters_ { 0 };
 };
 
 } // namespace vdf_client
