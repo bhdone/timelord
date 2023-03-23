@@ -157,6 +157,11 @@ public:
         return status_;
     }
 
+    int GetAnswersCount() const
+    {
+        return answers_count_;
+    }
+
 private:
     void Close();
 
@@ -194,6 +199,7 @@ private:
     ProofReceiver proof_receiver_;
 
     uint64_t best_iters_ { 0 };
+    int answers_count_ { 0 };
 };
 
 class VdfClientMan
@@ -217,7 +223,7 @@ public:
 private:
     void AcceptNext();
 
-    void ShowTheBest(uint256 const& challenge, uint64_t iters);
+    void ShowTheBest(uint256 const& challenge, uint64_t best_iters, uint64_t curr_iters, int answer_count);
 
 private:
     VdfClientProc proc_man_;

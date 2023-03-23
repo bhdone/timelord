@@ -395,6 +395,7 @@ bool VdfClientSession::CalcIters(uint64_t iters)
         } else if (best_iters_ > iters) {
             best_iters_ = iters;
         }
+        ++answers_count_;
         return true;
     }
     return false;
@@ -614,7 +615,7 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
     for (auto psession : session_set_) {
         if (psession->GetStatus() == VdfClientSession::Status::READY && psession->GetChallenge() == challenge) {
             if (psession->CalcIters(iters)) {
-                ShowTheBest(psession->GetChallenge(), psession->GetBestIters());
+                ShowTheBest(psession->GetChallenge(), psession->GetBestIters(), iters, psession->GetAnswersCount());
             }
             return;
         }
@@ -674,7 +675,8 @@ void VdfClientMan::AcceptNext()
                     PLOGI << "saved request is awaken: " << Uint256ToHex(psession->GetChallenge())
                           << ", iters=" << iters;
                     if (psession->CalcIters(iters)) {
-                        ShowTheBest(psession->GetChallenge(), psession->GetBestIters());
+                        ShowTheBest(
+                                psession->GetChallenge(), psession->GetBestIters(), iters, psession->GetAnswersCount());
                     }
                 }
                 waiting_iters_.erase(it);
@@ -704,9 +706,10 @@ void VdfClientMan::AcceptNext()
     });
 }
 
-void VdfClientMan::ShowTheBest(uint256 const& challenge, uint64_t iters)
+void VdfClientMan::ShowTheBest(uint256 const& challenge, uint64_t best_iters, uint64_t curr_iters, int answers_count)
 {
-    PLOGI << tinyformat::format("next block %s, challenge=%s", FormatTime(iters / vdf_speed_), Uint256ToHex(challenge));
+    PLOGI << tinyformat::format("next block %s, curr %s, count %d, challenge=%s", FormatTime(best_iters / vdf_speed_),
+            FormatTime(curr_iters / vdf_speed_), answers_count, Uint256ToHex(challenge));
 }
 
 } // namespace vdf_client
