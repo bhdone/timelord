@@ -29,7 +29,7 @@ public:
     using ErrorHandler
             = std::function<void(FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs)>;
 
-    explicit FrontEndSession(tcp::socket&& s);
+    FrontEndSession(asio::io_context& ioc, tcp::socket&& s);
 
     ~FrontEndSession();
 
@@ -48,10 +48,14 @@ private:
 
     void DoReadNext();
 
+    void ResetTimeoutTimer();
+
+    asio::io_context& ioc_;
     tcp::socket s_;
     asio::streambuf read_buf_;
     std::string send_buf_;
     std::deque<std::string> sending_msgs_;
+    std::unique_ptr<asio::steady_timer> timeout_timer_;
     MessageHandler msg_handler_;
     ErrorHandler err_handler_;
 };

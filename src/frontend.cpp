@@ -4,13 +4,17 @@
 #include <json/value.h>
 
 #include <plog/Log.h>
+#include <tinyformat.h>
 
 #include "msg_ids.h"
 
 #include "timelord_utils.h"
 
-FrontEndSession::FrontEndSession(tcp::socket&& s)
-    : s_(std::move(s))
+static constexpr int RESPOND_TIMEOUT_SECONDS = 120;
+
+FrontEndSession::FrontEndSession(asio::io_context& ioc, tcp::socket&& s)
+    : ioc_(ioc)
+    , s_(std::move(s))
 {
     PLOGD << "Session " << AddressToString(this) << " is created";
 }
@@ -32,6 +36,7 @@ void FrontEndSession::SetErrorHandler(ErrorHandler err_handler)
 
 void FrontEndSession::Start()
 {
+    ResetTimeoutTimer();
     DoReadNext();
 }
 
@@ -47,6 +52,9 @@ void FrontEndSession::SendMessage(Json::Value const& value)
 void FrontEndSession::Stop()
 {
     std::error_code ignored_ec;
+    if (timeout_timer_) {
+        timeout_timer_->cancel(ignored_ec);
+    }
     s_.shutdown(tcp::socket::shutdown_both, ignored_ec);
     s_.close(ignored_ec);
     PLOGD << "Session " << AddressToString(this) << " is closed";
@@ -95,6 +103,7 @@ void FrontEndSession::DoReadNext()
                 }
                 std::string result = static_cast<char const*>(self->read_buf_.data().data());
                 self->read_buf_.consume(bytes_read);
+                self->ResetTimeoutTimer();
                 try {
                     Json::Value msg = ParseStringToJson(result);
                     // Check if it is ping
@@ -114,6 +123,21 @@ void FrontEndSession::DoReadNext()
                 // read next
                 self->DoReadNext();
             });
+}
+
+void FrontEndSession::ResetTimeoutTimer()
+{
+    timeout_timer_ = std::make_unique<asio::steady_timer>(ioc_);
+    timeout_timer_->expires_after(std::chrono::seconds(RESPOND_TIMEOUT_SECONDS));
+    timeout_timer_->async_wait([self_weak = std::weak_ptr(shared_from_this())](asio::error_code const& ec) {
+        if (ec) {
+            return;
+        }
+        auto self = self_weak.lock();
+        if (self) {
+            self->err_handler_(self, FrontEndSessionErrorType::READ, "timeout");
+        }
+    });
 }
 
 FrontEnd::FrontEnd(asio::io_context& ioc)
@@ -176,7 +200,7 @@ void FrontEnd::DoAcceptNext()
             PLOGE << "CONNECT: " << ec.message();
             return;
         }
-        auto psession = std::make_shared<FrontEndSession>(std::move(s));
+        auto psession = std::make_shared<FrontEndSession>(ioc_, std::move(s));
         psession->SetErrorHandler(
                 [this](FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs) {
                     psession->Stop();
