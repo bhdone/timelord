@@ -116,6 +116,8 @@ Bytes SubBytes(Bytes const& bytes, int start, int count = 0);
  */
 std::string FormatNumberStr(std::string const& num_str);
 
+std::string MakeNumberTBStr(uint64_t n);
+
 Json::Value ParseStringToJson(std::string_view str);
 
 std::string FormatTime(int seconds);

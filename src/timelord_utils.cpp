@@ -161,6 +161,12 @@ std::string FormatNumberStr(std::string const& num_str)
     return res;
 }
 
+std::string MakeNumberTBStr(uint64_t n)
+{
+    uint64_t n_tb = n / 1000 / 1000 / 1000 / 1000;
+    return FormatNumberStr(std::to_string(n_tb));
+}
+
 Json::Value ParseStringToJson(std::string_view str)
 {
     Json::CharReaderBuilder builder;
