@@ -167,6 +167,16 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
 
+    if (msg.isMember("netspace") && msg["netspace"].isObject()) {
+        Json::Value netspace = msg["netspace"];
+        Bytes farmer_pk = BytesFromHex(netspace["farmer_pk"].asString());
+        uint256 group_hash = Uint256FromHex(netspace["group_hash"].asString());
+        uint64_t total_size = netspace["total_size"].asUInt64();
+        uint64_t sum_size = SumNetspace(farmer_pk, group_hash, total_size);
+        PLOGI << tinyformat::format("netspace from %s, curr %s TB, total %s TB", BytesToHex(farmer_pk),
+                MakeNumberTBStr(total_size), MakeNumberTBStr(sum_size));
+    }
+
     if (iters == 0) {
         SendMsg_CalcReply(psession, false, challenge, {});
         return;
@@ -228,7 +238,7 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
         return;
     }
     bool more_req { false };
-    int sent_count{0};
+    int sent_count { 0 };
     for (auto const& req : it->second) {
         if (req.iters <= detail.iters) {
             auto psession = req.pweak_session.lock();
@@ -249,4 +259,14 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
         PLOGI << "no more request, close related vdf_client";
         vdf_client_man_.StopByChallenge(challenge);
     }
+}
+
+uint64_t Timelord::SumNetspace(Bytes const& farmer_pk, uint256 const& group_hash, uint64_t total_size)
+{
+    netspace_[group_hash] = std::make_pair(farmer_pk, total_size);
+    uint64_t sum_size { 0 };
+    for (auto pa : netspace_) {
+        sum_size += pa.second.second;
+    }
+    return sum_size;
 }
