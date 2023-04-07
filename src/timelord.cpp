@@ -121,6 +121,7 @@ void Timelord::Exit()
 void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge)
 {
     PLOGI << "challenge is changed to " << Uint256ToHex(new_challenge);
+    netspace_.clear();
     auto ptimer = std::make_shared<asio::steady_timer>(ioc_);
     ptimer->expires_after(std::chrono::seconds(SECS_TO_WAIT_BEFORE_CLOSE_VDF));
     ptimer->async_wait([this, ptimer, challenge = old_challenge](std::error_code const& ec) {
