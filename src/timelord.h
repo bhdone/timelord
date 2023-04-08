@@ -58,7 +58,7 @@ private:
 
     void HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail);
 
-    uint64_t SumNetspace(Bytes const& farmer_pk, uint256 const& group_hash, uint64_t total_size);
+    uint64_t AddAndSumNetspace(uint256 const& group_hash, uint64_t total_size);
 
     asio::io_context& ioc_;
 
@@ -72,7 +72,7 @@ private:
     std::set<std::shared_ptr<asio::steady_timer>> ptimer_wait_close_vdf_set_;
     uint64_t iters_per_sec_ { 0 };
 
-    std::map<uint256, std::pair<Bytes, uint64_t>> netspace_;
+    std::map<uint256, uint64_t> netspace_;
 };
 
 #endif
