@@ -1,6 +1,14 @@
 # Timelord
 
-Provide a way to run vdf calculator on a single machine or in a docker container. It should helps miner to get time proofs more easily under Windows.
+Provide a way to run vdf calculator on a single machine or in a docker container.
+
+## System requirements
+
+You can run timelord under these operation system, we highly recommend you to run your own timelord to obtain time proofs.
+
+* Linux/macOS - Native/Docker
+
+* Windows - Docker
 
 ## Installation
 
