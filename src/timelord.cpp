@@ -168,15 +168,6 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
     uint256 challenge = Uint256FromHex(msg["challenge"].asString());
     uint64_t iters = msg["iters"].asInt64();
 
-    if (msg.isMember("netspace") && msg["netspace"].isObject()) {
-        Json::Value netspace = msg["netspace"];
-        uint256 group_hash = Uint256FromHex(netspace["group_hash"].asString());
-        uint64_t total_size = netspace["total_size"].asUInt64();
-        uint64_t sum_size = AddAndSumNetspace(group_hash, total_size);
-        PLOGI << tinyformat::format("netspace from group_hash: %s, curr %s TB, total %s TB", Uint256ToHex(group_hash),
-                MakeNumberTBStr(total_size), MakeNumberTBStr(sum_size));
-    }
-
     if (iters == 0) {
         SendMsg_CalcReply(psession, false, challenge, {});
         return;
@@ -214,6 +205,20 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
         PLOGD << "the challenge doesn't match, but the request is saved";
         SendMsg_CalcReply(psession, false, challenge, {});
         return;
+    }
+
+    // record the netspace
+    if (msg.isMember("netspace") && msg["netspace"].isObject()) {
+        Json::Value netspace = msg["netspace"];
+        uint256 group_hash = Uint256FromHex(netspace["group_hash"].asString());
+        uint64_t total_size = netspace["total_size"].asUInt64();
+        uint64_t sum_size;
+        bool newly;
+        std::tie(sum_size, newly) = AddAndSumNetspace(group_hash, total_size);
+        if (newly) {
+            PLOGI << tinyformat::format("netspace from group_hash: %s, curr %s TB, total %s TB",
+                    Uint256ToHex(group_hash), MakeNumberTBStr(total_size), MakeNumberTBStr(sum_size));
+        }
     }
 
     vdf_client_man_.CalcIters(challenge, iters);
@@ -261,12 +266,17 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
     }
 }
 
-uint64_t Timelord::AddAndSumNetspace(uint256 const& group_hash, uint64_t total_size)
+std::tuple<uint64_t, bool> Timelord::AddAndSumNetspace(uint256 const& group_hash, uint64_t total_size)
 {
-    netspace_[group_hash] = total_size;
+    auto it = netspace_.find(group_hash);
+    bool newly = it == std::cend(netspace_);
+    if (newly) {
+        netspace_.insert(std::make_pair(group_hash, total_size));
+    }
+    // count the size every time the netspace is sent
     uint64_t sum_size { 0 };
     for (auto pa : netspace_) {
         sum_size += pa.second;
     }
-    return sum_size;
+    return std::make_tuple(sum_size, newly);
 }

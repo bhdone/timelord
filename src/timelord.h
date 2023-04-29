@@ -58,7 +58,7 @@ private:
 
     void HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail);
 
-    uint64_t AddAndSumNetspace(uint256 const& group_hash, uint64_t total_size);
+    std::tuple<uint64_t, bool> AddAndSumNetspace(uint256 const& group_hash, uint64_t total_size);
 
     asio::io_context& ioc_;
 
