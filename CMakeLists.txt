@@ -11,6 +11,7 @@ find_package(asio CONFIG REQUIRED)
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
 
 set(ENABLE_TEST OFF CACHE INTERNAL "Turn off gears test")
 
@@ -65,6 +66,7 @@ target_link_libraries(timelord PRIVATE
     JsonCpp::JsonCpp
     fmt::fmt
     CURL::libcurl
+    unofficial::sqlite3::sqlite3
     ${univaluelib}
 )
 
