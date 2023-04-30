@@ -142,8 +142,7 @@ SQLiteStorage::SQLiteStorage(std::string_view file_path)
             throw std::runtime_error(tinyformat::format("cannot create a new sqlite database %s", file_path));
         }
         // creating tables
-        ExecuteSQL(sql3_,
-                "create table vdf_record (vdf_id int autoincrement primary key, timestamp, challenge, calculated)");
+        ExecuteSQL(sql3_, "create table vdf_record (vdf_id int autoincrement primary key, timestamp, challenge, calculated)");
         ExecuteSQL(sql3_, "create table vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace)");
     }
 }
@@ -188,8 +187,7 @@ void SQLiteStorage::Save(VDFRecordPack const& pack)
 
     for (auto const& req : pack.requests) {
         StmtWrap stmt(sql3_,
-                "insert into vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace) values (?, ?, ?, ?, "
-                "?)");
+                "insert into vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace) values (?, ?, ?, ?, ?)");
         stmt.Bind(1, vdf_id);
         stmt.Bind(2, req.iters);
         stmt.Bind(3, req.estimated_seconds);
@@ -217,8 +215,7 @@ std::tuple<VDFRecord, bool> SQLiteStorage::QueryRecord(int64_t vdf_id) const
 std::tuple<VDFRecord, bool> SQLiteStorage::QueryLastRecord() const
 {
     VDFRecord record;
-    StmtWrap stmt(
-            sql3_, "select vdf_id, timestamp, challenge, calculated from vdf_record order by vdf_id desc limit 1");
+    StmtWrap stmt(sql3_, "select vdf_id, timestamp, challenge, calculated from vdf_record order by vdf_id desc limit 1");
     if (!stmt.StepNext()) {
         return std::make_tuple(record, false);
     }
@@ -232,8 +229,7 @@ std::tuple<VDFRecord, bool> SQLiteStorage::QueryLastRecord() const
 std::vector<VDFRecord> SQLiteStorage::QueryRecords(uint32_t begin_timestamp, uint32_t end_timestamp) const
 {
     std::vector<VDFRecord> records;
-    StmtWrap stmt(sql3_,
-            "select vdf_id, timestamp, challenge, calculated from vdf_record where timestamp >= ? and timestamp <= ?");
+    StmtWrap stmt(sql3_, "select vdf_id, timestamp, challenge, calculated from vdf_record where timestamp >= ? and timestamp <= ?");
     stmt.Bind(1, begin_timestamp);
     stmt.Bind(2, end_timestamp);
     while (stmt.StepNext()) {
@@ -250,8 +246,7 @@ std::vector<VDFRecord> SQLiteStorage::QueryRecords(uint32_t begin_timestamp, uin
 std::vector<VDFRequest> SQLiteStorage::QueryRequests(int64_t vdf_id) const
 {
     std::vector<VDFRequest> requests;
-    StmtWrap stmt(
-            sql3_, "select vdf_id, iters, estimated_seconds, group_hash, netspace from vdf_requests where vdf_id = ?");
+    StmtWrap stmt(sql3_, "select vdf_id, iters, estimated_seconds, group_hash, netspace from vdf_requests where vdf_id = ?");
     stmt.Bind(1, vdf_id);
     while (stmt.StepNext()) {
         VDFRequest req;

@@ -1,7 +1,7 @@
 #include "frontend_client.h"
 
-#include <plog/Log.h>
 #include <fmt/core.h>
+#include <plog/Log.h>
 
 #include "timelord_utils.h"
 

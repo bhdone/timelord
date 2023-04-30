@@ -39,8 +39,7 @@ void SendMsg_Speed(FrontEndSessionPtr psession, uint64_t iters_per_sec)
     psession->SendMessage(msg);
 }
 
-void SendMsg_CalcReply(FrontEndSessionPtr psession, bool calculating, uint256 const& challenge,
-        std::optional<vdf_client::ProofDetail> detail)
+void SendMsg_CalcReply(FrontEndSessionPtr psession, bool calculating, uint256 const& challenge, std::optional<vdf_client::ProofDetail> detail)
 {
     Json::Value msg;
     msg["id"] = static_cast<Json::Int>(TimelordMsgs::CALC_REPLY);
@@ -77,24 +76,20 @@ void MessageDispatcher::operator()(FrontEndSessionPtr psession, Json::Value cons
     it->second(psession, msg);
 }
 
-Timelord::Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, std::string_view vdf_client_path,
-        std::string_view vdf_client_addr, unsigned short vdf_client_port)
+Timelord::Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port)
     : ioc_(ioc)
     , challenge_monitor_(ioc_, url, std::move(login), 3)
     , frontend_(ioc)
-    , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(std::string(vdf_client_path)), vdf_client_addr,
-              vdf_client_port)
+    , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(std::string(vdf_client_path)), vdf_client_addr, vdf_client_port)
 {
-    PLOGD << "Timelord is created with " << vdf_client_addr << ":" << vdf_client_port << ", vdf=" << vdf_client_path
-          << " listening " << vdf_client_addr << ":" << vdf_client_port;
+    PLOGD << "Timelord is created with " << vdf_client_addr << ":" << vdf_client_port << ", vdf=" << vdf_client_path << " listening " << vdf_client_addr << ":" << vdf_client_port;
     auto full_path = ExpandEnvPath(std::string(vdf_client_path));
     if (!fs::exists(full_path) || !fs::is_regular_file(full_path)) {
         throw std::runtime_error(fmt::format("the full path to `vdf_client' is incorrect, path={}", vdf_client_path));
     }
     vdf_client_man_.SetProofReceiver(std::bind(&Timelord::HandleVdfClient_ProofIsReceived, this, _1, _2));
     challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2));
-    msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::CALC),
-            std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
+    msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::CALC), std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleFrontEnd_NewSessionConnected, this, _1));
     frontend_.SetMessageHandler(msg_dispatcher_);
     frontend_.SetErrorHandler(std::bind(&Timelord::HandleFrontEnd_SessionError, this, _1, _2, _3));
@@ -157,8 +152,7 @@ void Timelord::HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession)
     SendMsg_Ready(psession);
 }
 
-void Timelord::HandleFrontEnd_SessionError(
-        FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs)
+void Timelord::HandleFrontEnd_SessionError(FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs)
 {
     PLOGD << "session error occurs: " << errs << ", session count " << frontend_.GetNumOfSessions();
 }
@@ -175,8 +169,7 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
 
     auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
     if (detail.has_value()) {
-        PLOGD << tinyformat::format("the proof already exists, just send it back to miner, challenge: (iters=%s)%s",
-                FormatNumberStr(std::to_string(iters)), Uint256ToHex(challenge));
+        PLOGD << tinyformat::format("the proof already exists, just send it back to miner, challenge: (iters=%s)%s", FormatNumberStr(std::to_string(iters)), Uint256ToHex(challenge));
         SendMsg_CalcReply(psession, false, challenge, detail);
         return;
     }
@@ -191,10 +184,9 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
         challenge_reqs_.insert(std::make_pair(challenge, std::vector<ChallengeRequestSession> { entry }));
     } else {
         // find the session first
-        auto it2 = std::find_if(
-                std::begin(it->second), std::end(it->second), [psession, iters](ChallengeRequestSession const& req) {
-                    return req.pweak_session.lock() == psession && req.iters == iters;
-                });
+        auto it2 = std::find_if(std::begin(it->second), std::end(it->second), [psession, iters](ChallengeRequestSession const& req) {
+            return req.pweak_session.lock() == psession && req.iters == iters;
+        });
         if (it2 == std::end(it->second)) {
             it->second.push_back({ std::weak_ptr(psession), iters });
         }
@@ -216,8 +208,7 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
         bool newly;
         std::tie(sum_size, newly) = AddAndSumNetspace(group_hash, total_size);
         if (newly) {
-            PLOGI << tinyformat::format("netspace from group_hash: %s, curr %s TB, total %s TB",
-                    Uint256ToHex(group_hash), MakeNumberTBStr(total_size), MakeNumberTBStr(sum_size));
+            PLOGI << tinyformat::format("netspace from group_hash: %s, curr %s TB, total %s TB", Uint256ToHex(group_hash), MakeNumberTBStr(total_size), MakeNumberTBStr(sum_size));
         }
     }
 
@@ -232,8 +223,7 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
         PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", n/a iters/second";
     } else {
         iters_per_sec_ = detail.iters / detail.duration;
-        PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", " << (iters_per_sec_ / 1000)
-              << "k iters/second";
+        PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", " << (iters_per_sec_ / 1000) << "k iters/second";
     }
     // find the related session
     auto it = challenge_reqs_.find(challenge);

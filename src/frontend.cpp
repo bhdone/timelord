@@ -66,63 +66,61 @@ void FrontEndSession::DoSendNext()
     send_buf_ = sending_msgs_.front();
     send_buf_.resize(send_buf_.size() + 1);
     send_buf_[send_buf_.size()] = '\0';
-    asio::async_write(s_, asio::buffer(send_buf_),
-            [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_wrote) {
-                if (ec) {
-                    if (self->err_handler_) {
-                        self->err_handler_(self, FrontEndSessionErrorType::WRITE, ec.message());
-                    }
-                    PLOGE << "WRITE: " << ec.message();
-                    return;
-                }
-                assert(bytes_wrote == self->send_buf_.size());
-                self->sending_msgs_.pop_front();
-                if (!self->sending_msgs_.empty()) {
-                    self->DoSendNext();
-                }
-            });
+    asio::async_write(s_, asio::buffer(send_buf_), [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_wrote) {
+        if (ec) {
+            if (self->err_handler_) {
+                self->err_handler_(self, FrontEndSessionErrorType::WRITE, ec.message());
+            }
+            PLOGE << "WRITE: " << ec.message();
+            return;
+        }
+        assert(bytes_wrote == self->send_buf_.size());
+        self->sending_msgs_.pop_front();
+        if (!self->sending_msgs_.empty()) {
+            self->DoSendNext();
+        }
+    });
 }
 
 void FrontEndSession::DoReadNext()
 {
-    asio::async_read_until(
-            s_, read_buf_, '\0', [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
-                if (ec) {
-                    if (ec == asio::error::eof) {
-                        if (self->err_handler_) {
-                            self->err_handler_(self, FrontEndSessionErrorType::CLOSE, ec.message());
-                        }
-                        PLOGD << "READ: end of file";
-                    } else {
-                        if (self->err_handler_) {
-                            self->err_handler_(self, FrontEndSessionErrorType::READ, ec.message());
-                        }
-                        PLOGE << "READ: " << ec.message();
-                    }
-                    return;
+    asio::async_read_until(s_, read_buf_, '\0', [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
+        if (ec) {
+            if (ec == asio::error::eof) {
+                if (self->err_handler_) {
+                    self->err_handler_(self, FrontEndSessionErrorType::CLOSE, ec.message());
                 }
-                std::string result = static_cast<char const*>(self->read_buf_.data().data());
-                self->read_buf_.consume(bytes_read);
-                self->ResetTimeoutTimer();
-                try {
-                    Json::Value msg = ParseStringToJson(result);
-                    // Check if it is ping
-                    auto msg_id = msg["id"].asInt();
-                    if (msg_id == static_cast<int>(TimelordClientMsgs::PING)) {
-                        // Just simply send it back
-                        msg["id"] = static_cast<Json::Int>(TimelordMsgs::PONG);
-                        self->SendMessage(msg);
-                    } else {
-                        self->msg_handler_(self, msg);
-                    }
-                } catch (std::exception const& e) {
-                    PLOGE << "READ: failed to parse string into json: " << e.what();
-                    PLOGE << "DATA total=" << bytes_read << ": " << result;
+                PLOGD << "READ: end of file";
+            } else {
+                if (self->err_handler_) {
                     self->err_handler_(self, FrontEndSessionErrorType::READ, ec.message());
                 }
-                // read next
-                self->DoReadNext();
-            });
+                PLOGE << "READ: " << ec.message();
+            }
+            return;
+        }
+        std::string result = static_cast<char const*>(self->read_buf_.data().data());
+        self->read_buf_.consume(bytes_read);
+        self->ResetTimeoutTimer();
+        try {
+            Json::Value msg = ParseStringToJson(result);
+            // Check if it is ping
+            auto msg_id = msg["id"].asInt();
+            if (msg_id == static_cast<int>(TimelordClientMsgs::PING)) {
+                // Just simply send it back
+                msg["id"] = static_cast<Json::Int>(TimelordMsgs::PONG);
+                self->SendMessage(msg);
+            } else {
+                self->msg_handler_(self, msg);
+            }
+        } catch (std::exception const& e) {
+            PLOGE << "READ: failed to parse string into json: " << e.what();
+            PLOGE << "DATA total=" << bytes_read << ": " << result;
+            self->err_handler_(self, FrontEndSessionErrorType::READ, ec.message());
+        }
+        // read next
+        self->DoReadNext();
+    });
 }
 
 void FrontEndSession::ResetTimeoutTimer()
@@ -201,19 +199,18 @@ void FrontEnd::DoAcceptNext()
             return;
         }
         auto psession = std::make_shared<FrontEndSession>(ioc_, std::move(s));
-        psession->SetErrorHandler(
-                [this](FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs) {
-                    psession->Stop();
-                    auto it = std::find(std::begin(session_vec_), std::end(session_vec_), psession);
-                    if (it != std::end(session_vec_)) {
-                        session_vec_.erase(it);
-                        num_of_sessions_ = session_vec_.size();
-                    }
-                    // report to supervisor
-                    if (err_handler_) {
-                        err_handler_(psession, type, errs);
-                    }
-                });
+        psession->SetErrorHandler([this](FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs) {
+            psession->Stop();
+            auto it = std::find(std::begin(session_vec_), std::end(session_vec_), psession);
+            if (it != std::end(session_vec_)) {
+                session_vec_.erase(it);
+                num_of_sessions_ = session_vec_.size();
+            }
+            // report to supervisor
+            if (err_handler_) {
+                err_handler_(psession, type, errs);
+            }
+        });
         psession->SetMessageHandler(msg_handler_);
         psession->Start();
         session_vec_.push_back(psession);
