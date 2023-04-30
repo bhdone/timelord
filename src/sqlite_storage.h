@@ -4,9 +4,9 @@
 #include <memory>
 #include <string_view>
 
-#include "vdf_record.h"
+#include <sqlite3.h>
 
-struct sqlite3;
+#include "vdf_record.h"
 
 class SQLiteStorage
 {
@@ -15,14 +15,30 @@ public:
 
     ~SQLiteStorage();
 
+    SQLiteStorage(SQLiteStorage const& rhs) = delete;
+
+    SQLiteStorage& operator=(SQLiteStorage const& rhs) = delete;
+
+    SQLiteStorage(SQLiteStorage&& rhs);
+
+    SQLiteStorage& operator=(SQLiteStorage&& rhs);
+
     void Save(VDFRecordPack const& pack);
 
-    std::vector<VDFRecordPack> Query(uint32_t begin_timestamp, uint32_t end_timestamp) const;
+    std::tuple<VDFRecord, bool> QueryRecord(int64_t vdf_id) const;
 
-    VDFRecordPack QueryLast() const;
+    std::tuple<VDFRecord, bool> QueryLastRecord() const;
+
+    std::vector<VDFRecord> QueryRecords(uint32_t begin_timestamp, uint32_t end_timestamp) const;
+
+    std::vector<VDFRequest> QueryRequests(int64_t vdf_id) const;
+
+    void BeginTransaction();
+
+    void CommitTransaction();
 
 private:
-    std::unique_ptr<sqlite3> sql3_;
+    sqlite3* sql3_ { nullptr };
 };
 
 #endif

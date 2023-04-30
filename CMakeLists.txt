@@ -48,6 +48,10 @@ set(TIMELORDLIB_SRCS
     ./src/vdf_client_man.cpp
 )
 
+set (SQLITE_STORAGE_SRCS
+    ./src/sqlite_storage.cpp
+)
+
 set(TIMELORD_SRCS
     ./src/main.cpp
     ${TIMELORDLIB_SRCS}
@@ -55,7 +59,7 @@ set(TIMELORD_SRCS
 
 message(STATUS "univaluelib: ${univaluelib}")
 
-add_executable(timelord ${TIMELORD_SRCS})
+add_executable(timelord ${TIMELORD_SRCS} ${SQLITE_STORAGE_SRCS})
 target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
 target_link_libraries(timelord PRIVATE
     bhd_vdf
