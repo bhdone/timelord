@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     bhd_vdf
     GIT_REPOSITORY https://github.com/bhdone/bhd_vdf
-    GIT_TAG v0.0.51
+    GIT_TAG v0.0.53
 )
 
 FetchContent_Declare(
