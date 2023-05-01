@@ -44,7 +44,7 @@ SQLiteStmt& SQLiteStmt::operator=(SQLiteStmt&& rhs)
 
 void SQLiteStmt::Bind(int index, std::string_view str)
 {
-    CheckSQL(sql3_, sqlite3_bind_text(stmt_, index, str.data(), -1, nullptr));
+    CheckSQL(sql3_, sqlite3_bind_text(stmt_, index, str.data(), str.size(), SQLITE_TRANSIENT));
 }
 
 void SQLiteStmt::Bind(int index, int64_t val)

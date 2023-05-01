@@ -91,6 +91,7 @@ if (BUILD_TEST)
     function(MakeTest TEST_TARGET_NAME)
         set(TEST_SRCS
             ${TIMELORDLIB_SRCS}
+            ${SQLITE3_WRAP_SRCS}
             ./src/test_utils.cpp
             ./src/test_main.cpp
             ./src/${TEST_TARGET_NAME}.cpp
@@ -106,6 +107,7 @@ if (BUILD_TEST)
             JsonCpp::JsonCpp
             fmt::fmt
             CURL::libcurl
+            unofficial::sqlite3::sqlite3
             ${univaluelib}
         )
         add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
@@ -116,4 +118,5 @@ if (BUILD_TEST)
     MakeTest(test_timelord)
     MakeTest(test_vdf_client)
     MakeTest(test_challenge_monitor)
+    MakeTest(test_sqlite)
 endif()
