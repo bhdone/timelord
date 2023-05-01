@@ -6,7 +6,7 @@
 #include "common_types.h"
 
 struct VDFRecord {
-    uint64_t id;
+    uint64_t vdf_id;
     uint32_t timestamp;
     uint256 challenge;
     uint32_t height;

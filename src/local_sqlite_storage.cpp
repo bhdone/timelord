@@ -51,7 +51,7 @@ std::tuple<VDFRecord, bool> LocalSQLiteStorage::QueryRecord(int64_t vdf_id)
     if (!stmt.StepNext()) {
         return std::make_tuple(record, false);
     }
-    record.id = vdf_id;
+    record.vdf_id = vdf_id;
     record.timestamp = stmt.GetColumnInt64(1);
     record.challenge = stmt.GetColumnUint256(2);
     record.height = stmt.GetColumnInt64(3);
@@ -66,7 +66,7 @@ std::tuple<VDFRecord, bool> LocalSQLiteStorage::QueryLastRecord()
     if (!stmt.StepNext()) {
         return std::make_tuple(record, false);
     }
-    record.id = stmt.GetColumnInt64(0);
+    record.vdf_id = stmt.GetColumnInt64(0);
     record.timestamp = stmt.GetColumnInt64(1);
     record.challenge = stmt.GetColumnUint256(2);
     record.height = stmt.GetColumnInt64(3);
@@ -82,7 +82,7 @@ std::vector<VDFRecord> LocalSQLiteStorage::QueryRecords(uint32_t begin_timestamp
     stmt.Bind(2, end_timestamp);
     while (stmt.StepNext()) {
         VDFRecord record;
-        record.id = stmt.GetColumnInt64(0);
+        record.vdf_id = stmt.GetColumnInt64(0);
         record.timestamp = stmt.GetColumnInt64(1);
         record.challenge = stmt.GetColumnUint256(2);
         record.height = stmt.GetColumnInt64(3);

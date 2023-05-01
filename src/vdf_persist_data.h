@@ -27,12 +27,23 @@ public:
         uint32_t curr = time(nullptr);
         uint32_t seconds = hours * 60 * 60;
         uint32_t beg = curr - seconds;
-        return storage_.Query(beg, curr);
+        std::vector<VDFRecordPack> res;
+        std::vector<VDFRecord> records = storage_.QueryRecords(beg, curr);
+        for (auto const& record : records) {
+            VDFRecordPack pack;
+            pack.record = record;
+            pack.requests = storage_.QueryRequests(record.vdf_id);
+            res.push_back(std::move(pack));
+        }
+        return res;
     }
 
-    VDFRecordPack QueryTheLatestRecord() const
+    VDFRecordPack QueryLastRecord() const
     {
-        return storage_.QueryLast();
+        VDFRecordPack pack;
+        pack.record = storage_.QueryLastRecord();
+        pack.requests = storage_.QueryRequests(pack.record.vdf_id);
+        return pack;
     }
 
 private:
