@@ -9,6 +9,7 @@ struct VDFRecord {
     uint64_t id;
     uint32_t timestamp;
     uint256 challenge;
+    uint32_t height;
     bool calculated;
 };
 
