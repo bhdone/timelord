@@ -17,9 +17,9 @@ public:
     {
     }
 
-    void Save(VDFRecordPack const& pack)
+    int64_t Save(VDFRecordPack const& pack)
     {
-        storage_.Save(pack);
+        return storage_.Save(pack);
     }
 
     std::vector<VDFRecordPack> QueryRecordsInHours(uint32_t hours) const
@@ -38,12 +38,16 @@ public:
         return res;
     }
 
-    VDFRecordPack QueryLastRecord() const
+    std::tuple<VDFRecordPack, bool> QueryLastRecordPack() const
     {
+        bool exists;
         VDFRecordPack pack;
-        pack.record = storage_.QueryLastRecord();
+        std::tie(pack.record, exists) = storage_.QueryLastRecord();
+        if (!exists) {
+            return std::make_tuple(pack, false);
+        }
         pack.requests = storage_.QueryRequests(pack.record.vdf_id);
-        return pack;
+        return std::make_tuple(pack, true);
     }
 
 private:

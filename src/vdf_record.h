@@ -6,7 +6,7 @@
 #include "common_types.h"
 
 struct VDFRecord {
-    uint64_t vdf_id;
+    int64_t vdf_id;
     uint32_t timestamp;
     uint256 challenge;
     uint32_t height;
@@ -14,7 +14,7 @@ struct VDFRecord {
 };
 
 struct VDFRequest {
-    uint64_t vdf_id;
+    int64_t vdf_id;
     uint64_t iters;
     uint32_t estimated_seconds;
     uint256 group_hash;
@@ -25,5 +25,14 @@ struct VDFRecordPack {
     VDFRecord record;
     std::vector<VDFRequest> requests;
 };
+
+bool operator==(VDFRecord const& lhs, VDFRecord const& rhs);
+bool operator!=(VDFRecord const& lhs, VDFRecord const& rhs);
+
+bool operator==(VDFRequest const& lhs, VDFRequest const& rhs);
+bool operator!=(VDFRequest const& lhs, VDFRequest const& rhs);
+
+bool operator==(VDFRecordPack const& lhs, VDFRecordPack const& rhs);
+bool operator!=(VDFRecordPack const& lhs, VDFRecordPack const& rhs);
 
 #endif

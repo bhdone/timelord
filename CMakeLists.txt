@@ -46,6 +46,7 @@ set(TIMELORDLIB_SRCS
     ./src/frontend_client.cpp
     ./src/challenge_monitor.cpp
     ./src/vdf_client_man.cpp
+    ./src/vdf_record.cpp
 )
 
 set (SQLITE3_WRAP_SRCS
@@ -119,4 +120,5 @@ if (BUILD_TEST)
     MakeTest(test_vdf_client)
     MakeTest(test_challenge_monitor)
     MakeTest(test_sqlite)
+    MakeTest(test_vdf_persist)
 endif()

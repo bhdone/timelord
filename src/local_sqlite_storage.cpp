@@ -13,12 +13,12 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
 {
     if (sql3_.GetStatus() == SQLite::Status::Created) {
         // creating tables
-        sql3_.ExecuteSQL("create table vdf_record (vdf_id int autoincrement primary key, timestamp, challenge, height, calculated)");
+        sql3_.ExecuteSQL("create table vdf_record (vdf_id integer primary key, timestamp, challenge, height, calculated)");
         sql3_.ExecuteSQL("create table vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace)");
     }
 }
 
-void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
+int64_t LocalSQLiteStorage::Save(VDFRecordPack const& pack)
 {
     int64_t vdf_id { 0 };
     {
@@ -41,6 +41,8 @@ void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
         stmt.Bind(5, req.netspace);
         stmt.Run();
     }
+
+    return vdf_id;
 }
 
 std::tuple<VDFRecord, bool> LocalSQLiteStorage::QueryRecord(int64_t vdf_id)

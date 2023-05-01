@@ -12,7 +12,7 @@ class LocalSQLiteStorage
 public:
     explicit LocalSQLiteStorage(std::string_view file_path);
 
-    void Save(VDFRecordPack const& pack);
+    int64_t Save(VDFRecordPack const& pack);
 
     std::tuple<VDFRecord, bool> QueryRecord(int64_t vdf_id);
 
