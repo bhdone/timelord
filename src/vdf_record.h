@@ -21,9 +21,19 @@ struct VDFRequest {
     uint64_t netspace;
 };
 
+struct VDFResult {
+    uint256 challenge;
+    uint64_t iters;
+    Bytes y;
+    Bytes proof;
+    uint8_t witness_type;
+    int duration;
+};
+
 struct VDFRecordPack {
     VDFRecord record;
     std::vector<VDFRequest> requests;
+    std::vector<VDFResult> results;
 };
 
 bool operator==(VDFRecord const& lhs, VDFRecord const& rhs);
@@ -31,6 +41,9 @@ bool operator!=(VDFRecord const& lhs, VDFRecord const& rhs);
 
 bool operator==(VDFRequest const& lhs, VDFRequest const& rhs);
 bool operator!=(VDFRequest const& lhs, VDFRequest const& rhs);
+
+bool operator==(VDFResult const& lhs, VDFResult const& rhs);
+bool operator!=(VDFResult const& lhs, VDFResult const& rhs);
 
 bool operator==(VDFRecordPack const& lhs, VDFRecordPack const& rhs);
 bool operator!=(VDFRecordPack const& lhs, VDFRecordPack const& rhs);

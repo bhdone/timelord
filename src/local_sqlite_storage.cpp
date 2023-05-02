@@ -15,34 +15,58 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
         // creating tables
         sql3_.ExecuteSQL("create table vdf_record (vdf_id integer primary key, timestamp, challenge, height, calculated)");
         sql3_.ExecuteSQL("create table vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace)");
+        sql3_.ExecuteSQL("create table vdf_results (challenge, iters, y, proof, witness_type, duration)");
     }
 }
 
 int64_t LocalSQLiteStorage::Save(VDFRecordPack const& pack)
 {
-    int64_t vdf_id { 0 };
-    {
-        auto stmt = sql3_.Prepare("insert into vdf_record (timestamp, challenge, height, calculated) values (?, ?, ?, ?)");
-        stmt.Bind(1, pack.record.timestamp);
-        stmt.Bind(2, pack.record.challenge);
-        stmt.Bind(3, pack.record.height);
-        stmt.Bind(4, pack.record.calculated);
-        stmt.Run();
-        vdf_id = stmt.GetLastInsertedRowID();
-    }
+    int64_t vdf_id = AppendRecord(pack.record);
     assert(vdf_id != 0);
 
     for (auto const& req : pack.requests) {
-        auto stmt = sql3_.Prepare("insert into vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace) values (?, ?, ?, ?, ?)");
-        stmt.Bind(1, vdf_id);
-        stmt.Bind(2, req.iters);
-        stmt.Bind(3, req.estimated_seconds);
-        stmt.Bind(4, req.group_hash);
-        stmt.Bind(5, req.netspace);
-        stmt.Run();
+        AppendRequest(vdf_id, req);
+    }
+
+    for (auto const& res : pack.results) {
+        AppendResult(res);
     }
 
     return vdf_id;
+}
+
+int64_t LocalSQLiteStorage::AppendRecord(VDFRecord const& record)
+{
+    auto stmt = sql3_.Prepare("insert into vdf_record (timestamp, challenge, height, calculated) values (?, ?, ?, ?)");
+    stmt.Bind(1, record.timestamp);
+    stmt.Bind(2, record.challenge);
+    stmt.Bind(3, record.height);
+    stmt.Bind(4, record.calculated);
+    stmt.Run();
+    return stmt.GetLastInsertedRowID();
+}
+
+void LocalSQLiteStorage::AppendRequest(int64_t vdf_id, VDFRequest const& request)
+{
+    auto stmt = sql3_.Prepare("insert into vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace) values (?, ?, ?, ?, ?)");
+    stmt.Bind(1, vdf_id);
+    stmt.Bind(2, request.iters);
+    stmt.Bind(3, request.estimated_seconds);
+    stmt.Bind(4, request.group_hash);
+    stmt.Bind(5, request.netspace);
+    stmt.Run();
+}
+
+void LocalSQLiteStorage::AppendResult(VDFResult const& result)
+{
+    auto stmt = sql3_.Prepare("insert into vdf_results (challenge, iters, y, proof, witness_type, duration) values (?, ?, ?, ?, ?, ?)");
+    stmt.Bind(1, result.challenge);
+    stmt.Bind(2, result.iters);
+    stmt.Bind(3, result.y);
+    stmt.Bind(4, result.proof);
+    stmt.Bind(5, result.witness_type);
+    stmt.Bind(6, result.duration);
+    stmt.Run();
 }
 
 std::tuple<VDFRecord, bool> LocalSQLiteStorage::QueryRecord(int64_t vdf_id)
@@ -109,4 +133,22 @@ std::vector<VDFRequest> LocalSQLiteStorage::QueryRequests(int64_t vdf_id)
         requests.push_back(std::move(req));
     }
     return requests;
+}
+
+std::vector<VDFResult> LocalSQLiteStorage::QueryResults(uint256 const& challenge)
+{
+    std::vector<VDFResult> results;
+    auto stmt = sql3_.Prepare("select iters, y, proof, witness_type, duration from vdf_results where challenge = ?");
+    stmt.Bind(1, challenge);
+    while (stmt.StepNext()) {
+        VDFResult result;
+        result.challenge = challenge;
+        result.iters = stmt.GetColumnInt64(0);
+        result.y = stmt.GetColumnBytes(1);
+        result.proof = stmt.GetColumnBytes(2);
+        result.witness_type = stmt.GetColumnInt64(3);
+        result.duration = stmt.GetColumnInt64(4);
+        results.push_back(std::move(result));
+    }
+    return results;
 }

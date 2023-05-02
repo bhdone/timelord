@@ -53,6 +53,8 @@ uint256 MakeUint256(Bytes const& vchBytes);
 
 Bytes BytesFromHex(std::string hex);
 
+std::string BytesToHex(Bytes const& bytes);
+
 class BytesConnector
 {
     static void ConnectBytesList(BytesConnector& connector) { }

@@ -57,6 +57,11 @@ void SQLiteStmt::Bind(int index, uint256 const& val)
     Bind(index, Uint256ToHex(val));
 }
 
+void SQLiteStmt::Bind(int index, Bytes const& val)
+{
+    Bind(index, BytesToHex(val));
+}
+
 void SQLiteStmt::Run()
 {
     int res = sqlite3_step(stmt_);
@@ -96,4 +101,9 @@ std::string SQLiteStmt::GetColumnString(int index) const
 uint256 SQLiteStmt::GetColumnUint256(int index) const
 {
     return Uint256FromHex(GetColumnString(index));
+}
+
+Bytes SQLiteStmt::GetColumnBytes(int index) const
+{
+    return BytesFromHex(GetColumnString(index));
 }

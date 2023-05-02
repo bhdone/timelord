@@ -5,6 +5,8 @@
 #include <ctime>
 
 #include <string_view>
+
+#include <tuple>
 #include <vector>
 
 #include "vdf_record.h"
@@ -20,6 +22,16 @@ public:
     int64_t Save(VDFRecordPack const& pack)
     {
         return storage_.Save(pack);
+    }
+
+    void AppendRequest(VDFRequest const& request)
+    {
+        return storage_.AppendRequest(request);
+    }
+
+    void AppendResult(VDFResult const& result)
+    {
+        return storage_.AppendResult(result);
     }
 
     std::vector<VDFRecordPack> QueryRecordsInHours(uint32_t hours) const
@@ -47,6 +59,7 @@ public:
             return std::make_tuple(pack, false);
         }
         pack.requests = storage_.QueryRequests(pack.record.vdf_id);
+        pack.results = storage_.QueryResults(pack.record.challenge);
         return std::make_tuple(pack, true);
     }
 

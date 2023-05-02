@@ -30,6 +30,8 @@ public:
 
     void Bind(int index, uint256 const& val);
 
+    void Bind(int index, Bytes const& val);
+
     void Run();
 
     bool StepNext();
@@ -41,6 +43,8 @@ public:
     std::string GetColumnString(int index) const;
 
     uint256 GetColumnUint256(int index) const;
+
+    Bytes GetColumnBytes(int index) const;
 
 private:
     sqlite3* sql3_;

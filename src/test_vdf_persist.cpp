@@ -41,7 +41,16 @@ protected:
         return res;
     }
 
-    VDFRecordPack GenerateRandomPack(uint32_t timestamp, uint32_t height, bool calculated) const
+    static Bytes MakeRandomBytes(std::size_t len)
+    {
+        Bytes res(len, '\0');
+        for (int i = 0; i < len; ++i) {
+            res[i] = random() % 256;
+        }
+        return res;
+    }
+
+    static VDFRecordPack GenerateRandomPack(uint32_t timestamp, uint32_t height, bool calculated)
     {
         std::srand(time(nullptr));
         VDFRecordPack pack;
@@ -51,6 +60,29 @@ protected:
         pack.record.height = height;
         pack.record.calculated = calculated;
         return pack;
+    }
+
+    static VDFRequest GenerateRandomRequest()
+    {
+        VDFRequest request;
+        request.vdf_id = -1;
+        request.iters = random();
+        request.estimated_seconds = random();
+        request.group_hash = MakeRandomUInt256();
+        request.netspace = random();
+        return request;
+    }
+
+    static VDFResult GenerateRandomResult(uint256 challenge, uint64_t iters, int dur)
+    {
+        VDFResult result;
+        result.challenge = std::move(challenge);
+        result.iters = iters;
+        result.duration = dur;
+        result.witness_type = 11;
+        result.y = MakeRandomBytes(100);
+        result.proof = MakeRandomBytes(233);
+        return result;
     }
 
 private:
@@ -71,8 +103,25 @@ TEST_F(StorageTest, StoreAndQuery1Rec)
 {
     VDFRecordPack pack = GenerateRandomPack(time(nullptr), 10000, false);
     EXPECT_NO_THROW({ pack.record.vdf_id = GetPersist().Save(pack); });
-
     auto [last_pack, exists] = GetPersist().QueryLastRecordPack();
     EXPECT_TRUE(exists);
+    EXPECT_EQ(pack, last_pack);
+}
+
+TEST_F(StorageTest, StoreAndQuery1RecWithRequestResult)
+{
+    VDFRecordPack pack = GenerateRandomPack(time(nullptr), 20000, true);
+    pack.requests.push_back(GenerateRandomRequest());
+    pack.results.push_back(GenerateRandomResult(pack.record.challenge, pack.requests[0].iters, 10000));
+    EXPECT_NO_THROW({
+        pack.record.vdf_id = GetPersist().Save(pack);
+        for (auto& req : pack.requests) {
+            req.vdf_id = pack.record.vdf_id;
+        }
+    });
+    auto [last_pack, exists] = GetPersist().QueryLastRecordPack();
+    EXPECT_TRUE(exists);
+    EXPECT_EQ(last_pack.requests.size(), 1);
+    EXPECT_EQ(last_pack.results.size(), 1);
     EXPECT_EQ(pack, last_pack);
 }
