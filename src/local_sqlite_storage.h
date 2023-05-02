@@ -14,23 +14,19 @@ class LocalSQLiteStorage
 public:
     explicit LocalSQLiteStorage(std::string_view file_path);
 
-    int64_t Save(VDFRecordPack const& pack);
+    void Save(VDFRecordPack const& pack);
 
-    int64_t AppendRecord(VDFRecord const& record);
+    void AppendRecord(VDFRecord const& record);
 
-    void AppendRequest(int64_t vdf_id, VDFRequest const& request);
+    void AppendRequest(VDFRequest const& request);
 
     void AppendResult(VDFResult const& result);
-
-    void UpdateRecordCalculated(int64_t vdf_id, bool calculated);
-
-    std::tuple<VDFRecord, bool> QueryRecord(int64_t vdf_id);
 
     std::tuple<VDFRecord, bool> QueryLastRecord();
 
     std::vector<VDFRecord> QueryRecords(uint32_t begin_timestamp, uint32_t end_timestamp);
 
-    std::vector<VDFRequest> QueryRequests(int64_t vdf_id);
+    std::vector<VDFRequest> QueryRequests(uint256 const& challenge);
 
     std::vector<VDFResult> QueryResults(uint256 const& challenge);
 

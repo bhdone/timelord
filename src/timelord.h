@@ -65,7 +65,6 @@ private:
 
     asio::io_context& ioc_;
     VDFSQLitePersistOperator& persist_operator_;
-    int64_t vdf_id_ { -1 };
 
     FrontEnd frontend_;
     MessageDispatcher msg_dispatcher_;

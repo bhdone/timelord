@@ -2,7 +2,7 @@
 
 bool operator==(VDFRecord const& lhs, VDFRecord const& rhs)
 {
-    return lhs.vdf_id == rhs.vdf_id && lhs.timestamp == rhs.timestamp && lhs.challenge == rhs.challenge && lhs.height == rhs.height && lhs.calculated == rhs.calculated;
+    return lhs.timestamp == rhs.timestamp && lhs.challenge == rhs.challenge && lhs.height == rhs.height;
 }
 
 bool operator!=(VDFRecord const& lhs, VDFRecord const& rhs)
@@ -12,7 +12,7 @@ bool operator!=(VDFRecord const& lhs, VDFRecord const& rhs)
 
 bool operator==(VDFRequest const& lhs, VDFRequest const& rhs)
 {
-    return lhs.vdf_id == rhs.vdf_id && lhs.iters == rhs.iters && lhs.estimated_seconds == rhs.estimated_seconds && lhs.group_hash == rhs.group_hash && lhs.total_size == rhs.total_size;
+    return lhs.iters == rhs.iters && lhs.estimated_seconds == rhs.estimated_seconds && lhs.group_hash == rhs.group_hash;
 }
 
 bool operator!=(VDFRequest const& lhs, VDFRequest const& rhs)

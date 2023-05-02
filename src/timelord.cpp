@@ -144,12 +144,10 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
 
     // append new record to local database
     VDFRecord record;
-    record.vdf_id = -1;
     record.timestamp = time(nullptr);
     record.challenge = new_challenge;
     record.height = height;
-    record.calculated = false;
-    vdf_id_ = persist_operator_.AppendRecord(record);
+    persist_operator_.AppendRecord(record);
 
     // need to deliver iters to vdf_client?
     auto it = challenge_reqs_.find(new_challenge);
@@ -165,11 +163,12 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
                 LogNetspace(req.group_hash, req.total_size, sum_size);
                 // update to local database
                 VDFRequest request;
+                request.challenge = new_challenge;
                 request.iters = req.iters;
                 request.estimated_seconds = iters_per_sec_ > 0 ? req.iters / iters_per_sec_ : 0;
                 request.group_hash = req.group_hash;
                 request.total_size = req.total_size;
-                persist_operator_.AppendRequest(vdf_id_, request);
+                persist_operator_.AppendRequest(request);
             }
         }
     }
@@ -249,11 +248,12 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
             LogNetspace(group_hash, total_size, sum_size);
             // update to local database
             VDFRequest request;
+            request.challenge = challenge;
             request.iters = iters;
             request.estimated_seconds = iters_per_sec_ > 0 ? iters / iters_per_sec_ : 0;
             request.group_hash = group_hash;
             request.total_size = total_size;
-            persist_operator_.AppendRequest(vdf_id_, request);
+            persist_operator_.AppendRequest(request);
         }
     }
 
@@ -272,11 +272,6 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
     result.witness_type = detail.witness_type;
     result.duration = detail.duration;
     persist_operator_.AppendResult(result);
-
-    // also the flag `calculated` of the record should be set to `true`
-    if (challenge == challenge_monitor_.GetCurrentChallenge()) {
-        persist_operator_.UpdateRecordCalculated(vdf_id_, true);
-    }
 
     // calculate the VDF speed
     if (detail.duration == 0) {

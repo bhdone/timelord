@@ -17,6 +17,9 @@ class StorageTest : public testing::Test
 protected:
     void SetUp() override
     {
+        if (fs::is_regular_file(SZ_VDF_DB_NAME)) {
+            std::remove(SZ_VDF_DB_NAME);
+        }
         storage_ = std::make_unique<LocalSQLiteStorage>(SZ_VDF_DB_NAME);
         persist_ = std::make_unique<PersistDB>(*storage_);
     }
@@ -54,18 +57,16 @@ protected:
     {
         std::srand(time(nullptr));
         VDFRecordPack pack;
-        pack.record.vdf_id = -1;
         pack.record.timestamp = timestamp;
         pack.record.challenge = MakeRandomUInt256();
         pack.record.height = height;
-        pack.record.calculated = calculated;
         return pack;
     }
 
-    static VDFRequest GenerateRandomRequest()
+    static VDFRequest GenerateRandomRequest(uint256 challenge)
     {
         VDFRequest request;
-        request.vdf_id = -1;
+        request.challenge = std::move(challenge);
         request.iters = random();
         request.estimated_seconds = random();
         request.group_hash = MakeRandomUInt256();
@@ -102,7 +103,7 @@ TEST_F(StorageTest, EmptyDB)
 TEST_F(StorageTest, StoreAndQuery1Rec)
 {
     VDFRecordPack pack = GenerateRandomPack(time(nullptr), 10000, false);
-    EXPECT_NO_THROW({ pack.record.vdf_id = GetPersist().Save(pack); });
+    EXPECT_NO_THROW({ GetPersist().Save(pack); });
     auto [last_pack, exists] = GetPersist().QueryLastRecordPack();
     EXPECT_TRUE(exists);
     EXPECT_EQ(pack, last_pack);
@@ -111,16 +112,9 @@ TEST_F(StorageTest, StoreAndQuery1Rec)
 TEST_F(StorageTest, StoreAndQuery1RecWithRequestResult)
 {
     VDFRecordPack pack = GenerateRandomPack(time(nullptr), 20000, false);
-    pack.requests.push_back(GenerateRandomRequest());
+    pack.requests.push_back(GenerateRandomRequest(pack.record.challenge));
     pack.results.push_back(GenerateRandomResult(pack.record.challenge, pack.requests[0].iters, 10000));
-    EXPECT_NO_THROW({
-        pack.record.vdf_id = GetPersist().Save(pack);
-        for (auto& req : pack.requests) {
-            req.vdf_id = pack.record.vdf_id;
-        }
-        GetPersist().UpdateRecordCalculated(pack.record.vdf_id, true);
-        pack.record.calculated = true;
-    });
+    EXPECT_NO_THROW({ GetPersist().Save(pack); });
     auto [last_pack, exists] = GetPersist().QueryLastRecordPack();
     EXPECT_TRUE(exists);
     EXPECT_EQ(last_pack.requests.size(), 1);

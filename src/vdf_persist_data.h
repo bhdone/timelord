@@ -19,29 +19,24 @@ public:
     {
     }
 
-    int64_t Save(VDFRecordPack const& pack)
+    void Save(VDFRecordPack const& pack)
     {
-        return storage_.Save(pack);
+        storage_.Save(pack);
     }
 
-    int64_t AppendRecord(VDFRecord const& record)
+    void AppendRecord(VDFRecord const& record)
     {
-        return storage_.AppendRecord(record);
+        storage_.AppendRecord(record);
     }
 
-    void AppendRequest(int64_t vdf_id, VDFRequest const& request)
+    void AppendRequest(VDFRequest const& request)
     {
-        storage_.AppendRequest(vdf_id, request);
+        storage_.AppendRequest(request);
     }
 
     void AppendResult(VDFResult const& result)
     {
         storage_.AppendResult(result);
-    }
-
-    void UpdateRecordCalculated(int64_t vdf_id, bool calculated)
-    {
-        storage_.UpdateRecordCalculated(vdf_id, calculated);
     }
 
     std::vector<VDFRecordPack> QueryRecordsInHours(uint32_t hours) const
@@ -54,7 +49,7 @@ public:
         for (auto const& record : records) {
             VDFRecordPack pack;
             pack.record = record;
-            pack.requests = storage_.QueryRequests(record.vdf_id);
+            pack.requests = storage_.QueryRequests(record.challenge);
             res.push_back(std::move(pack));
         }
         return res;
@@ -68,7 +63,7 @@ public:
         if (!exists) {
             return std::make_tuple(pack, false);
         }
-        pack.requests = storage_.QueryRequests(pack.record.vdf_id);
+        pack.requests = storage_.QueryRequests(pack.record.challenge);
         pack.results = storage_.QueryResults(pack.record.challenge);
         return std::make_tuple(pack, true);
     }
