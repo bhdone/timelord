@@ -24,14 +24,24 @@ public:
         return storage_.Save(pack);
     }
 
-    void AppendRequest(VDFRequest const& request)
+    int64_t AppendRecord(VDFRecord const& record)
     {
-        return storage_.AppendRequest(request);
+        return storage_.AppendRecord(record);
+    }
+
+    void AppendRequest(int64_t vdf_id, VDFRequest const& request)
+    {
+        storage_.AppendRequest(vdf_id, request);
     }
 
     void AppendResult(VDFResult const& result)
     {
-        return storage_.AppendResult(result);
+        storage_.AppendResult(result);
+    }
+
+    void UpdateRecordCalculated(int64_t vdf_id, bool calculated)
+    {
+        storage_.UpdateRecordCalculated(vdf_id, calculated);
     }
 
     std::vector<VDFRecordPack> QueryRecordsInHours(uint32_t hours) const

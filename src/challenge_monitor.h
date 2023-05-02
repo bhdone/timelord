@@ -17,7 +17,7 @@
 class ChallengeMonitor
 {
 public:
-    using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge)>;
+    using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge, int height)>;
 
     ChallengeMonitor(asio::io_context& ioc, std::string_view url, RPCLogin login, int interval_seconds);
 

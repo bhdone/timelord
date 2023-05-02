@@ -18,7 +18,7 @@ struct VDFRequest {
     uint64_t iters;
     uint32_t estimated_seconds;
     uint256 group_hash;
-    uint64_t netspace;
+    uint64_t total_size;
 };
 
 struct VDFResult {

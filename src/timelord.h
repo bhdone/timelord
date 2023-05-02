@@ -19,6 +19,8 @@
 #include "msg_ids.h"
 #include "timelord_utils.h"
 
+#include "local_sqlite_storage.h"
+
 class MessageDispatcher
 {
 public:
@@ -37,17 +39,19 @@ class Timelord
     struct ChallengeRequestSession {
         std::weak_ptr<FrontEndSession> pweak_session;
         uint64_t iters;
+        uint256 group_hash;
+        uint64_t total_size;
     };
 
 public:
-    Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port);
+    Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, VDFSQLitePersistOperator& persist_operator);
 
     void Run(std::string_view addr, unsigned short port);
 
     void Exit();
 
 private:
-    void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge);
+    void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height);
 
     void HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession);
 
@@ -60,6 +64,8 @@ private:
     std::tuple<uint64_t, bool> AddAndSumNetspace(uint256 const& group_hash, uint64_t total_size);
 
     asio::io_context& ioc_;
+    VDFSQLitePersistOperator& persist_operator_;
+    int64_t vdf_id_ { -1 };
 
     FrontEnd frontend_;
     MessageDispatcher msg_dispatcher_;

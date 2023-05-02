@@ -11,6 +11,11 @@ using std::placeholders::_3;
 
 static int const SECS_TO_WAIT_BEFORE_CLOSE_VDF = 5;
 
+void LogNetspace(uint256 const& group_hash, uint64_t total_size, uint64_t sum_size)
+{
+    PLOGI << tinyformat::format("netspace from group_hash: %s, curr %s TB, total %s TB", Uint256ToHex(group_hash), MakeNumberTBStr(total_size), MakeNumberTBStr(sum_size));
+}
+
 void SendMsg_Ready(FrontEndSessionPtr psession)
 {
     Json::Value msg;
@@ -76,8 +81,9 @@ void MessageDispatcher::operator()(FrontEndSessionPtr psession, Json::Value cons
     it->second(psession, msg);
 }
 
-Timelord::Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port)
+Timelord::Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, VDFSQLitePersistOperator& persist_operator)
     : ioc_(ioc)
+    , persist_operator_(persist_operator)
     , challenge_monitor_(ioc_, url, std::move(login), 3)
     , frontend_(ioc)
     , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(std::string(vdf_client_path)), vdf_client_addr, vdf_client_port)
@@ -88,7 +94,7 @@ Timelord::Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, 
         throw std::runtime_error(fmt::format("the full path to `vdf_client' is incorrect, path={}", vdf_client_path));
     }
     vdf_client_man_.SetProofReceiver(std::bind(&Timelord::HandleVdfClient_ProofIsReceived, this, _1, _2));
-    challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2));
+    challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2, _3));
     msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::CALC), std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleFrontEnd_NewSessionConnected, this, _1));
     frontend_.SetMessageHandler(msg_dispatcher_);
@@ -113,7 +119,7 @@ void Timelord::Exit()
     frontend_.Exit();
 }
 
-void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge)
+void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height)
 {
     PLOGI << "challenge is changed to " << Uint256ToHex(new_challenge);
     netspace_.clear();
@@ -136,12 +142,35 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     // the challenge must be calculated as soon as possible
     vdf_client_man_.CalcIters(new_challenge, 100000 * 60 * 60);
 
+    // append new record to local database
+    VDFRecord record;
+    record.vdf_id = -1;
+    record.timestamp = time(nullptr);
+    record.challenge = new_challenge;
+    record.height = height;
+    record.calculated = false;
+    vdf_id_ = persist_operator_.AppendRecord(record);
+
     // need to deliver iters to vdf_client?
     auto it = challenge_reqs_.find(new_challenge);
     if (it != std::cend(challenge_reqs_)) {
         PLOGI << "delivering total " << it->second.size() << " saved request(s)";
         for (auto req : it->second) {
             vdf_client_man_.CalcIters(new_challenge, req.iters);
+            // save the request to local database
+            uint64_t sum_size;
+            bool newly;
+            std::tie(sum_size, newly) = AddAndSumNetspace(req.group_hash, req.total_size);
+            if (newly) {
+                LogNetspace(req.group_hash, req.total_size, sum_size);
+                // update to local database
+                VDFRequest request;
+                request.iters = req.iters;
+                request.estimated_seconds = iters_per_sec_ > 0 ? req.iters / iters_per_sec_ : 0;
+                request.group_hash = req.group_hash;
+                request.total_size = req.total_size;
+                persist_operator_.AppendRequest(vdf_id_, request);
+            }
         }
     }
 }
@@ -176,11 +205,23 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
 
     PLOGD << "challenge: (iters=" << FormatNumberStr(std::to_string(iters)) << ")" << Uint256ToHex(challenge);
 
+    uint256 group_hash;
+    uint64_t total_size { 0 };
+    if (msg.isMember("netspace") && msg["netspace"].isObject()) {
+        Json::Value netspace = msg["netspace"];
+        group_hash = Uint256FromHex(netspace["group_hash"].asString());
+        total_size = netspace["total_size"].asUInt64();
+    }
+
+    // mark the session that it is related with the challenge
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {
         ChallengeRequestSession entry;
         entry.pweak_session = std::weak_ptr(psession);
         entry.iters = iters;
+        entry.group_hash = group_hash;
+        entry.total_size = total_size;
+        // mark session with the challenge
         challenge_reqs_.insert(std::make_pair(challenge, std::vector<ChallengeRequestSession> { entry }));
     } else {
         // find the session first
@@ -188,7 +229,8 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
             return req.pweak_session.lock() == psession && req.iters == iters;
         });
         if (it2 == std::end(it->second)) {
-            it->second.push_back({ std::weak_ptr(psession), iters });
+            // mark session with the challenge
+            it->second.push_back({ std::weak_ptr(psession), iters, group_hash, total_size });
         }
     }
 
@@ -199,16 +241,19 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
         return;
     }
 
-    // record the netspace
-    if (msg.isMember("netspace") && msg["netspace"].isObject()) {
-        Json::Value netspace = msg["netspace"];
-        uint256 group_hash = Uint256FromHex(netspace["group_hash"].asString());
-        uint64_t total_size = netspace["total_size"].asUInt64();
+    if (total_size > 0) {
         uint64_t sum_size;
         bool newly;
         std::tie(sum_size, newly) = AddAndSumNetspace(group_hash, total_size);
         if (newly) {
-            PLOGI << tinyformat::format("netspace from group_hash: %s, curr %s TB, total %s TB", Uint256ToHex(group_hash), MakeNumberTBStr(total_size), MakeNumberTBStr(sum_size));
+            LogNetspace(group_hash, total_size, sum_size);
+            // update to local database
+            VDFRequest request;
+            request.iters = iters;
+            request.estimated_seconds = iters_per_sec_ > 0 ? iters / iters_per_sec_ : 0;
+            request.group_hash = group_hash;
+            request.total_size = total_size;
+            persist_operator_.AppendRequest(vdf_id_, request);
         }
     }
 
@@ -218,6 +263,21 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
 
 void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail)
 {
+    // first, we save it to local database
+    VDFResult result;
+    result.challenge = challenge;
+    result.iters = detail.iters;
+    result.y = detail.y;
+    result.proof = detail.proof;
+    result.witness_type = detail.witness_type;
+    result.duration = detail.duration;
+    persist_operator_.AppendResult(result);
+
+    // also the flag `calculated` of the record should be set to `true`
+    if (challenge == challenge_monitor_.GetCurrentChallenge()) {
+        persist_operator_.UpdateRecordCalculated(vdf_id_, true);
+    }
+
     // calculate the VDF speed
     if (detail.duration == 0) {
         PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", n/a iters/second";

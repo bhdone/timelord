@@ -7,6 +7,8 @@
 
 #include "vdf_record.h"
 
+#include "vdf_persist_data.h"
+
 class LocalSQLiteStorage
 {
 public:
@@ -19,6 +21,8 @@ public:
     void AppendRequest(int64_t vdf_id, VDFRequest const& request);
 
     void AppendResult(VDFResult const& result);
+
+    void UpdateRecordCalculated(int64_t vdf_id, bool calculated);
 
     std::tuple<VDFRecord, bool> QueryRecord(int64_t vdf_id);
 
@@ -33,5 +37,7 @@ public:
 private:
     SQLite sql3_;
 };
+
+using VDFSQLitePersistOperator = VDFPersistOperator<LocalSQLiteStorage>;
 
 #endif

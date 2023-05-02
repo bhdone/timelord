@@ -5,10 +5,13 @@
 #include "timelord.h"
 #include "utils.h"
 
+#include "local_sqlite_storage.h"
+
 static char const* SZ_URL = "http://127.0.0.1:18732";
 static char const* SZ_COOKIE_PATH = "$HOME/.btchd/testnet3/.cookie";
 static char const* SZ_VDF_CLIENT_PATH = "$HOME/Workspace/BitcoinHD/chiavdf/src/vdf_client";
 static char const* SZ_VDF_CLIENT_ADDR = "127.0.0.1";
+static char const* SZ_VDF_DB_PATH = "./test_timelord.sqlite3";
 static unsigned short const VDF_CLIENT_PORT = 19191;
 
 static char const* SZ_TIMELORD_LISTENING_ADDR = "127.0.0.1";
@@ -18,7 +21,9 @@ class TimelordTest : public ::testing::Test
 {
 public:
     TimelordTest()
-        : timelord_(ioc_, SZ_URL, RPCLogin(ExpandEnvPath(SZ_COOKIE_PATH)), ExpandEnvPath(SZ_VDF_CLIENT_PATH), SZ_VDF_CLIENT_ADDR, VDF_CLIENT_PORT)
+        : storage_(SZ_VDF_DB_PATH)
+        , persist_operator_(storage_)
+        , timelord_(ioc_, SZ_URL, RPCLogin(ExpandEnvPath(SZ_COOKIE_PATH)), ExpandEnvPath(SZ_VDF_CLIENT_PATH), SZ_VDF_CLIENT_ADDR, VDF_CLIENT_PORT, persist_operator_)
     {
     }
 
@@ -43,6 +48,8 @@ protected:
 
 private:
     asio::io_context ioc_;
+    LocalSQLiteStorage storage_;
+    VDFSQLitePersistOperator persist_operator_;
     Timelord timelord_;
     std::unique_ptr<std::thread> pthread_;
 };

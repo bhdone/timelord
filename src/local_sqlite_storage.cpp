@@ -14,7 +14,7 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
     if (sql3_.GetStatus() == SQLite::Status::Created) {
         // creating tables
         sql3_.ExecuteSQL("create table vdf_record (vdf_id integer primary key, timestamp, challenge, height, calculated)");
-        sql3_.ExecuteSQL("create table vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace)");
+        sql3_.ExecuteSQL("create table vdf_requests (vdf_id, iters, estimated_seconds, group_hash, total_size)");
         sql3_.ExecuteSQL("create table vdf_results (challenge, iters, y, proof, witness_type, duration)");
     }
 }
@@ -48,12 +48,12 @@ int64_t LocalSQLiteStorage::AppendRecord(VDFRecord const& record)
 
 void LocalSQLiteStorage::AppendRequest(int64_t vdf_id, VDFRequest const& request)
 {
-    auto stmt = sql3_.Prepare("insert into vdf_requests (vdf_id, iters, estimated_seconds, group_hash, netspace) values (?, ?, ?, ?, ?)");
+    auto stmt = sql3_.Prepare("insert into vdf_requests (vdf_id, iters, estimated_seconds, group_hash, total_size) values (?, ?, ?, ?, ?)");
     stmt.Bind(1, vdf_id);
     stmt.Bind(2, request.iters);
     stmt.Bind(3, request.estimated_seconds);
     stmt.Bind(4, request.group_hash);
-    stmt.Bind(5, request.netspace);
+    stmt.Bind(5, request.total_size);
     stmt.Run();
 }
 
@@ -66,6 +66,14 @@ void LocalSQLiteStorage::AppendResult(VDFResult const& result)
     stmt.Bind(4, result.proof);
     stmt.Bind(5, result.witness_type);
     stmt.Bind(6, result.duration);
+    stmt.Run();
+}
+
+void LocalSQLiteStorage::UpdateRecordCalculated(int64_t vdf_id, bool calculated)
+{
+    auto stmt = sql3_.Prepare("update vdf_record set calculated = ? where vdf_id = ?");
+    stmt.Bind(1, calculated);
+    stmt.Bind(2, vdf_id);
     stmt.Run();
 }
 
@@ -121,7 +129,7 @@ std::vector<VDFRecord> LocalSQLiteStorage::QueryRecords(uint32_t begin_timestamp
 std::vector<VDFRequest> LocalSQLiteStorage::QueryRequests(int64_t vdf_id)
 {
     std::vector<VDFRequest> requests;
-    auto stmt = sql3_.Prepare("select vdf_id, iters, estimated_seconds, group_hash, netspace from vdf_requests where vdf_id = ?");
+    auto stmt = sql3_.Prepare("select vdf_id, iters, estimated_seconds, group_hash, total_size from vdf_requests where vdf_id = ?");
     stmt.Bind(1, vdf_id);
     while (stmt.StepNext()) {
         VDFRequest req;
@@ -129,7 +137,7 @@ std::vector<VDFRequest> LocalSQLiteStorage::QueryRequests(int64_t vdf_id)
         req.iters = stmt.GetColumnInt64(1);
         req.estimated_seconds = stmt.GetColumnInt64(2);
         req.group_hash = stmt.GetColumnUint256(3);
-        req.netspace = stmt.GetColumnInt64(4);
+        req.total_size = stmt.GetColumnInt64(4);
         requests.push_back(std::move(req));
     }
     return requests;

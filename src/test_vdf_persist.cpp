@@ -69,7 +69,7 @@ protected:
         request.iters = random();
         request.estimated_seconds = random();
         request.group_hash = MakeRandomUInt256();
-        request.netspace = random();
+        request.total_size = random();
         return request;
     }
 
@@ -110,7 +110,7 @@ TEST_F(StorageTest, StoreAndQuery1Rec)
 
 TEST_F(StorageTest, StoreAndQuery1RecWithRequestResult)
 {
-    VDFRecordPack pack = GenerateRandomPack(time(nullptr), 20000, true);
+    VDFRecordPack pack = GenerateRandomPack(time(nullptr), 20000, false);
     pack.requests.push_back(GenerateRandomRequest());
     pack.results.push_back(GenerateRandomResult(pack.record.challenge, pack.requests[0].iters, 10000));
     EXPECT_NO_THROW({
@@ -118,6 +118,8 @@ TEST_F(StorageTest, StoreAndQuery1RecWithRequestResult)
         for (auto& req : pack.requests) {
             req.vdf_id = pack.record.vdf_id;
         }
+        GetPersist().UpdateRecordCalculated(pack.record.vdf_id, true);
+        pack.record.calculated = true;
     });
     auto [last_pack, exists] = GetPersist().QueryLastRecordPack();
     EXPECT_TRUE(exists);
