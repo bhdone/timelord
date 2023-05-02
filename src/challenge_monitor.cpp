@@ -37,11 +37,12 @@ void ChallengeMonitor::QueryChallenge()
     try {
         RPCClient::Result result = rpc_.Call("querychallenge");
         uint256 challenge = Uint256FromHex(result.result["challenge"].get_str());
+        int height = result.result["target_height"].get_int();
         if (challenge != challenge_) {
             auto old_challenge = challenge_;
             challenge_ = challenge;
             if (new_challenge_handler_) {
-                new_challenge_handler_(old_challenge, challenge);
+                new_challenge_handler_(old_challenge, challenge, height);
             }
         }
     } catch (NetError const& e) {

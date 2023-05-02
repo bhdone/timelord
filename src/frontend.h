@@ -26,8 +26,7 @@ class FrontEndSession : public std::enable_shared_from_this<FrontEndSession>
 public:
     using ConnectionHandler = std::function<void(FrontEndSessionPtr psession)>;
     using MessageHandler = std::function<void(FrontEndSessionPtr psession, Json::Value const& msg)>;
-    using ErrorHandler
-            = std::function<void(FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs)>;
+    using ErrorHandler = std::function<void(FrontEndSessionPtr psession, FrontEndSessionErrorType type, std::string_view errs)>;
 
     FrontEndSession(asio::io_context& ioc, tcp::socket&& s);
 

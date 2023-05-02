@@ -11,6 +11,7 @@ find_package(asio CONFIG REQUIRED)
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
 
 set(ENABLE_TEST OFF CACHE INTERNAL "Turn off gears test")
 
@@ -18,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     bhd_vdf
     GIT_REPOSITORY https://github.com/bhdone/bhd_vdf
-    GIT_TAG v0.0.51
+    GIT_TAG v0.0.53
 )
 
 FetchContent_Declare(
@@ -45,6 +46,14 @@ set(TIMELORDLIB_SRCS
     ./src/frontend_client.cpp
     ./src/challenge_monitor.cpp
     ./src/vdf_client_man.cpp
+    ./src/vdf_record.cpp
+)
+
+set (SQLITE3_WRAP_SRCS
+    ./src/sqlite_utils.cpp
+    ./src/sqlite_wrap.cpp
+    ./src/sqlite_stmt_wrap.cpp
+    ./src/local_sqlite_storage.cpp
 )
 
 set(TIMELORD_SRCS
@@ -54,7 +63,7 @@ set(TIMELORD_SRCS
 
 message(STATUS "univaluelib: ${univaluelib}")
 
-add_executable(timelord ${TIMELORD_SRCS})
+add_executable(timelord ${TIMELORD_SRCS} ${SQLITE3_WRAP_SRCS})
 target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
 target_link_libraries(timelord PRIVATE
     bhd_vdf
@@ -65,6 +74,7 @@ target_link_libraries(timelord PRIVATE
     JsonCpp::JsonCpp
     fmt::fmt
     CURL::libcurl
+    unofficial::sqlite3::sqlite3
     ${univaluelib}
 )
 
@@ -82,6 +92,7 @@ if (BUILD_TEST)
     function(MakeTest TEST_TARGET_NAME)
         set(TEST_SRCS
             ${TIMELORDLIB_SRCS}
+            ${SQLITE3_WRAP_SRCS}
             ./src/test_utils.cpp
             ./src/test_main.cpp
             ./src/${TEST_TARGET_NAME}.cpp
@@ -97,6 +108,7 @@ if (BUILD_TEST)
             JsonCpp::JsonCpp
             fmt::fmt
             CURL::libcurl
+            unofficial::sqlite3::sqlite3
             ${univaluelib}
         )
         add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
@@ -107,4 +119,6 @@ if (BUILD_TEST)
     MakeTest(test_timelord)
     MakeTest(test_vdf_client)
     MakeTest(test_challenge_monitor)
+    MakeTest(test_sqlite)
+    MakeTest(test_vdf_persist)
 endif()

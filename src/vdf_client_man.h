@@ -205,8 +205,7 @@ private:
 class VdfClientMan
 {
 public:
-    explicit VdfClientMan(asio::io_context& ioc, TimeType type, std::string_view vdf_client_path, std::string_view addr,
-            unsigned short port);
+    explicit VdfClientMan(asio::io_context& ioc, TimeType type, std::string_view vdf_client_path, std::string_view addr, unsigned short port);
 
     void SetProofReceiver(ProofReceiver proof_receiver);
 
