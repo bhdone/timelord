@@ -12,6 +12,7 @@ find_package(jsoncpp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
+find_package(Boost 1.82.0 REQUIRED COMPONENTS system url)
 
 set(ENABLE_TEST OFF CACHE INTERNAL "Turn off gears test")
 
@@ -49,11 +50,16 @@ set(TIMELORDLIB_SRCS
     ./src/vdf_record.cpp
 )
 
-set (SQLITE3_WRAP_SRCS
+set(SQLITE3_WRAP_SRCS
     ./src/sqlite_utils.cpp
     ./src/sqlite_wrap.cpp
     ./src/sqlite_stmt_wrap.cpp
     ./src/local_sqlite_storage.cpp
+)
+
+set(WEB_SERVICE_SRCS
+    ./src/web_req_handler.cpp
+    ./src/vdf_web_service.cpp
 )
 
 set(TIMELORD_SRCS
@@ -63,7 +69,7 @@ set(TIMELORD_SRCS
 
 message(STATUS "univaluelib: ${univaluelib}")
 
-add_executable(timelord ${TIMELORD_SRCS} ${SQLITE3_WRAP_SRCS})
+add_executable(timelord ${TIMELORD_SRCS} ${SQLITE3_WRAP_SRCS} ${WEB_SERVICE_SRCS})
 target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
 target_link_libraries(timelord PRIVATE
     bhd_vdf
@@ -75,6 +81,7 @@ target_link_libraries(timelord PRIVATE
     fmt::fmt
     CURL::libcurl
     unofficial::sqlite3::sqlite3
+    Boost::url
     ${univaluelib}
 )
 
@@ -93,6 +100,7 @@ if (BUILD_TEST)
         set(TEST_SRCS
             ${TIMELORDLIB_SRCS}
             ${SQLITE3_WRAP_SRCS}
+            ${WEB_SERVICE_SRCS}
             ./src/test_utils.cpp
             ./src/test_main.cpp
             ./src/${TEST_TARGET_NAME}.cpp
@@ -109,6 +117,7 @@ if (BUILD_TEST)
             fmt::fmt
             CURL::libcurl
             unofficial::sqlite3::sqlite3
+            Boost::url
             ${univaluelib}
         )
         add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
@@ -121,4 +130,5 @@ if (BUILD_TEST)
     MakeTest(test_challenge_monitor)
     MakeTest(test_sqlite)
     MakeTest(test_vdf_persist)
+    MakeTest(test_web_service)
 endif()

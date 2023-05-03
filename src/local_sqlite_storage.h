@@ -7,7 +7,7 @@
 
 #include "vdf_record.h"
 
-#include "vdf_persist_data.h"
+#include "vdf_persist_data.hpp"
 
 class LocalSQLiteStorage
 {

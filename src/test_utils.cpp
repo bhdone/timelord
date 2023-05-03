@@ -27,3 +27,54 @@ void ParseCommandLineParams(int argc, char* argv[], bool& verbose)
         }
     }
 }
+
+uint256 MakeRandomUInt256()
+{
+    uint256 res;
+    for (int i = 0; i < 256 / 8; ++i) {
+        res[i] = random() % 256;
+    }
+    return res;
+}
+
+Bytes MakeRandomBytes(std::size_t len)
+{
+    Bytes res(len, '\0');
+    for (int i = 0; i < len; ++i) {
+        res[i] = random() % 256;
+    }
+    return res;
+}
+
+VDFRecordPack GenerateRandomPack(uint32_t timestamp, uint32_t height, bool calculated)
+{
+    std::srand(time(nullptr));
+    VDFRecordPack pack;
+    pack.record.timestamp = timestamp;
+    pack.record.challenge = MakeRandomUInt256();
+    pack.record.height = height;
+    return pack;
+}
+
+VDFRequest GenerateRandomRequest(uint256 challenge)
+{
+    VDFRequest request;
+    request.challenge = std::move(challenge);
+    request.iters = random();
+    request.estimated_seconds = random();
+    request.group_hash = MakeRandomUInt256();
+    request.total_size = random();
+    return request;
+}
+
+VDFResult GenerateRandomResult(uint256 challenge, uint64_t iters, int dur)
+{
+    VDFResult result;
+    result.challenge = std::move(challenge);
+    result.iters = iters;
+    result.duration = dur;
+    result.witness_type = 11;
+    result.y = MakeRandomBytes(100);
+    result.proof = MakeRandomBytes(233);
+    return result;
+}

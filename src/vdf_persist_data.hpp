@@ -50,6 +50,7 @@ public:
             VDFRecordPack pack;
             pack.record = record;
             pack.requests = storage_.QueryRequests(record.challenge);
+            pack.results = storage_.QueryResults(record.challenge);
             res.push_back(std::move(pack));
         }
         return res;
