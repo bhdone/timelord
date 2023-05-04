@@ -92,7 +92,8 @@ int main(int argc, char* argv[])
         PLOGI << "timelord listening on " << timelord_addr << ":" << timelord_port;
 
         RPCLogin login = use_cookie ? RPCLogin(cookie_path) : RPCLogin(rpc_user, rpc_password);
-        Timelord timelord(ioc, url, std::move(login), vdf_client_path, vdf_client_addr, vdf_client_port, persist_operator);
+        RPCClient rpc(true, url, std::move(login));
+        Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, persist_operator);
         timelord.Run(timelord_addr, timelord_port);
         ioc.run();
         PLOGD << "exit.";

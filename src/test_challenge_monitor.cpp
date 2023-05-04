@@ -19,7 +19,8 @@ class ChallengeMonitorTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        pchallenge_monitor_ = std::make_unique<ChallengeMonitor>(ChallengeMonitor(ioc_, SZ_RPC_URL, RPCLogin(ExpandEnvPath(SZ_COOKIE_PATH)), INTERVAL_SECONDS));
+        rpc_ = std::make_unique<RPCClient>(true, SZ_RPC_URL, RPCLogin(ExpandEnvPath(SZ_COOKIE_PATH)));
+        pchallenge_monitor_ = std::make_unique<ChallengeMonitor>(ChallengeMonitor(ioc_, *rpc_, INTERVAL_SECONDS));
     }
 
     void TearDown() override
@@ -51,6 +52,7 @@ private:
     asio::io_context ioc_;
     std::unique_ptr<ChallengeMonitor> pchallenge_monitor_;
     std::unique_ptr<std::thread> pthread_;
+    std::unique_ptr<RPCClient> rpc_;
 };
 
 TEST_F(ChallengeMonitorTest, Base)

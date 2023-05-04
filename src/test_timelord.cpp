@@ -23,7 +23,8 @@ public:
     TimelordTest()
         : storage_(SZ_VDF_DB_PATH)
         , persist_operator_(storage_)
-        , timelord_(ioc_, SZ_URL, RPCLogin(ExpandEnvPath(SZ_COOKIE_PATH)), ExpandEnvPath(SZ_VDF_CLIENT_PATH), SZ_VDF_CLIENT_ADDR, VDF_CLIENT_PORT, persist_operator_)
+        , rpc_(true, SZ_URL, RPCLogin(SZ_COOKIE_PATH))
+        , timelord_(ioc_, rpc_, ExpandEnvPath(SZ_VDF_CLIENT_PATH), SZ_VDF_CLIENT_ADDR, VDF_CLIENT_PORT, persist_operator_)
     {
     }
 
@@ -50,6 +51,7 @@ private:
     asio::io_context ioc_;
     LocalSQLiteStorage storage_;
     VDFSQLitePersistOperator persist_operator_;
+    RPCClient rpc_;
     Timelord timelord_;
     std::unique_ptr<std::thread> pthread_;
 };

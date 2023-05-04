@@ -4,10 +4,10 @@
 
 using boost::system::error_code;
 
-ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, RPCLogin login, int interval_seconds)
+ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, RPCClient& rpc, int interval_seconds)
     : ioc_(ioc)
     , timer_(ioc)
-    , rpc_(true, std::string(url), std::move(login))
+    , rpc_(rpc)
     , interval_seconds_(interval_seconds)
 {
     MakeZero(challenge_, 0);

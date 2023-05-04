@@ -46,7 +46,7 @@ class Timelord
     };
 
 public:
-    Timelord(asio::io_context& ioc, std::string_view url, RPCLogin login, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, VDFSQLitePersistOperator& persist_operator);
+    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, VDFSQLitePersistOperator& persist_operator);
 
     void Run(std::string_view addr, unsigned short port);
 
