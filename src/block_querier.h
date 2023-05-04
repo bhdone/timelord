@@ -24,6 +24,9 @@ public:
         std::string address;
         double reward;
         uint64_t accumulate;
+        std::string vdf_time;
+        int vdf_iters;
+        int vdf_speed;
     };
 
     explicit BlockQuerier(RPCClient& rpc);

@@ -121,10 +121,28 @@ void Timelord::Exit()
     frontend_.Exit();
 }
 
+Timelord::Status Timelord::QueryStatus() const
+{
+    Status status;
+    status.challenge = challenge_monitor_.GetCurrentChallenge();
+    status.settled_challenge = settled_challenge_;
+    status.height = height_;
+    status.iters_per_sec = iters_per_sec_;
+    status.total_size = 0;
+    for (auto const& pa : netspace_) {
+        status.total_size += pa.second;
+    }
+    return status;
+}
+
 void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height)
 {
-    PLOGI << "challenge is changed to " << Uint256ToHex(new_challenge);
+    PLOGI << tinyformat::format("challenge is changed to %s, height=%d", Uint256ToHex(new_challenge), height);
+
+    height_ = height;
+    settled_challenge_ = old_challenge;
     netspace_.clear();
+
     auto ptimer = std::make_shared<asio::steady_timer>(ioc_);
     ptimer->expires_after(std::chrono::seconds(SECS_TO_WAIT_BEFORE_CLOSE_VDF));
     ptimer->async_wait([this, ptimer, challenge = old_challenge](error_code const& ec) {

@@ -46,7 +46,7 @@ TEST_F(StorageTest, EmptyDB)
 {
     EXPECT_NO_THROW({
         bool exists;
-        std::tie(std::ignore, exists) = GetPersist().QueryLastRecordPack();
+        std::tie(std::ignore, exists) = GetPersist().QueryRecordPack(uint256());
         EXPECT_FALSE(exists);
     });
 }
@@ -55,7 +55,7 @@ TEST_F(StorageTest, StoreAndQuery1Rec)
 {
     VDFRecordPack pack = GenerateRandomPack(time(nullptr), 10000, false);
     EXPECT_NO_THROW({ GetPersist().Save(pack); });
-    auto [last_pack, exists] = GetPersist().QueryLastRecordPack();
+    auto [last_pack, exists] = GetPersist().QueryRecordPack(pack.record.challenge);
     EXPECT_TRUE(exists);
     EXPECT_EQ(pack, last_pack);
 }
@@ -66,7 +66,7 @@ TEST_F(StorageTest, StoreAndQuery1RecWithRequestResult)
     pack.requests.push_back(GenerateRandomRequest(pack.record.challenge));
     pack.results.push_back(GenerateRandomResult(pack.record.challenge, pack.requests[0].iters, 10000));
     EXPECT_NO_THROW({ GetPersist().Save(pack); });
-    auto [last_pack, exists] = GetPersist().QueryLastRecordPack();
+    auto [last_pack, exists] = GetPersist().QueryRecordPack(pack.record.challenge);
     EXPECT_TRUE(exists);
     EXPECT_EQ(last_pack.requests.size(), 1);
     EXPECT_EQ(last_pack.results.size(), 1);

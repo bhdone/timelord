@@ -22,7 +22,7 @@ public:
 
     void AppendResult(VDFResult const& result);
 
-    std::tuple<VDFRecord, bool> QueryLastRecord();
+    std::tuple<VDFRecord, bool> QueryRecord(uint256 const& challenge);
 
     std::vector<VDFRecord> QueryRecords(uint32_t begin_timestamp, uint32_t end_timestamp);
 

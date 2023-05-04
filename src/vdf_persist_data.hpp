@@ -56,11 +56,11 @@ public:
         return res;
     }
 
-    std::tuple<VDFRecordPack, bool> QueryLastRecordPack() const
+    std::tuple<VDFRecordPack, bool> QueryRecordPack(uint256 const& challenge) const
     {
         bool exists;
         VDFRecordPack pack;
-        std::tie(pack.record, exists) = storage_.QueryLastRecord();
+        std::tie(pack.record, exists) = storage_.QueryRecord(challenge);
         if (!exists) {
             return std::make_tuple(pack, false);
         }

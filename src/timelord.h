@@ -46,11 +46,22 @@ class Timelord
     };
 
 public:
+    struct Status
+    {
+        uint256 challenge;
+        uint256 settled_challenge;
+        int height;
+        uint64_t iters_per_sec;
+        uint64_t total_size;
+    };
+
     Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, VDFSQLitePersistOperator& persist_operator);
 
     void Run(std::string_view addr, unsigned short port);
 
     void Exit();
+
+    Status QueryStatus() const;
 
 private:
     void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height);
@@ -73,6 +84,9 @@ private:
     std::map<uint256, std::vector<ChallengeRequestSession>> challenge_reqs_;
 
     ChallengeMonitor challenge_monitor_;
+    uint256 settled_challenge_;
+    int height_{0};
+
     vdf_client::VdfClientMan vdf_client_man_;
 
     std::set<std::shared_ptr<asio::steady_timer>> ptimer_wait_close_vdf_set_;

@@ -64,10 +64,11 @@ void LocalSQLiteStorage::AppendResult(VDFResult const& result)
     stmt.Run();
 }
 
-std::tuple<VDFRecord, bool> LocalSQLiteStorage::QueryLastRecord()
+std::tuple<VDFRecord, bool> LocalSQLiteStorage::QueryRecord(uint256 const& challenge)
 {
     VDFRecord record;
-    auto stmt = sql3_.Prepare("select timestamp, challenge, height from vdf_record order by timestamp desc limit 1");
+    auto stmt = sql3_.Prepare("select timestamp, challenge, height from vdf_record where challenge = ?");
+    stmt.Bind(1, challenge);
     if (!stmt.StepNext()) {
         return std::make_tuple(record, false);
     }
