@@ -25,7 +25,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     gears
     GIT_REPOSITORY https://github.com/bhdone/gears
-    GIT_TAG 31b20148ceb2846b8dcfbbd515fe13248549e5f0
+    GIT_TAG d29da4d07edfc77b4d918c97c23aecd16432ad59
 )
 
 FetchContent_MakeAvailable(bhd_vdf gears)
@@ -47,6 +47,7 @@ set(TIMELORDLIB_SRCS
     ./src/challenge_monitor.cpp
     ./src/vdf_client_man.cpp
     ./src/vdf_record.cpp
+    ./src/block_querier.cpp
 )
 
 set(SQLITE3_WRAP_SRCS
@@ -128,4 +129,5 @@ if (BUILD_TEST)
     MakeTest(test_sqlite)
     MakeTest(test_vdf_persist)
     MakeTest(test_web_service)
+    MakeTest(test_block_querier)
 endif()
