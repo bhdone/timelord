@@ -10,6 +10,8 @@
 #include <fmt/core.h>
 #include <plog/Log.h>
 
+#include "asio_defs.hpp"
+
 #include "common_types.h"
 
 #include "challenge_monitor.h"

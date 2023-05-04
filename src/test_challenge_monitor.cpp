@@ -3,7 +3,7 @@
 #include <memory>
 #include <mutex>
 
-#include <asio.hpp>
+#include "asio_defs.hpp"
 
 #include <plog/Log.h>
 

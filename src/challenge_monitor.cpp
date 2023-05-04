@@ -2,6 +2,8 @@
 
 #include <plog/Log.h>
 
+using boost::system::error_code;
+
 ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, std::string_view url, RPCLogin login, int interval_seconds)
     : ioc_(ioc)
     , timer_(ioc)
@@ -28,7 +30,7 @@ void ChallengeMonitor::Run()
 
 void ChallengeMonitor::Exit()
 {
-    std::error_code ignored_ec;
+    error_code ignored_ec;
     timer_.cancel(ignored_ec);
 }
 
@@ -57,7 +59,7 @@ void ChallengeMonitor::DoQueryNext()
     // ready
     QueryChallenge();
     timer_.expires_after(std::chrono::seconds(interval_seconds_));
-    timer_.async_wait([this](std::error_code const& ec) {
+    timer_.async_wait([this](error_code const& ec) {
         if (ec) {
             if (ec != asio::error::operation_aborted) {
                 PLOGE << ec.message();

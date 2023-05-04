@@ -5,6 +5,8 @@ namespace fs = std::filesystem;
 
 #include <tinyformat.h>
 
+using boost::system::error_code;
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
@@ -111,7 +113,7 @@ void Timelord::Run(std::string_view addr, unsigned short port)
 void Timelord::Exit()
 {
     for (auto ptimer : ptimer_wait_close_vdf_set_) {
-        std::error_code ignored_ec;
+        error_code ignored_ec;
         ptimer->cancel(ignored_ec);
     }
     vdf_client_man_.Exit();
@@ -125,7 +127,7 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     netspace_.clear();
     auto ptimer = std::make_shared<asio::steady_timer>(ioc_);
     ptimer->expires_after(std::chrono::seconds(SECS_TO_WAIT_BEFORE_CLOSE_VDF));
-    ptimer->async_wait([this, ptimer, challenge = old_challenge](std::error_code const& ec) {
+    ptimer->async_wait([this, ptimer, challenge = old_challenge](error_code const& ec) {
         ptimer_wait_close_vdf_set_.erase(ptimer);
         if (ec) {
             if (ec != asio::error::operation_aborted) {

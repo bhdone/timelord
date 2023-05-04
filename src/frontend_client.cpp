@@ -5,6 +5,8 @@
 
 #include "timelord_utils.h"
 
+using boost::system::error_code;
+
 FrontEndClient::FrontEndClient(asio::io_context& ioc)
     : ioc_(ioc)
 {
@@ -45,7 +47,7 @@ void FrontEndClient::Connect(std::string_view host, unsigned short port)
         // retrieve the first result and start the connection
         PLOGD << "connecting...";
         ps_ = std::make_unique<tcp::socket>(ioc_);
-        ps_->async_connect(*it_result, [this, host = std::string(host), port](std::error_code const& ec) {
+        ps_->async_connect(*it_result, [this, host = std::string(host), port](error_code const& ec) {
             PLOGD << "connected";
             if (ec) {
                 PLOGE << ec.message();
@@ -84,7 +86,7 @@ void FrontEndClient::SendShutdown()
 void FrontEndClient::Exit()
 {
     if (ps_) {
-        std::error_code ignored_ec;
+        error_code ignored_ec;
         ps_->shutdown(tcp::socket::shutdown_both, ignored_ec);
         ps_->close(ignored_ec);
         ps_.reset();
@@ -95,7 +97,7 @@ void FrontEndClient::Exit()
 
 void FrontEndClient::DoReadNext()
 {
-    asio::async_read_until(*ps_, read_buf_, '\0', [this](std::error_code const& ec, std::size_t bytes) {
+    asio::async_read_until(*ps_, read_buf_, '\0', [this](error_code const& ec, std::size_t bytes) {
         if (ec) {
             if (ec != asio::error::eof) {
                 PLOGE << ec.message();
@@ -124,7 +126,7 @@ void FrontEndClient::DoSendNext()
     send_buf_.resize(msg.size() + 1);
     memcpy(send_buf_.data(), msg.data(), msg.size());
     send_buf_[msg.size()] = '\0';
-    asio::async_write(*ps_, asio::buffer(send_buf_), [this](std::error_code const& ec, std::size_t bytes) {
+    asio::async_write(*ps_, asio::buffer(send_buf_), [this](error_code const& ec, std::size_t bytes) {
         if (ec) {
             err_handler_(FrontEndSessionErrorType::WRITE, ec.message());
             Exit();

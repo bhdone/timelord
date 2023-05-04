@@ -7,8 +7,7 @@
 #include <deque>
 #include <vector>
 
-#include <asio.hpp>
-using asio::ip::tcp;
+#include "asio_defs.hpp"
 
 #include <json/value.h>
 

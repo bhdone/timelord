@@ -23,6 +23,8 @@
 #include "timelord_utils.h"
 #include "utils.h"
 
+using boost::system::error_code;
+
 namespace vdf_client
 {
 namespace
@@ -289,7 +291,7 @@ void SocketWriter::DoWriteNext()
 {
     assert(!buff_deq_.empty());
     Bytes const& buf = buff_deq_.front();
-    asio::async_write(s_, asio::buffer(buf), [this](std::error_code const& ec, std::size_t size) {
+    asio::async_write(s_, asio::buffer(buf), [this](error_code const& ec, std::size_t size) {
         if (ec) {
             PLOG_ERROR << "write error: " << ec.message();
             return;
@@ -361,7 +363,7 @@ void VdfClientSession::Stop(std::function<void()> callback)
 {
     auto timer = std::make_unique<asio::steady_timer>(s_.get_executor());
     timer->expires_after(std::chrono::seconds(SECS_TO_WAIT_STOPPING));
-    timer->async_wait([weak_self = std::weak_ptr(shared_from_this()), timer = std::move(timer), callback = std::move(callback)](std::error_code const& ec) {
+    timer->async_wait([weak_self = std::weak_ptr(shared_from_this()), timer = std::move(timer), callback = std::move(callback)](error_code const& ec) {
         if (ec) {
             // error occurs
             PLOGE << "error when waiting to close a session: " << ec.message();
@@ -410,7 +412,7 @@ uint256 const& VdfClientSession::GetChallenge() const
 
 void VdfClientSession::Close()
 {
-    std::error_code ignored_ec;
+    error_code ignored_ec;
     s_.shutdown(tcp::socket::shutdown_both, ignored_ec);
     s_.close(ignored_ec);
 }
@@ -425,7 +427,7 @@ uint64_t VdfClientSession::GetCurrDuration() const
 void VdfClientSession::AsyncReadSomeNext()
 {
     auto tmp = std::make_shared<Bytes>(BUFLEN, '\0');
-    s_.async_read_some(asio::buffer(*tmp), [self = shared_from_this(), tmp](std::error_code const& ec, std::size_t size) {
+    s_.async_read_some(asio::buffer(*tmp), [self = shared_from_this(), tmp](error_code const& ec, std::size_t size) {
         if (ec) {
             if (ec != asio::error::eof) {
                 // Only show the error message when it isn't `eof`.
@@ -577,14 +579,14 @@ void VdfClientMan::Exit()
 {
     // Tell all client to stop
     PLOGD << "stopping... total " << session_set_.size() << " session(s)";
-    std::error_code ignored_ec;
+    error_code ignored_ec;
     acceptor_.close(ignored_ec);
     for (auto psession : session_set_) {
         psession->Stop();
     }
     auto ptimer = std::make_unique<asio::steady_timer>(ioc_);
     ptimer->expires_after(std::chrono::seconds(SECS_TO_WAIT_STOPPING));
-    ptimer->async_wait([this, ptimer = std::move(ptimer)](std::error_code const& ec) {
+    ptimer->async_wait([this, ptimer = std::move(ptimer)](error_code const& ec) {
         proc_man_.KillAll(); // so rude
     });
 }
@@ -602,7 +604,7 @@ void VdfClientMan::CalcIters(uint256 const& challenge, uint64_t iters)
         PLOGE << "cannot run another vdf_client while there is already one creating, try it later";
         auto ptimer = std::make_unique<asio::steady_timer>(ioc_);
         ptimer->expires_after(std::chrono::milliseconds(100));
-        ptimer->async_wait([this, challenge, iters, ptimer = std::move(ptimer)](std::error_code const& ec) {
+        ptimer->async_wait([this, challenge, iters, ptimer = std::move(ptimer)](error_code const& ec) {
             CalcIters(challenge, iters);
         });
         return;
@@ -647,7 +649,7 @@ std::optional<ProofDetail> VdfClientMan::QueryExistingProof(uint256 const& chall
 
 void VdfClientMan::AcceptNext()
 {
-    acceptor_.async_accept([this](std::error_code const& ec, tcp::socket s) {
+    acceptor_.async_accept([this](error_code const& ec, tcp::socket s) {
         if (ec) {
             PLOGE << "error occurs when accepting next session... " << ec.message();
             return;

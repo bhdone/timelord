@@ -7,7 +7,6 @@ option(BUILD_TEST "Build and run tests" ON)
 find_package(Threads REQUIRED)
 find_package(cxxopts CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
-find_package(asio CONFIG REQUIRED)
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
@@ -76,7 +75,6 @@ target_link_libraries(timelord PRIVATE
     gears
     cxxopts::cxxopts
     plog::plog
-    asio::asio
     JsonCpp::JsonCpp
     fmt::fmt
     CURL::libcurl
@@ -93,7 +91,7 @@ set(TIMELORD_CLIENT_SRCS
 
 add_library(timelord_client ${TIMELORD_CLIENT_SRCS})
 target_include_directories(timelord_client PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
-target_link_libraries(timelord_client PRIVATE asio::asio)
+target_link_libraries(timelord_client PRIVATE JsonCpp::JsonCpp)
 
 if (BUILD_TEST)
     function(MakeTest TEST_TARGET_NAME)
@@ -112,7 +110,6 @@ if (BUILD_TEST)
             gears
             GTest::gtest
             plog::plog
-            asio::asio
             JsonCpp::JsonCpp
             fmt::fmt
             CURL::libcurl

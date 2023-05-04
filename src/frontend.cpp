@@ -10,6 +10,8 @@
 
 #include "timelord_utils.h"
 
+using boost::system::error_code;
+
 static constexpr int RESPOND_TIMEOUT_SECONDS = 120;
 
 FrontEndSession::FrontEndSession(asio::io_context& ioc, tcp::socket&& s)
@@ -51,7 +53,7 @@ void FrontEndSession::SendMessage(Json::Value const& value)
 
 void FrontEndSession::Stop()
 {
-    std::error_code ignored_ec;
+    error_code ignored_ec;
     if (timeout_timer_) {
         timeout_timer_->cancel(ignored_ec);
     }
@@ -66,7 +68,7 @@ void FrontEndSession::DoSendNext()
     send_buf_ = sending_msgs_.front();
     send_buf_.resize(send_buf_.size() + 1);
     send_buf_[send_buf_.size()] = '\0';
-    asio::async_write(s_, asio::buffer(send_buf_), [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_wrote) {
+    asio::async_write(s_, asio::buffer(send_buf_), [self = shared_from_this()](error_code const& ec, std::size_t bytes_wrote) {
         if (ec) {
             if (self->err_handler_) {
                 self->err_handler_(self, FrontEndSessionErrorType::WRITE, ec.message());
@@ -84,7 +86,7 @@ void FrontEndSession::DoSendNext()
 
 void FrontEndSession::DoReadNext()
 {
-    asio::async_read_until(s_, read_buf_, '\0', [self = shared_from_this()](std::error_code const& ec, std::size_t bytes_read) {
+    asio::async_read_until(s_, read_buf_, '\0', [self = shared_from_this()](error_code const& ec, std::size_t bytes_read) {
         if (ec) {
             if (ec == asio::error::eof) {
                 if (self->err_handler_) {
@@ -127,7 +129,7 @@ void FrontEndSession::ResetTimeoutTimer()
 {
     timeout_timer_ = std::make_unique<asio::steady_timer>(ioc_);
     timeout_timer_->expires_after(std::chrono::seconds(RESPOND_TIMEOUT_SECONDS));
-    timeout_timer_->async_wait([self_weak = std::weak_ptr(shared_from_this())](asio::error_code const& ec) {
+    timeout_timer_->async_wait([self_weak = std::weak_ptr(shared_from_this())](error_code const& ec) {
         if (ec) {
             return;
         }
@@ -177,7 +179,7 @@ void FrontEnd::Exit()
         for (auto psession : session_vec_) {
             psession->Stop();
         }
-        std::error_code ignored_ec;
+        error_code ignored_ec;
         acceptor_.cancel(ignored_ec);
         acceptor_.close(ignored_ec);
     });
@@ -190,7 +192,7 @@ std::size_t FrontEnd::GetNumOfSessions() const
 
 void FrontEnd::DoAcceptNext()
 {
-    acceptor_.async_accept([this](std::error_code const& ec, tcp::socket&& s) {
+    acceptor_.async_accept([this](error_code const& ec, tcp::socket&& s) {
         if (ec) {
             if (err_handler_) {
                 err_handler_({}, FrontEndSessionErrorType::CONNECT, ec.message());

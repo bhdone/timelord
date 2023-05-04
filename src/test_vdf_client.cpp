@@ -8,7 +8,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include <asio.hpp>
+#include "asio_defs.hpp"
 
 #include "vdf_client_man.h"
 

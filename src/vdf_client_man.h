@@ -13,8 +13,7 @@
 #include <string>
 #include <string_view>
 
-#include <asio.hpp>
-using asio::ip::tcp;
+#include "asio_defs.hpp"
 
 #include "common_types.h"
 

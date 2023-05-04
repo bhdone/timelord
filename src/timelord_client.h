@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include <asio.hpp>
+#include "asio_defs.hpp"
 
 #include <json/value.h>
 

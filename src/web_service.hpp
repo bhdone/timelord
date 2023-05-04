@@ -4,9 +4,7 @@
 #include <plog/Log.h>
 #include <tinyformat.h>
 
-#include <boost/asio.hpp>
-namespace asio = boost::asio;
-using tcp = asio::ip::tcp;
+#include "asio_defs.hpp"
 
 #include <boost/beast.hpp>
 namespace beast = boost::beast;

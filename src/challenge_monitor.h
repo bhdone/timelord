@@ -1,7 +1,7 @@
 #ifndef TL_CHALLENGE_MONITOR_HPP
 #define TL_CHALLENGE_MONITOR_HPP
 
-#include <asio.hpp>
+#include "asio_defs.hpp"
 
 #include <memory>
 #include <tuple>
