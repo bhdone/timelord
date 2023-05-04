@@ -28,4 +28,10 @@ TEST_F(BlockQuerierTest, Query)
 {
     auto [block_info, succ] = querier_->QueryBlockInfo();
     EXPECT_TRUE(succ);
+
+    auto [block_info2, succ2] = querier_->QueryBlockInfo(block_info.challenge);
+    EXPECT_TRUE(succ2);
+
+    EXPECT_EQ(block_info.challenge, block_info2.challenge);
+    EXPECT_EQ(block_info.height, block_info2.height);
 }

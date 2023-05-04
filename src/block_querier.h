@@ -9,10 +9,13 @@
 
 #include <rpc_client.h>
 
+#include "common_types.h"
+
 class BlockQuerier
 {
 public:
     struct BlockInfo {
+        uint256 challenge;
         int height;
         int filter_bits;
         uint64_t block_difficulty;
@@ -26,6 +29,8 @@ public:
     explicit BlockQuerier(RPCClient& rpc);
 
     std::tuple<BlockInfo, bool> QueryBlockInfo(int height = -1, int max_heights_to_search = 3) const;
+
+    std::tuple<BlockInfo, bool> QueryBlockInfo(uint256 const& challenge, int max_heights_to_search = 3) const;
 
 private:
     RPCClient& rpc_;
