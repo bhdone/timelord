@@ -62,9 +62,10 @@ Json::Value MakePackJson(VDFRecordPack const& pack)
     return res;
 }
 
-VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, VDFSQLitePersistOperator& persist_operator)
+VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, VDFSQLitePersistOperator& persist_operator, TimelordStatusQuerier status_querier)
     : web_service_(ioc, tcp::endpoint(asio::ip::address::from_string(std::string(addr)), port), expired_after_secs, std::bind(&VDFWebService::HandleRequest, this, _1))
     , persist_operator_(persist_operator)
+    , status_querier_(std::move(status_querier))
 {
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/vdf"), std::bind(&VDFWebService::Handle_API_VDFRange, this, _1));
 }
@@ -118,5 +119,46 @@ http::message_generator VDFWebService::Handle_API_VDFRange(http::request<http::s
 
     response.body() = pack_values.toStyledString();
     response.prepare_payload();
+    return response;
+}
+
+http::message_generator VDFWebService::Handle_API_Status(http::request<http::string_body> const& request)
+{
+    http::response<http::string_body> response;
+    if (request.method() == http::verb::head) {
+        return response;
+    }
+
+    response = PrepareResponse(http::status::ok, request.version(), request.keep_alive());
+    auto status = status_querier_();
+
+    Json::Value status_value;
+    status_value["challenge"] = Uint256ToHex(status.challenge);
+    status_value["settled_challenge"] = Uint256ToHex(status.settled_challenge);
+    status_value["height"] = status.height;
+    status_value["iters_per_sec"] = status.iters_per_sec;
+    status_value["total_size"] = status.total_size;
+
+    Json::Value last_blk_info_value;
+    last_blk_info_value["challenge"] = Uint256ToHex(status.last_block_info.challenge);
+    last_blk_info_value["height"] = status.last_block_info.height;
+    last_blk_info_value["filter_bits"] = status.last_block_info.filter_bits;
+    last_blk_info_value["block_difficulty"] = status.last_block_info.block_difficulty;
+    last_blk_info_value["challenge_difficulty"] = status.last_block_info.challenge_difficulty;
+    last_blk_info_value["farmer_pk"] = BytesToHex(status.last_block_info.farmer_pk);
+    last_blk_info_value["address"] = status.last_block_info.address;
+    last_blk_info_value["reward"] = status.last_block_info.reward;
+    last_blk_info_value["accumulate"] = status.last_block_info.accumulate;
+    last_blk_info_value["vdf_time"] = status.last_block_info.vdf_time;
+    last_blk_info_value["vdf_iters"] = status.last_block_info.vdf_iters;
+    last_blk_info_value["vdf_speed"] = status.last_block_info.vdf_speed;
+    status_value["last_block_info"] = last_blk_info_value;
+
+    status_value["vdf_pack"] = MakePackJson(status.vdf_pack);
+
+    // prepare body
+    response.body() = status_value.toStyledString();
+    response.prepare_payload();
+
     return response;
 }

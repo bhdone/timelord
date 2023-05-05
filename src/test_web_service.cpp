@@ -3,7 +3,6 @@
 #include <thread>
 
 #include <filesystem>
-namespace fs = std::filesystem;
 
 #include <json/json.h>
 #include <json/reader.h>
@@ -108,7 +107,9 @@ TEST_F(WebServiceTest, FullTests)
     persist_->Save(pack);
 
     asio::io_context ioc;
-    VDFWebService service(ioc, SZ_LISTEN_ADDR, LISTEN_PORT, 30, *persist_);
+    VDFWebService service(ioc, SZ_LISTEN_ADDR, LISTEN_PORT, 30, *persist_, []() -> TimelordStatus {
+        return {};
+    });
     service.Run();
 
     std::thread service_thread([&ioc]() {

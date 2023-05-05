@@ -48,7 +48,7 @@ set(TIMELORDLIB_SRCS
     ./src/vdf_client_man.cpp
     ./src/vdf_record.cpp
     ./src/block_querier.cpp
-    ./src/status_querier.cpp
+    ./src/standard_status_querier.cpp
 )
 
 set(SQLITE3_WRAP_SRCS
