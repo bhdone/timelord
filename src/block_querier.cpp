@@ -28,6 +28,29 @@ std::tuple<uint64_t, uint64_t> AnalyzeVdfInfo(std::string_view vdf_str)
     return std::make_tuple(0, 0);
 }
 
+BlockQuerier::BlockInfo ConvertToBlockInfo(UniValue const& block_json)
+{
+    BlockQuerier::BlockInfo block_info;
+    block_info.challenge = Uint256FromHex(block_json["challenge"].get_str());
+    block_info.height = StrToInt(block_json["height"].get_str());
+    block_info.filter_bits = StrToInt(block_json["filter-bit"].get_str());
+    block_info.block_difficulty = StrToInt(block_json["block-difficulty"].get_str());
+    block_info.challenge_difficulty = StrToInt(block_json["challenge-diff"].get_str());
+    block_info.farmer_pk = BytesFromHex(block_json["farmer-pk"].get_str());
+    std::tie(block_info.vdf_iters, block_info.vdf_speed) = AnalyzeVdfInfo(block_json["vdf"].get_str());
+    block_info.vdf_time = block_json["vdf-time"].get_str();
+    // find the first tx and retrieve the reward info
+    auto txs_json = block_json["txs"];
+    if (!txs_json.isArray()) {
+        throw std::runtime_error("the type of txs is not an array");
+    }
+    auto tx_1_json = txs_json.getValues()[0];
+    block_info.address = tx_1_json["address"].get_str();
+    block_info.reward = tx_1_json["reward"].get_real();
+    block_info.accumulate = tx_1_json["accumulate"].get_real();
+    return block_info;
+}
+
 template <typename Pred> std::tuple<BlockQuerier::BlockInfo, bool> FindBlockByPred(RPCClient& rpc, int max_heights_to_search, Pred func)
 {
     BlockQuerier::BlockInfo block_info;
@@ -38,29 +61,19 @@ template <typename Pred> std::tuple<BlockQuerier::BlockInfo, bool> FindBlockByPr
     }
 
     bool found { false };
-    for (auto const& block_json : res.result.getValues()) {
+    auto block_json_values = res.result.getValues();
+    for (auto const& block_json : block_json_values) {
         int block_height = StrToInt(block_json["height"].get_str());
         if (func(block_json)) {
-            block_info.challenge = Uint256FromHex(block_json["challenge"].get_str());
-            block_info.height = block_height;
-            block_info.filter_bits = StrToInt(block_json["filter-bit"].get_str());
-            block_info.block_difficulty = StrToInt(block_json["block-difficulty"].get_str());
-            block_info.challenge_difficulty = StrToInt(block_json["challenge-diff"].get_str());
-            block_info.farmer_pk = BytesFromHex(block_json["farmer-pk"].get_str());
-            // find the first tx and retrieve the reward info
-            auto txs_json = block_json["txs"];
-            if (!txs_json.isArray()) {
-                throw std::runtime_error("the type of txs is not an array");
-            }
-            auto tx_1_json = txs_json.getValues()[0];
-            block_info.address = tx_1_json["address"].get_str();
-            block_info.reward = tx_1_json["reward"].get_real();
-            block_info.accumulate = tx_1_json["accumulate"].get_real();
-            block_info.vdf_time = tx_1_json["vdf-time"].get_str();
-            std::tie(block_info.vdf_iters, block_info.vdf_speed) = AnalyzeVdfInfo(tx_1_json["vdf"].get_str());
+            block_info = ConvertToBlockInfo(block_json);
             found = true;
             break;
         }
+    }
+    if (!found && !block_json_values.empty()) {
+        // at least we pick the very first entry as the result
+        block_info = ConvertToBlockInfo(block_json_values[0]);
+        found = true;
     }
 
     return std::make_tuple(block_info, found);
