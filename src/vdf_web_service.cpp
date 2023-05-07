@@ -68,6 +68,7 @@ VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint1
     , status_querier_(std::move(status_querier))
 {
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/vdf"), std::bind(&VDFWebService::Handle_API_VDFRange, this, _1));
+    web_req_handler_.Register(std::make_pair(http::verb::get, "/api/status"), std::bind(&VDFWebService::Handle_API_Status, this, _1));
 }
 
 void VDFWebService::Run()
