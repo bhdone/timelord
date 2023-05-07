@@ -135,7 +135,6 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
 
     Json::Value status_value;
     status_value["challenge"] = Uint256ToHex(status.challenge);
-    status_value["settled_challenge"] = Uint256ToHex(status.settled_challenge);
     status_value["height"] = status.height;
     status_value["iters_per_sec"] = status.iters_per_sec;
     status_value["total_size"] = status.total_size;

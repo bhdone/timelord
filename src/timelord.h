@@ -49,7 +49,6 @@ public:
     struct Status
     {
         uint256 challenge;
-        uint256 settled_challenge;
         int height;
         uint64_t iters_per_sec;
         uint64_t total_size;
@@ -84,7 +83,6 @@ private:
     std::map<uint256, std::vector<ChallengeRequestSession>> challenge_reqs_;
 
     ChallengeMonitor challenge_monitor_;
-    uint256 settled_challenge_;
     int height_{0};
 
     vdf_client::VdfClientMan vdf_client_man_;

@@ -7,7 +7,6 @@
 
 struct TimelordStatus {
     uint256 challenge;
-    uint256 settled_challenge;
     int height;
     int iters_per_sec;
     uint64_t total_size;

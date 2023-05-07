@@ -125,7 +125,6 @@ Timelord::Status Timelord::QueryStatus() const
 {
     Status status;
     status.challenge = challenge_monitor_.GetCurrentChallenge();
-    status.settled_challenge = settled_challenge_;
     status.height = height_;
     status.iters_per_sec = iters_per_sec_;
     status.total_size = 0;
@@ -140,7 +139,6 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     PLOGI << tinyformat::format("challenge is changed to %s, height=%d", Uint256ToHex(new_challenge), height);
 
     height_ = height;
-    settled_challenge_ = old_challenge;
     netspace_.clear();
 
     auto ptimer = std::make_shared<asio::steady_timer>(ioc_);
