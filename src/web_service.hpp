@@ -62,6 +62,7 @@ private:
                 }
                 return self->Close();
             }
+            PLOGI << tinyformat::format("request: (%s) %s", self->request_.method_string(), self->request_.target());
             self->SendResponse(self->handler_(self->request_));
         });
     }
