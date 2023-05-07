@@ -109,6 +109,7 @@ private:
                 return;
             }
             std::make_shared<WebSession>(std::move(socket), expired_after_secs_, handler_)->Run();
+            AcceptNext();
         });
     }
 
