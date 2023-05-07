@@ -72,7 +72,7 @@ template <typename Pred> std::tuple<BlockQuerier::BlockInfo, bool> FindBlockByPr
     }
     if (!found && !block_json_values.empty()) {
         // at least we pick the very first entry as the result
-        block_info = ConvertToBlockInfo(block_json_values[0]);
+        block_info = ConvertToBlockInfo(block_json_values.front());
         found = true;
     }
 
