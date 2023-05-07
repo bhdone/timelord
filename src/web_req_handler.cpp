@@ -11,6 +11,7 @@ http::response<http::string_body> PrepareResponse(http::status status, unsigned 
     http::response<http::string_body> response(status, version);
     response.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     response.set(http::field::content_type, "json/application");
+    response.set(http::field::access_control_allow_origin, "*");
     response.keep_alive(keep_alive);
     return response;
 }
