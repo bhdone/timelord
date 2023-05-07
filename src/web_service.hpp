@@ -6,6 +6,8 @@
 
 #include "asio_defs.hpp"
 
+#include <chrono>
+
 #include <boost/beast.hpp>
 namespace beast = boost::beast;
 namespace http = boost::beast::http;
@@ -63,7 +65,9 @@ private:
                 return self->Close();
             }
             PLOGI << tinyformat::format("request: (%s) %s", self->request_.method_string(), self->request_.target());
+            auto start_time = std::chrono::steady_clock::now();
             self->SendResponse(self->handler_(self->request_));
+            PLOGI << tinyformat::format("%d msecs -> (%s) %s", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), self->request_.method_string(), self->request_.target());
         });
     }
 
