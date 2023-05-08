@@ -50,7 +50,7 @@ protected:
 private:
     asio::io_context ioc_;
     LocalSQLiteStorage storage_;
-    VDFSQLitePersistOperator persist_operator_;
+    LocalSQLiteDatabaseKeeper persist_operator_;
     RPCClient rpc_;
     Timelord timelord_;
     std::unique_ptr<std::thread> pthread_;

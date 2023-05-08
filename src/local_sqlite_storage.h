@@ -7,7 +7,7 @@
 
 #include "vdf_record.h"
 
-#include "vdf_persist_data.hpp"
+#include "local_database_keeper.hpp"
 
 class LocalSQLiteStorage
 {
@@ -30,10 +30,12 @@ public:
 
     std::vector<VDFResult> QueryResults(uint256 const& challenge);
 
+    int QueryNumHeightsByTimeRange(uint32_t begin_timestamp, uint32_t end_timestamp);
+
 private:
     SQLite sql3_;
 };
 
-using VDFSQLitePersistOperator = VDFPersistOperator<LocalSQLiteStorage>;
+using LocalSQLiteDatabaseKeeper = LocalDatabaseKeeper<LocalSQLiteStorage>;
 
 #endif

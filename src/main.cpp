@@ -10,6 +10,12 @@
 
 #include "local_sqlite_storage.h"
 #include "standard_status_querier.h"
+
+#include "block_info_range_querier.hpp"
+#include "last_block_info_querier.hpp"
+#include "num_heights_by_hours_querier.hpp"
+#include "vdf_pack_by_challenge_querier.hpp"
+
 #include "vdf_web_service.h"
 
 #include "timelord.h"
@@ -85,7 +91,7 @@ int main(int argc, char* argv[])
         // prepare local database
         PLOGI << "database: " << db_path;
         LocalSQLiteStorage db(db_path);
-        VDFSQLitePersistOperator persist_operator(db);
+        LocalSQLiteDatabaseKeeper persist_operator(db);
 
         // prepare RPC login
         RPCLogin login = use_cookie ? RPCLogin(cookie_path) : RPCLogin(rpc_user, rpc_password);
@@ -93,12 +99,11 @@ int main(int argc, char* argv[])
         Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, persist_operator);
 
         // prepare status querier
-        BlockQuerier block_querier(rpc);
-        StandardStatusQuerier status_querier(block_querier, timelord, persist_operator);
+        StandardStatusQuerier status_querier(LastBlockInfoQuerier(rpc), VDFPackByChallengeQuerier(db), timelord);
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, persist_operator, status_querier);
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeQuerier(rpc), status_querier);
         web_service.Run();
 
         // start timelord

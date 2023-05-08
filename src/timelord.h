@@ -54,7 +54,7 @@ public:
         uint64_t total_size;
     };
 
-    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, VDFSQLitePersistOperator& persist_operator);
+    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator);
 
     void Run(std::string_view addr, unsigned short port);
 
@@ -76,7 +76,7 @@ private:
     std::tuple<uint64_t, bool> AddAndSumNetspace(uint256 const& group_hash, uint64_t total_size);
 
     asio::io_context& ioc_;
-    VDFSQLitePersistOperator& persist_operator_;
+    LocalSQLiteDatabaseKeeper& persist_operator_;
 
     FrontEnd frontend_;
     MessageDispatcher msg_dispatcher_;

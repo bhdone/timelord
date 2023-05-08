@@ -2,10 +2,10 @@
 
 #include "timelord.h"
 
-StandardStatusQuerier::StandardStatusQuerier(BlockQuerier const& block_querier, Timelord const& timelord, VDFSQLitePersistOperator const& persist_operator)
-    : block_querier_(block_querier)
+StandardStatusQuerier::StandardStatusQuerier(LastBlockInfoQuerierType last_block_querier, VDFPackByChallengeQuerierType vdf_pack_querier, Timelord const& timelord)
+    : last_block_querier_(std::move(last_block_querier))
+    , vdf_pack_querier_(std::move(vdf_pack_querier))
     , timelord_(timelord)
-    , persist_operator_(persist_operator)
 {
 }
 
@@ -17,7 +17,8 @@ TimelordStatus StandardStatusQuerier::operator()() const
     status.height = timelord_status.height;
     status.iters_per_sec = timelord_status.iters_per_sec;
     status.total_size = timelord_status.total_size;
-    std::tie(status.last_block_info, std::ignore) = block_querier_.QueryBlockInfo();
-    std::tie(status.vdf_pack, std::ignore) = persist_operator_.QueryRecordPack(status.challenge);
+
+    status.last_block_info = last_block_querier_();
+    status.vdf_pack = vdf_pack_querier_(status.challenge);
     return status;
 }

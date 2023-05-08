@@ -5,12 +5,14 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+#include "local_database_keeper.hpp"
 #include "local_sqlite_storage.h"
-#include "vdf_persist_data.hpp"
+
+#include "vdf_pack_by_challenge_querier.hpp"
 
 #include "test_utils.h"
 
-using PersistDB = VDFPersistOperator<LocalSQLiteStorage>;
+using PersistDB = LocalDatabaseKeeper<LocalSQLiteStorage>;
 
 char const* SZ_VDF_DB_NAME = "vdf.sqlite3";
 
@@ -37,26 +39,21 @@ protected:
         return *persist_;
     }
 
-private:
     std::unique_ptr<LocalSQLiteStorage> storage_;
     std::unique_ptr<PersistDB> persist_;
 };
 
 TEST_F(StorageTest, EmptyDB)
 {
-    EXPECT_NO_THROW({
-        bool exists;
-        std::tie(std::ignore, exists) = GetPersist().QueryRecordPack(uint256());
-        EXPECT_FALSE(exists);
-    });
+    EXPECT_THROW({ VDFPackByChallengeQuerier (*storage_)(uint256()); }, std::runtime_error);
 }
 
 TEST_F(StorageTest, StoreAndQuery1Rec)
 {
     VDFRecordPack pack = GenerateRandomPack(time(nullptr), 10000, false);
     EXPECT_NO_THROW({ GetPersist().Save(pack); });
-    auto [last_pack, exists] = GetPersist().QueryRecordPack(pack.record.challenge);
-    EXPECT_TRUE(exists);
+    VDFRecordPack last_pack;
+    EXPECT_NO_THROW({ last_pack = VDFPackByChallengeQuerier(*storage_)(pack.record.challenge); });
     EXPECT_EQ(pack, last_pack);
 }
 
@@ -66,8 +63,8 @@ TEST_F(StorageTest, StoreAndQuery1RecWithRequestResult)
     pack.requests.push_back(GenerateRandomRequest(pack.record.challenge));
     pack.results.push_back(GenerateRandomResult(pack.record.challenge, pack.requests[0].iters, 10000));
     EXPECT_NO_THROW({ GetPersist().Save(pack); });
-    auto [last_pack, exists] = GetPersist().QueryRecordPack(pack.record.challenge);
-    EXPECT_TRUE(exists);
+    VDFRecordPack last_pack;
+    EXPECT_NO_THROW({ last_pack = VDFPackByChallengeQuerier(*storage_)(pack.record.challenge); });
     EXPECT_EQ(last_pack.requests.size(), 1);
     EXPECT_EQ(last_pack.results.size(), 1);
     EXPECT_EQ(pack, last_pack);

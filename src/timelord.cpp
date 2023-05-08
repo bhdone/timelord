@@ -83,7 +83,7 @@ void MessageDispatcher::operator()(FrontEndSessionPtr psession, Json::Value cons
     it->second(psession, msg);
 }
 
-Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, VDFSQLitePersistOperator& persist_operator)
+Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator)
     : ioc_(ioc)
     , persist_operator_(persist_operator)
     , challenge_monitor_(ioc_, rpc, 3)

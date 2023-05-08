@@ -1,27 +1,28 @@
 #ifndef STANDARD_STATUS_QUERIER_H
 #define STANDARD_STATUS_QUERIER_H
 
-#include "timelord_status_querier.h"
+#include "querier_defs.h"
+
+#include "timelord_status.h"
 
 class BlockQuerier;
 class Timelord;
 
 class LocalSQLiteStorage;
-template <typename Storage> class VDFPersistOperator;
-using VDFSQLitePersistOperator = VDFPersistOperator<LocalSQLiteStorage>;
+template <typename Storage> class LocalDatabaseKeeper;
+using LocalSQLiteDatabaseKeeper = LocalDatabaseKeeper<LocalSQLiteStorage>;
 
 class StandardStatusQuerier
 {
 public:
-    StandardStatusQuerier(BlockQuerier const& block_querier, Timelord const& timelord, VDFSQLitePersistOperator const& persist_operator);
+    StandardStatusQuerier(LastBlockInfoQuerierType last_block_querier, VDFPackByChallengeQuerierType vdf_pack_querier, Timelord const& timelord);
 
     TimelordStatus operator()() const;
 
 private:
-    BlockQuerier const& block_querier_;
+    LastBlockInfoQuerierType last_block_querier_;
+    VDFPackByChallengeQuerierType vdf_pack_querier_;
     Timelord const& timelord_;
-    VDFSQLitePersistOperator const& persist_operator_;
 };
-
 
 #endif

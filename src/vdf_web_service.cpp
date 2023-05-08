@@ -62,12 +62,13 @@ Json::Value MakePackJson(VDFRecordPack const& pack)
     return res;
 }
 
-VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, VDFSQLitePersistOperator& persist_operator, TimelordStatusQuerier status_querier)
+VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, TimelordStatusQuerierType status_querier)
     : web_service_(ioc, tcp::endpoint(asio::ip::address::from_string(std::string(addr)), port), expired_after_secs, std::bind(&VDFWebService::HandleRequest, this, _1))
-    , persist_operator_(persist_operator)
+    , num_heights_by_hours_querier_(std::move(num_heights_by_hours_querier))
+    , block_info_range_querier_(std::move(block_info_range_querier))
     , status_querier_(std::move(status_querier))
 {
-    web_req_handler_.Register(std::make_pair(http::verb::get, "/api/vdf"), std::bind(&VDFWebService::Handle_API_VDFRange, this, _1));
+    web_req_handler_.Register(std::make_pair(http::verb::get, "/api/summary"), std::bind(&VDFWebService::Handle_API_Summary, this, _1));
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/status"), std::bind(&VDFWebService::Handle_API_Status, this, _1));
 }
 
@@ -84,43 +85,6 @@ void VDFWebService::Stop()
 http::message_generator VDFWebService::HandleRequest(http::request<http::string_body> const& request)
 {
     return web_req_handler_.Handle(request);
-}
-
-http::message_generator VDFWebService::Handle_API_VDFRange(http::request<http::string_body> const& request)
-{
-    http::response<http::string_body> response;
-    if (request.method() == http::verb::head) {
-        return response;
-    }
-
-    auto req_path = urls::parse_origin_form(request.target());
-    auto it_hours = req_path->params().find("hours");
-    if (it_hours == std::cend(req_path->params())) {
-        response = PrepareResponse(http::status::bad_request, request.version(), request.keep_alive());
-        response.body() = BodyError("missing parameter `hours=?`");
-        response.prepare_payload();
-        return response;
-    }
-
-    std::string hours_str = (*it_hours).value;
-    int hours = std::atoi(hours_str.data());
-    if (hours <= 0 || hours > 24 * 7) {
-        response = PrepareResponse(http::status::bad_request, request.version(), request.keep_alive());
-        response.body() = BodyError("the value of `hours` is invalid");
-        response.prepare_payload();
-        return response;
-    }
-
-    response = PrepareResponse(http::status::ok, request.version(), request.keep_alive());
-    Json::Value pack_values(Json::arrayValue);
-    auto packs = persist_operator_.QueryRecordsInHours(hours);
-    for (auto const& pack : packs) {
-        pack_values.append(MakePackJson(pack));
-    }
-
-    response.body() = pack_values.toStyledString();
-    response.prepare_payload();
-    return response;
 }
 
 http::message_generator VDFWebService::Handle_API_Status(http::request<http::string_body> const& request)
@@ -158,6 +122,73 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
 
     // prepare body
     response.body() = status_value.toStyledString();
+    response.prepare_payload();
+
+    return response;
+}
+
+http::message_generator VDFWebService::Handle_API_Summary(http::request<http::string_body> const& request)
+{
+    http::response<http::string_body> response;
+    if (request.method() == http::verb::head) {
+        return response;
+    }
+
+    response = PrepareResponse(http::status::ok, request.version(), request.keep_alive());
+    auto req_path = urls::parse_origin_form(request.target());
+    auto it_hours = req_path->params().find("hours");
+    if (it_hours == std::cend(req_path->params())) {
+        response = PrepareResponse(http::status::bad_request, request.version(), request.keep_alive());
+        response.body() = BodyError("missing parameter `hours=?`");
+        response.prepare_payload();
+        return response;
+    }
+
+    std::string hours_str = (*it_hours).value;
+    int hours = std::atoi(hours_str.data());
+    if (hours <= 0 || hours > 24 * 7) {
+        response = PrepareResponse(http::status::bad_request, request.version(), request.keep_alive());
+        response.body() = BodyError("the value of `hours` is invalid");
+        response.prepare_payload();
+        return response;
+    }
+
+    int num_heights = num_heights_by_hours_querier_(hours);
+    auto blocks = block_info_range_querier_(num_heights);
+
+    int segs[] = { 3, 10, 30, 60 };
+    std::map<int, int> summary;
+    for (int seg : segs) {
+        summary.insert_or_assign(seg, 0);
+    }
+    for (auto const& block : blocks) {
+        int duration = block.vdf_iters / block.vdf_speed;
+        int min = duration / 60;
+        if (duration % 60 > 0) {
+            ++min;
+        }
+        for (int seg : segs) {
+            if (min <= seg) {
+                ++summary[seg];
+                break;
+            }
+        }
+    }
+
+    Json::Value res_json;
+    res_json["num_blocks"] = blocks.size();
+    res_json["hours"] = hours;
+
+    Json::Value summary_json(Json::arrayValue);
+    for (auto entry : summary) {
+        Json::Value entry_json;
+        entry_json["min"] = entry.first;
+        entry_json["count"] = entry.second;
+        summary_json.append(std::move(entry_json));
+    }
+    res_json["summary"] = summary_json;
+
+    response.body() = res_json.toStyledString();
     response.prepare_payload();
 
     return response;

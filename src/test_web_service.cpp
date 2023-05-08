@@ -3,6 +3,7 @@
 #include <thread>
 
 #include <filesystem>
+namespace fs = std::filesystem;
 
 #include <json/json.h>
 #include <json/reader.h>
@@ -27,7 +28,7 @@ protected:
             fs::remove(SZ_WEBSERVICE_LOCAL_DBNAME);
         }
         storage_ = std::make_unique<LocalSQLiteStorage>(SZ_WEBSERVICE_LOCAL_DBNAME);
-        persist_ = std::make_unique<VDFSQLitePersistOperator>(*storage_);
+        persist_ = std::make_unique<LocalSQLiteDatabaseKeeper>(*storage_);
     }
 
     void TearDown() override
@@ -82,7 +83,7 @@ protected:
     }
 
     std::unique_ptr<LocalSQLiteStorage> storage_;
-    std::unique_ptr<VDFSQLitePersistOperator> persist_;
+    std::unique_ptr<LocalSQLiteDatabaseKeeper> persist_;
 };
 
 void check_json(Json::Value const& json, std::string const& member_name, uint64_t val)
@@ -107,9 +108,17 @@ TEST_F(WebServiceTest, FullTests)
     persist_->Save(pack);
 
     asio::io_context ioc;
-    VDFWebService service(ioc, SZ_LISTEN_ADDR, LISTEN_PORT, 30, *persist_, []() -> TimelordStatus {
-        return {};
-    });
+    VDFWebService service(
+            ioc, SZ_LISTEN_ADDR, LISTEN_PORT, 30,
+            [](int) {
+                return 0;
+            },
+            [](int) -> std::vector<BlockInfo> {
+                return {};
+            },
+            []() -> TimelordStatus {
+                return {};
+            });
     service.Run();
 
     std::thread service_thread([&ioc]() {
