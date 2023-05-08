@@ -131,7 +131,7 @@ std::vector<VDFResult> LocalSQLiteStorage::QueryResults(uint256 const& challenge
 
 int LocalSQLiteStorage::QueryNumHeightsByTimeRange(uint32_t begin_timestamp, uint32_t end_timestamp)
 {
-    auto stmt = sql3_.Prepare("select count(*) from vdf_record where timestamp >= ? and timestamp <= ? limit 1");
+    auto stmt = sql3_.Prepare("select count(*) from vdf_record where timestamp >= ? and timestamp <= ?");
     stmt.Bind(1, begin_timestamp);
     stmt.Bind(2, end_timestamp);
     if (!stmt.StepNext()) {
