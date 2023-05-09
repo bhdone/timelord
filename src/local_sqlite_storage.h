@@ -30,7 +30,7 @@ public:
 
     std::vector<VDFResult> QueryResults(uint256 const& challenge);
 
-    int QueryNumHeightsByTimeRange(uint32_t begin_timestamp, uint32_t end_timestamp);
+    int QueryNumHeightsByTimeRange(int hours);
 
 private:
     SQLite sql3_;

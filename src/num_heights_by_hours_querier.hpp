@@ -16,9 +16,7 @@ public:
 
     int operator()(int hours) const
     {
-        uint32_t end_timestamp = std::time(nullptr);
-        uint32_t begin_timestamp = end_timestamp - hours * 60 * 60;
-        return storage_.QueryNumHeightsByTimeRange(begin_timestamp, end_timestamp);
+        return storage_.QueryNumHeightsByTimeRange(hours);
     }
 
 private:

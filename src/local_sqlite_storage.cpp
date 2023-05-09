@@ -129,13 +129,26 @@ std::vector<VDFResult> LocalSQLiteStorage::QueryResults(uint256 const& challenge
     return results;
 }
 
-int LocalSQLiteStorage::QueryNumHeightsByTimeRange(uint32_t begin_timestamp, uint32_t end_timestamp)
+int LocalSQLiteStorage::QueryNumHeightsByTimeRange(int hours)
 {
-    auto stmt = sql3_.Prepare("select count(*) from vdf_record where timestamp >= ? and timestamp <= ?");
-    stmt.Bind(1, begin_timestamp);
-    stmt.Bind(2, end_timestamp);
-    if (!stmt.StepNext()) {
-        return -1;
+    int begin_height, end_height;
+    uint32_t end_timestamp;
+    {
+        auto stmt = sql3_.Prepare("select height, timestamp from vdf_record order by timestamp desc limit 1");
+        if (!stmt.StepNext()) {
+            return -1;
+        }
+        end_height = stmt.GetColumnInt64(0);
+        end_timestamp = stmt.GetColumnInt64(1);
     }
-    return stmt.GetColumnInt64(0);
+    uint32_t begin_timestamp = end_timestamp - hours * 60 * 60;
+    {
+        auto stmt2 = sql3_.Prepare("select height from vdf_record where timestamp <= ? order by timestamp desc limit 1");
+        stmt2.Bind(1, begin_timestamp);
+        if (!stmt2.StepNext()) {
+            return -1;
+        }
+        begin_height = stmt2.GetColumnInt64(0);
+    }
+    return end_height - begin_height + 1;
 }
