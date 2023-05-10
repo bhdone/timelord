@@ -37,6 +37,8 @@ private:
     NumHeightsByHoursQuerierType num_heights_by_hours_querier_;
     BlockInfoRangeQuerierType block_info_range_querier_;
     TimelordStatusQuerierType status_querier_;
+
+    std::string my_ip_str_;
 };
 
 #endif

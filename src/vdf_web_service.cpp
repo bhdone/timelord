@@ -10,6 +10,8 @@ namespace urls = boost::urls;
 
 #include "timelord_utils.h"
 
+#include "ip_addr_querier.hpp"
+
 Json::Value MakeRecordJson(VDFRecord const& record)
 {
     Json::Value res;
@@ -94,10 +96,15 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
         return response;
     }
 
+    if (my_ip_str_.empty()) {
+        my_ip_str_ = IpAddrQuerier::ToString(IpAddrQuerier()());
+    }
+
     response = PrepareResponse(http::status::ok, request.version(), request.keep_alive());
     auto status = status_querier_();
 
     Json::Value status_value;
+    status_value["server_ip"] = my_ip_str_;
     status_value["challenge"] = Uint256ToHex(status.challenge);
     status_value["height"] = status.height;
     status_value["iters_per_sec"] = status.iters_per_sec;

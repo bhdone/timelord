@@ -49,6 +49,7 @@ set(TIMELORDLIB_SRCS
     ./src/vdf_record.cpp
     ./src/standard_status_querier.cpp
     ./src/block_querier_utils.cpp
+    ./src/https_querier.cpp
 )
 
 set(SQLITE3_WRAP_SRCS
@@ -131,4 +132,5 @@ if (BUILD_TEST)
     MakeTest(test_vdf_persist)
     MakeTest(test_web_service)
     MakeTest(test_block_querier)
+    MakeTest(test_ip_addr_querier)
 endif()
