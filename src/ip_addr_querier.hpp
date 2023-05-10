@@ -28,13 +28,11 @@ public:
         return ss.str();
     }
 
-    Ip operator()() const {
-        asio::io_context ioc;
-        std::string res_str = HttpsQuery(ioc, SZ_HOST, 443, "/getip");
-
-        std::regex re("\\d+\\.\\d+\\.\\d+\\.\\d+");
+    static Ip StripIpAddr(std::string const& str)
+    {
+        std::regex re("(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)");
         std::smatch ma;
-        if (!std::regex_match(res_str, ma, re)) {
+        if (!std::regex_match(str, ma, re)) {
             throw std::runtime_error("no ip address can be found");
         }
         Ip ip;
@@ -43,6 +41,12 @@ public:
         ip.p3 = std::atoi(ma[3].str().c_str());
         ip.p4 = std::atoi(ma[4].str().c_str());
         return ip;
+    }
+
+    Ip operator()() const
+    {
+        asio::io_context ioc;
+        return StripIpAddr(HttpsQuery(ioc, SZ_HOST, 443, "/getip"));
     }
 };
 
