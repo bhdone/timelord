@@ -31,6 +31,7 @@ std::tuple<uint64_t, uint64_t> AnalyzeVdfInfo(std::string_view vdf_str)
 BlockInfo ConvertToBlockInfo(UniValue const& block_json)
 {
     BlockInfo block_info;
+    block_info.hash = Uint256FromHex(block_json["new best"].get_str());
     block_info.challenge = Uint256FromHex(block_json["challenge"].get_str());
     block_info.height = StrToInt(block_json["height"].get_str());
     block_info.filter_bits = StrToInt(block_json["filter-bit"].get_str());

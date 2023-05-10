@@ -111,6 +111,7 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     status_value["total_size"] = status.total_size;
 
     Json::Value last_blk_info_value;
+    last_blk_info_value["hash"] = Uint256ToHex(status.last_block_info.hash);
     last_blk_info_value["challenge"] = Uint256ToHex(status.last_block_info.challenge);
     last_blk_info_value["height"] = status.last_block_info.height;
     last_blk_info_value["filter_bits"] = status.last_block_info.filter_bits;

@@ -8,6 +8,7 @@
 #include "common_types.h"
 
 struct BlockInfo {
+    uint256 hash;
     uint256 challenge;
     int height;
     int filter_bits;
