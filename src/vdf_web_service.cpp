@@ -97,7 +97,11 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     }
 
     if (my_ip_str_.empty()) {
-        my_ip_str_ = IpAddrQuerier::ToString(IpAddrQuerier()());
+        try {
+            my_ip_str_ = IpAddrQuerier::ToString(IpAddrQuerier()());
+        } catch (std::exception const& e) {
+            PLOGE << tinyformat::format("cannot retrieve server ip address, reason: %s", e.what());
+        }
     }
 
     response = PrepareResponse(http::status::ok, request.version(), request.keep_alive());
