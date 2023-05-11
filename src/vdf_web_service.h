@@ -14,8 +14,6 @@
 
 #include "local_sqlite_storage.h"
 
-using BlockInfoRangeQuerierType = std::function<std::vector<BlockInfo> (int)>;
-
 class VDFWebService
 {
 public:
