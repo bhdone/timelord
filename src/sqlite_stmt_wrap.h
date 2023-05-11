@@ -26,7 +26,7 @@ public:
 
     SQLiteStmt& operator=(SQLiteStmt&& rhs);
 
-    void Bind(int index, std::string_view str);
+    void Bind(int index, std::string_view str_val);
 
     void Bind(int index, uint256 const& uint256_val);
 
