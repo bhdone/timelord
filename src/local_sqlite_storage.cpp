@@ -71,7 +71,7 @@ void LocalSQLiteStorage::AppendResult(VDFResult const& result)
 
 void LocalSQLiteStorage::AppendBlock(BlockInfo const& block_info)
 {
-    auto stmt = sql3_.Prepare("insert into block (hash, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    auto stmt = sql3_.Prepare("insert into blocks (hash, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     stmt.Bind(1, block_info.hash);
     stmt.Bind(2, block_info.timestamp);
     stmt.Bind(3, block_info.challenge);
