@@ -7,10 +7,10 @@
 
 #include "block_querier_utils.h"
 
-class BlockInfoRangeQuerier
+class BlockInfoRangeRPCQuerier
 {
 public:
-    explicit BlockInfoRangeQuerier(RPCClient& rpc)
+    explicit BlockInfoRangeRPCQuerier(RPCClient& rpc)
         : rpc_(rpc)
     {
     }

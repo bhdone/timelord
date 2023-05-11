@@ -11,7 +11,6 @@
 #include "local_sqlite_storage.h"
 #include "standard_status_querier.h"
 
-#include "block_info_range_querier.hpp"
 #include "last_block_info_querier.hpp"
 #include "num_heights_by_hours_querier.hpp"
 #include "vdf_pack_by_challenge_querier.hpp"
