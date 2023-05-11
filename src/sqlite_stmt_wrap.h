@@ -58,6 +58,8 @@ public:
 
     double GetColumnReal(int index) const;
 
+    bool IsColumnReal(int index) const;
+
 private:
     sqlite3* sql3_;
     sqlite3_stmt* stmt_ { nullptr };

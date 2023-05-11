@@ -106,3 +106,9 @@ double SQLiteStmt::GetColumnReal(int index) const
 {
     return sqlite3_column_double(stmt_, index);
 }
+
+bool SQLiteStmt::IsColumnReal(int index) const
+{
+    auto type = sqlite3_column_type(stmt_, index);
+    return type == SQLITE_FLOAT;
+}

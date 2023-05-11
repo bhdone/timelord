@@ -83,6 +83,23 @@ TEST_F(SQLiteTest, StoreValue_Int64)
     });
 }
 
+TEST_F(SQLiteTest, StoreValue_Real)
+{
+    EXPECT_NO_THROW({ GetSQLite().ExecuteSQL("create table hello (world)"); });
+
+    EXPECT_NO_THROW({
+        auto stmt = GetSQLite().Prepare("insert into hello (world) values (?)");
+        stmt.Bind(1, 1.23456);
+        stmt.Run();
+    });
+
+    EXPECT_NO_THROW({
+        auto stmt = GetSQLite().Prepare("select world from hello");
+        EXPECT_TRUE(stmt.StepNext());
+        EXPECT_TRUE(stmt.IsColumnReal(0));
+    });
+}
+
 TEST_F(SQLiteTest, StoreValue_Uint256)
 {
     uint256 val_uint256 = Uint256FromHex(SZ_UINT256);
