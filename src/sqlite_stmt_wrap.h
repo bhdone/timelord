@@ -7,6 +7,8 @@
 
 #include "common_types.h"
 
+#include "sqlite_utils.h"
+
 class SQLiteStmt
 {
 public:

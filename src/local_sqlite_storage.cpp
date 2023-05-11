@@ -8,6 +8,8 @@
 
 #include "sqlite_stmt_wrap.h"
 
+#include "block_info.h"
+
 LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
     : sql3_(file_path)
 {
@@ -17,6 +19,9 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
         sql3_.ExecuteSQL("create table vdf_requests (challenge, iters, estimated_seconds, group_hash, total_size)");
         sql3_.ExecuteSQL("create table vdf_results (challenge, iters, y, proof, witness_type, duration)");
     }
+
+    // ensure that the table `blocks` is created
+    sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
 }
 
 void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
@@ -61,6 +66,26 @@ void LocalSQLiteStorage::AppendResult(VDFResult const& result)
     stmt.Bind(4, result.proof);
     stmt.Bind(5, result.witness_type);
     stmt.Bind(6, result.duration);
+    stmt.Run();
+}
+
+void LocalSQLiteStorage::AppendBlock(BlockInfo const& block_info)
+{
+    auto stmt = sql3_.Prepare("insert into block (hash, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    stmt.Bind(1, block_info.hash);
+    stmt.Bind(2, block_info.timestamp);
+    stmt.Bind(3, block_info.challenge);
+    stmt.Bind(4, block_info.height);
+    stmt.Bind(5, block_info.filter_bits);
+    stmt.Bind(6, block_info.block_difficulty);
+    stmt.Bind(7, block_info.challenge_difficulty);
+    stmt.Bind(8, block_info.farmer_pk);
+    stmt.Bind(9, block_info.address);
+    stmt.Bind(10, block_info.reward);
+    stmt.Bind(11, block_info.accumulate);
+    stmt.Bind(12, block_info.vdf_time);
+    stmt.Bind(13, block_info.vdf_iters);
+    stmt.Bind(14, block_info.vdf_speed);
     stmt.Run();
 }
 
@@ -127,6 +152,32 @@ std::vector<VDFResult> LocalSQLiteStorage::QueryResults(uint256 const& challenge
         results.push_back(std::move(result));
     }
     return results;
+}
+
+std::vector<BlockInfo> LocalSQLiteStorage::QueryBlocksRange(int num_heights)
+{
+    std::vector<BlockInfo> blocks;
+    auto stmt = sql3_.Prepare("select hash, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed from blocks order by height desc limit ?");
+    stmt.Bind(1, num_heights);
+    while (stmt.StepNext()) {
+        BlockInfo block_info;
+        block_info.hash = stmt.GetColumnUint256(0);
+        block_info.timestamp = stmt.GetColumnInt64(1);
+        block_info.challenge = stmt.GetColumnUint256(2);
+        block_info.height = stmt.GetColumnInt64(3);
+        block_info.filter_bits = stmt.GetColumnInt64(4);
+        block_info.block_difficulty = stmt.GetColumnInt64(5);
+        block_info.challenge_difficulty = stmt.GetColumnInt64(6);
+        block_info.farmer_pk = stmt.GetColumnBytes(7);
+        block_info.address = stmt.GetColumnString(8);
+        block_info.reward = stmt.GetColumnReal(9);
+        block_info.accumulate = stmt.GetColumnReal(10);
+        block_info.vdf_time = stmt.GetColumnString(11);
+        block_info.vdf_iters = stmt.GetColumnInt64(12);
+        block_info.vdf_speed = stmt.GetColumnInt64(13);
+        blocks.push_back(std::move(block_info));
+    }
+    return blocks;
 }
 
 int LocalSQLiteStorage::QueryNumHeightsByTimeRange(int hours)

@@ -2,7 +2,6 @@
 
 #include <tinyformat.h>
 
-#include "sqlite_utils.h"
 #include "timelord_utils.h"
 
 SQLiteStmt::SQLiteStmt(sqlite3* sql3, std::string_view sql)

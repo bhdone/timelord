@@ -9,6 +9,8 @@
 
 #include "local_database_keeper.hpp"
 
+struct BlockInfo;
+
 class LocalSQLiteStorage
 {
 public:
@@ -22,6 +24,8 @@ public:
 
     void AppendResult(VDFResult const& result);
 
+    void AppendBlock(BlockInfo const& block_info);
+
     std::tuple<VDFRecord, bool> QueryRecord(uint256 const& challenge);
 
     std::vector<VDFRecord> QueryRecords(uint32_t begin_timestamp, uint32_t end_timestamp);
@@ -29,6 +33,8 @@ public:
     std::vector<VDFRequest> QueryRequests(uint256 const& challenge);
 
     std::vector<VDFResult> QueryResults(uint256 const& challenge);
+
+    std::vector<BlockInfo> QueryBlocksRange(int num_heights);
 
     int QueryNumHeightsByTimeRange(int hours);
 
