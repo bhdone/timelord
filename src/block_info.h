@@ -26,7 +26,7 @@ struct BlockInfo {
     int vdf_speed;
 };
 
-using BlockInfoRangeQuerierType = std::function<std::vector<BlockInfo> (int)>;
+using BlockInfoRangeQuerierType = std::function<std::vector<BlockInfo>(int)>;
 
 using BlockInfoSaverType = std::function<void(BlockInfo const& block_info)>;
 
