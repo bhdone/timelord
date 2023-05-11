@@ -14,6 +14,8 @@
 
 #include "common_types.h"
 
+#include "block_info.h"
+
 #include "challenge_monitor.h"
 #include "frontend.h"
 #include "vdf_client_man.h"
@@ -54,7 +56,7 @@ public:
         uint64_t total_size;
     };
 
-    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator);
+    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage);
 
     void Run(std::string_view addr, unsigned short port);
 
@@ -77,6 +79,8 @@ private:
 
     asio::io_context& ioc_;
     LocalSQLiteDatabaseKeeper& persist_operator_;
+    BlockInfoRangeQuerierType block_info_querier_;
+    BlockInfoSaverType block_info_saver_;
 
     FrontEnd frontend_;
     MessageDispatcher msg_dispatcher_;

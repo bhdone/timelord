@@ -7,6 +7,9 @@ namespace fs = std::filesystem;
 
 using boost::system::error_code;
 
+#include "block_info_range_rpc_querier.hpp"
+#include "block_info_sqlite_saver.hpp"
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
@@ -83,9 +86,11 @@ void MessageDispatcher::operator()(FrontEndSessionPtr psession, Json::Value cons
     it->second(psession, msg);
 }
 
-Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator)
+Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage)
     : ioc_(ioc)
     , persist_operator_(persist_operator)
+    , block_info_querier_(BlockInfoRangeRPCQuerier(rpc))
+    , block_info_saver_(BlockInfoSQLiteSaver(storage))
     , challenge_monitor_(ioc_, rpc, 3)
     , frontend_(ioc)
     , vdf_client_man_(ioc_, vdf_client::TimeType::N, ExpandEnvPath(std::string(vdf_client_path)), vdf_client_addr, vdf_client_port)
@@ -166,6 +171,22 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     record.challenge = new_challenge;
     record.height = height;
     persist_operator_.AppendRecord(record);
+
+    // we should query last new block info. and save it to local database
+    auto new_blocks = block_info_querier_(1);
+    if (!new_blocks.empty()) {
+        auto const& block_info = new_blocks.front();
+        // check the block height before we save it
+        if (block_info.height == height - 1) {
+            // ok, we got a record
+            try {
+                block_info_saver_(block_info);
+                PLOGI << tinyformat::format("saved block height=%d into local db", block_info.height);
+            } catch (std::exception const& e) {
+                PLOGE << tinyformat::format("cannot save block height=%d into local db, err: %s", block_info.height, e.what());
+            }
+        }
+    }
 
     // need to deliver iters to vdf_client?
     auto it = challenge_reqs_.find(new_challenge);

@@ -11,6 +11,8 @@
 #include "local_sqlite_storage.h"
 #include "standard_status_querier.h"
 
+#include "block_info_range_sqlite_querier.hpp"
+
 #include "last_block_info_querier.hpp"
 #include "num_heights_by_hours_querier.hpp"
 #include "vdf_pack_by_challenge_querier.hpp"
@@ -95,14 +97,14 @@ int main(int argc, char* argv[])
         // prepare RPC login
         RPCLogin login = use_cookie ? RPCLogin(cookie_path) : RPCLogin(rpc_user, rpc_password);
         RPCClient rpc(true, url, std::move(login));
-        Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, persist_operator);
+        Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, persist_operator, db);
 
         // prepare status querier
         StandardStatusQuerier status_querier(LastBlockInfoQuerier(rpc), VDFPackByChallengeQuerier(db), timelord);
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeQuerier(rpc), status_querier);
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeLocalDBQuerier(db), status_querier);
         web_service.Run();
 
         // start timelord
