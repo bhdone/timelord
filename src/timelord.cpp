@@ -165,7 +165,7 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     // the challenge must be calculated as soon as possible
     vdf_client_man_.CalcIters(new_challenge, 100000 * 60 * 60);
 
-    // append new record to local database
+    // append new record to local database for the incoming block
     VDFRecord record;
     record.timestamp = time(nullptr);
     record.challenge = new_challenge;
