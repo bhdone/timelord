@@ -47,11 +47,6 @@ void SQLiteStmt::Bind(int index, std::string_view str)
     CheckSQL(sql3_, sqlite3_bind_text(stmt_, index, str.data(), str.size(), SQLITE_TRANSIENT));
 }
 
-void SQLiteStmt::Bind(int index, int64_t val)
-{
-    CheckSQL(sql3_, sqlite3_bind_int64(stmt_, index, val));
-}
-
 void SQLiteStmt::Bind(int index, uint256 const& val)
 {
     Bind(index, Uint256ToHex(val));
@@ -106,4 +101,9 @@ uint256 SQLiteStmt::GetColumnUint256(int index) const
 Bytes SQLiteStmt::GetColumnBytes(int index) const
 {
     return BytesFromHex(GetColumnString(index));
+}
+
+double SQLiteStmt::GetColumnReal(int index) const
+{
+    return sqlite3_column_double(stmt_, index);
 }
