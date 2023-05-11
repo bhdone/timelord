@@ -9,6 +9,7 @@
 
 struct BlockInfo {
     uint256 hash;
+    uint32_t timestamp;
     uint256 challenge;
     int height;
     int filter_bits;
