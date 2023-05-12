@@ -55,6 +55,7 @@ public:
         uint64_t iters_per_sec;
         uint64_t total_size;
         int num_connections;
+        std::string status_string;
     };
 
     Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage);

@@ -133,6 +133,14 @@ Timelord::Status Timelord::QueryStatus() const
     status.height = height_;
     status.iters_per_sec = iters_per_sec_;
     status.num_connections = frontend_.GetNumOfSessions();
+    if (challenge_monitor_.GetStatus() == ChallengeMonitor::Status::NO_ERROR) {
+        status.status_string = "good";
+    } else if (challenge_monitor_.GetStatus() == ChallengeMonitor::Status::RPC_ERROR) {
+        status.status_string = tinyformat::format("rpc error: %s", challenge_monitor_.GetErrorString());
+    } else if (challenge_monitor_.GetStatus() == ChallengeMonitor::Status::OTHER_ERROR) {
+        status.status_string = tinyformat::format("other error: %s", challenge_monitor_.GetErrorString());
+    }
+    // count total size
     status.total_size = 0;
     for (auto const& pa : netspace_) {
         status.total_size += pa.second;

@@ -47,9 +47,15 @@ void ChallengeMonitor::QueryChallenge()
                 new_challenge_handler_(old_challenge, challenge, height);
             }
         }
+        status_ = Status::NO_ERROR;
+        error_string_.clear();
     } catch (NetError const& e) {
+        status_ = Status::RPC_ERROR;
+        error_string_ = e.what();
         PLOGE << "NetError: " << e.what();
     } catch (std::exception const& e) {
+        status_ = Status::OTHER_ERROR;
+        error_string_ = e.what();
         PLOGE << "exception: " << e.what();
     }
 }
