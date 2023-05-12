@@ -132,6 +132,7 @@ Timelord::Status Timelord::QueryStatus() const
     status.challenge = challenge_monitor_.GetCurrentChallenge();
     status.height = height_;
     status.iters_per_sec = iters_per_sec_;
+    status.num_connections = frontend_.GetNumOfSessions();
     status.total_size = 0;
     for (auto const& pa : netspace_) {
         status.total_size += pa.second;

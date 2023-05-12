@@ -17,6 +17,7 @@ TimelordStatus StandardStatusQuerier::operator()() const
     status.height = timelord_status.height;
     status.iters_per_sec = timelord_status.iters_per_sec;
     status.total_size = timelord_status.total_size;
+    status.num_connections = timelord_status.num_connections;
 
     status.last_block_info = last_block_querier_();
     status.vdf_pack = vdf_pack_querier_(status.challenge);

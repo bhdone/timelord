@@ -113,6 +113,7 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     status_value["height"] = status.height;
     status_value["iters_per_sec"] = status.iters_per_sec;
     status_value["total_size"] = status.total_size;
+    status_value["num_connections"] = status.num_connections;
 
     Json::Value last_blk_info_value;
     last_blk_info_value["hash"] = Uint256ToHex(status.last_block_info.hash);

@@ -13,6 +13,7 @@ struct TimelordStatus {
     int height;
     int iters_per_sec;
     uint64_t total_size;
+    int num_connections;
     BlockInfo last_block_info;
     VDFRecordPack vdf_pack;
 };
