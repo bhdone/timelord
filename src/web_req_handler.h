@@ -17,6 +17,16 @@ private:
 
 http::response<http::string_body> PrepareResponse(http::status status, unsigned int version, bool keep_alive);
 
+http::response<http::string_body> PrepareResponseWithError(http::status status, std::string_view error, unsigned int version, bool keep_alive);
+
+namespace Json {
+
+class Value;
+
+} // namespace Json
+
+http::response<http::string_body> PrepareResponseWithContent(http::status status, Json::Value const& json, unsigned int version, bool keep_alive);
+
 std::string BodyError(std::string_view why);
 
 #endif

@@ -169,3 +169,19 @@ int LocalSQLiteStorage::QueryNumHeightsByTimeRange(int hours)
     }
     return end_height - begin_height + 1;
 }
+
+std::vector<NetspaceData> LocalSQLiteStorage::QueryNetspace(int num_heights)
+{
+    std::vector<NetspaceData> results;
+    auto stmt = sql3_.Prepare("select blocks.height, blocks.challenge_difficulty, blocks.block_difficulty, sum(vdf_requests.total_size) from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge group by blocks.challenge order by blocks.height desc limit ?");
+    stmt.Bind(1, num_heights);
+    while (stmt.StepNext()) {
+        NetspaceData data;
+        data.height = stmt.GetColumnInt64(0);
+        data.challenge_difficulty = stmt.GetColumnInt64(1);
+        data.block_difficulty = stmt.GetColumnInt64(2);
+        data.netspace = stmt.GetColumnInt64(3);
+        results.push_back(std::move(data));
+    }
+    return results;
+}

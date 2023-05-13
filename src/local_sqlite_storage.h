@@ -7,6 +7,8 @@
 
 #include "vdf_record.h"
 
+#include "netspace_data.h"
+
 #include "local_database_keeper.hpp"
 
 struct BlockInfo;
@@ -33,6 +35,8 @@ public:
     std::vector<BlockInfo> QueryBlocksRange(int num_heights);
 
     int QueryNumHeightsByTimeRange(int hours);
+
+    std::vector<NetspaceData> QueryNetspace(int num_heights);
 
 private:
     SQLite sql3_;

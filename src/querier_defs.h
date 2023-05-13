@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "block_info.h"
+#include "netspace_data.h"
 #include "timelord_status.h"
 #include "vdf_record.h"
 
@@ -17,5 +18,7 @@ using BlockInfoRangeQuerierType = std::function<std::vector<BlockInfo>(int num_h
 using NumHeightsByHoursQuerierType = std::function<int(int hours)>;
 
 using VDFPackByChallengeQuerierType = std::function<VDFRecordPack(uint256 const& challenge)>;
+
+using NetspaceQuerierType = std::function<std::vector<NetspaceData>(int num_heights)>;
 
 #endif

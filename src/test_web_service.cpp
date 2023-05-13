@@ -9,6 +9,7 @@ namespace fs = std::filesystem;
 #include <json/reader.h>
 
 #include "local_sqlite_storage.h"
+#include "netspace_data.h"
 #include "vdf_web_service.h"
 
 #include "test_utils.h"
@@ -113,6 +114,9 @@ TEST_F(WebServiceTest, FullTests)
                 return 0;
             },
             [](int) -> std::vector<BlockInfo> {
+                return {};
+            },
+            [](int) -> std::vector<NetspaceData> {
                 return {};
             },
             []() -> TimelordStatus {
