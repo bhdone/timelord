@@ -61,7 +61,8 @@ void SQLite::ExecuteSQL(std::string_view sql)
 {
     int res = sqlite3_exec(sql3_, sql.data(), nullptr, nullptr, nullptr);
     if (res != SQLITE_OK) {
-        throw std::runtime_error(tinyformat::format("cannot execute sql: %s", sql));
+        auto err_msg = sqlite3_errmsg(sql3_);
+        throw std::runtime_error(tinyformat::format("cannot execute sql: %s, err: %s", sql, err_msg));
     }
 }
 
