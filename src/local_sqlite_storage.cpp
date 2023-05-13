@@ -170,10 +170,13 @@ int LocalSQLiteStorage::QueryNumHeightsByTimeRange(int hours)
     return end_height - begin_height + 1;
 }
 
-std::vector<NetspaceData> LocalSQLiteStorage::QueryNetspace(int num_heights)
+std::vector<NetspaceData> LocalSQLiteStorage::QueryNetspace(int num_heights, bool sum_netspace)
 {
     std::vector<NetspaceData> results;
-    auto stmt = sql3_.Prepare("select blocks.height, blocks.challenge_difficulty, blocks.block_difficulty, sum(vdf_requests.total_size) from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge group by blocks.challenge order by blocks.height desc limit ?");
+    char const* SZ_QUERY_NETSPACE_SUM_NETSPACE = "select blocks.height, blocks.challenge_difficulty, blocks.block_difficulty, sum(vdf_requests.total_size) from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge group by blocks.challenge order by blocks.height desc limit ?";
+    char const* SZ_QUERY_NETSPACE = "select height, challenge_difficulty, block_difficulty, 0 from blocks order by height desc limit ?";
+    std::string sql_str = sum_netspace ? SZ_QUERY_NETSPACE_SUM_NETSPACE : SZ_QUERY_NETSPACE;
+    auto stmt = sql3_.Prepare(sql_str);
     stmt.Bind(1, num_heights);
     while (stmt.StepNext()) {
         NetspaceData data;

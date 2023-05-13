@@ -36,7 +36,7 @@ public:
 
     int QueryNumHeightsByTimeRange(int hours);
 
-    std::vector<NetspaceData> QueryNetspace(int num_heights);
+    std::vector<NetspaceData> QueryNetspace(int num_heights, bool sum_netspace);
 
 private:
     SQLite sql3_;
