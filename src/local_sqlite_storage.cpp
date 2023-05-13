@@ -14,14 +14,14 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
     : sql3_(file_path)
 {
     sql3_.ExecuteSQL("create table if not exists vdf_record (timestamp, challenge, height)");
-    sql3_.ExecuteSQL("create unique index if not exists vdf_record_challenge_idx on vdf_record (challenge)");
-    sql3_.ExecuteSQL("create unique index if not exists vdf_record_timestamp_idx on vdf_record (timestamp)");
+    sql3_.ExecuteSQL("create index if not exists vdf_record_challenge_idx on vdf_record (challenge)");
+    sql3_.ExecuteSQL("create index if not exists vdf_record_timestamp_idx on vdf_record (timestamp)");
 
     sql3_.ExecuteSQL("create table if not exists vdf_requests (challenge, iters, estimated_seconds, group_hash, total_size)");
-    sql3_.ExecuteSQL("create unique index if not exists vdf_requests_challenge on vdf_requests (challenge)");
+    sql3_.ExecuteSQL("create index if not exists vdf_requests_challenge on vdf_requests (challenge)");
 
     sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
-    sql3_.ExecuteSQL("create unique index if not exists blocks_height on blocks (height)");
+    sql3_.ExecuteSQL("create index if not exists blocks_height on blocks (height)");
 }
 
 void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
