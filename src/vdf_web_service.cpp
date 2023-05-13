@@ -90,19 +90,11 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
         return response;
     }
 
-    if (my_ip_str_.empty()) {
-        try {
-            my_ip_str_ = IpAddrQuerier::ToString(IpAddrQuerier()());
-        } catch (std::exception const& e) {
-            PLOGE << tinyformat::format("cannot retrieve server ip address, reason: %s", e.what());
-        }
-    }
-
     response = PrepareResponse(http::status::ok, request.version(), request.keep_alive());
     auto status = status_querier_();
 
     Json::Value status_value;
-    status_value["server_ip"] = my_ip_str_;
+    status_value["server_ip"] = status.hostip;
     status_value["challenge"] = Uint256ToHex(status.challenge);
     status_value["height"] = status.height;
     status_value["iters_per_sec"] = status.iters_per_sec;

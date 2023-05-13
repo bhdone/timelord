@@ -9,6 +9,7 @@
 #include "vdf_record.h"
 
 struct TimelordStatus {
+    std::string hostip;
     uint256 challenge;
     int height;
     int iters_per_sec;

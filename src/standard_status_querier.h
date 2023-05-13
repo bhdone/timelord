@@ -15,7 +15,7 @@ using LocalSQLiteDatabaseKeeper = LocalDatabaseKeeper<LocalSQLiteStorage>;
 class StandardStatusQuerier
 {
 public:
-    StandardStatusQuerier(LastBlockInfoQuerierType last_block_querier, VDFPackByChallengeQuerierType vdf_pack_querier, Timelord const& timelord);
+    StandardStatusQuerier(LastBlockInfoQuerierType last_block_querier, VDFPackByChallengeQuerierType vdf_pack_querier, Timelord const& timelord, bool detect_hostip);
 
     TimelordStatus operator()() const;
 
@@ -23,6 +23,9 @@ private:
     LastBlockInfoQuerierType last_block_querier_;
     VDFPackByChallengeQuerierType vdf_pack_querier_;
     Timelord const& timelord_;
+
+    bool detect_hostip_;
+    mutable std::string hostip_;
 };
 
 #endif
