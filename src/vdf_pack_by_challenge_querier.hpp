@@ -26,8 +26,6 @@ public:
             throw std::runtime_error("cannot find the related record");
         }
         pack.requests = storage_.QueryRequests(pack.record.challenge);
-        pack.results = storage_.QueryResults(pack.record.challenge);
-
         return pack;
     }
 

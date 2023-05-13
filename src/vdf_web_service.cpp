@@ -55,12 +55,6 @@ Json::Value MakePackJson(VDFRecordPack const& pack)
     }
     res["requests"] = request_values;
 
-    Json::Value result_values(Json::arrayValue);
-    for (auto const& result : pack.results) {
-        result_values.append(MakeResultJson(result));
-    }
-    res["results"] = result_values;
-
     return res;
 }
 

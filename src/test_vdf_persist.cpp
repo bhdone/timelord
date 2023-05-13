@@ -61,11 +61,9 @@ TEST_F(StorageTest, StoreAndQuery1RecWithRequestResult)
 {
     VDFRecordPack pack = GenerateRandomPack(time(nullptr), 20000, false);
     pack.requests.push_back(GenerateRandomRequest(pack.record.challenge));
-    pack.results.push_back(GenerateRandomResult(pack.record.challenge, pack.requests[0].iters, 10000));
     EXPECT_NO_THROW({ GetPersist().Save(pack); });
     VDFRecordPack last_pack;
     EXPECT_NO_THROW({ last_pack = VDFPackByChallengeQuerier(*storage_)(pack.record.challenge); });
     EXPECT_EQ(last_pack.requests.size(), 1);
-    EXPECT_EQ(last_pack.results.size(), 1);
     EXPECT_EQ(pack, last_pack);
 }

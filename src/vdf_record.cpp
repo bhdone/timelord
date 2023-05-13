@@ -35,19 +35,11 @@ bool operator==(VDFRecordPack const& lhs, VDFRecordPack const& rhs)
     if (lhs.requests.size() != rhs.requests.size()) {
         return false;
     }
-    if (lhs.results.size() != rhs.results.size()) {
-        return false;
-    }
     if (lhs.record != rhs.record) {
         return false;
     }
     for (int i = 0; i < lhs.requests.size(); ++i) {
         if (lhs.requests[i] != rhs.requests[i]) {
-            return false;
-        }
-    }
-    for (int i = 0; i < lhs.results.size(); ++i) {
-        if (lhs.results[i] != rhs.results[i]) {
             return false;
         }
     }

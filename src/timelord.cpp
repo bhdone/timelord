@@ -311,16 +311,6 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
 
 void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_client::ProofDetail const& detail)
 {
-    // first, we save it to local database
-    VDFResult result;
-    result.challenge = challenge;
-    result.iters = detail.iters;
-    result.y = detail.y;
-    result.proof = detail.proof;
-    result.witness_type = detail.witness_type;
-    result.duration = detail.duration;
-    persist_operator_.AppendResult(result);
-
     // calculate the VDF speed
     if (detail.duration == 0) {
         PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", n/a iters/second";

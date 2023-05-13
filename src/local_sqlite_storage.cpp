@@ -20,8 +20,6 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
     sql3_.ExecuteSQL("create table if not exists vdf_requests (challenge, iters, estimated_seconds, group_hash, total_size)");
     sql3_.ExecuteSQL("create unique index if not exists vdf_requests_challenge on vdf_requests (challenge)");
 
-    sql3_.ExecuteSQL("create table if not exists vdf_results (challenge, iters, y, proof, witness_type, duration)");
-
     sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
     sql3_.ExecuteSQL("create unique index if not exists blocks_height on blocks (height)");
 }
@@ -32,10 +30,6 @@ void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
 
     for (auto const& req : pack.requests) {
         AppendRequest(req);
-    }
-
-    for (auto const& res : pack.results) {
-        AppendResult(res);
     }
 }
 
@@ -56,18 +50,6 @@ void LocalSQLiteStorage::AppendRequest(VDFRequest const& request)
     stmt.Bind(3, request.estimated_seconds);
     stmt.Bind(4, request.group_hash);
     stmt.Bind(5, request.total_size);
-    stmt.Run();
-}
-
-void LocalSQLiteStorage::AppendResult(VDFResult const& result)
-{
-    auto stmt = sql3_.Prepare("insert into vdf_results (challenge, iters, y, proof, witness_type, duration) values (?, ?, ?, ?, ?, ?)");
-    stmt.Bind(1, result.challenge);
-    stmt.Bind(2, result.iters);
-    stmt.Bind(3, result.y);
-    stmt.Bind(4, result.proof);
-    stmt.Bind(5, result.witness_type);
-    stmt.Bind(6, result.duration);
     stmt.Run();
 }
 
@@ -136,24 +118,6 @@ std::vector<VDFRequest> LocalSQLiteStorage::QueryRequests(uint256 const& challen
         requests.push_back(std::move(req));
     }
     return requests;
-}
-
-std::vector<VDFResult> LocalSQLiteStorage::QueryResults(uint256 const& challenge)
-{
-    std::vector<VDFResult> results;
-    auto stmt = sql3_.Prepare("select iters, y, proof, witness_type, duration from vdf_results where challenge = ?");
-    stmt.Bind(1, challenge);
-    while (stmt.StepNext()) {
-        VDFResult result;
-        result.challenge = challenge;
-        result.iters = stmt.GetColumnInt64(0);
-        result.y = stmt.GetColumnBytes(1);
-        result.proof = stmt.GetColumnBytes(2);
-        result.witness_type = stmt.GetColumnInt64(3);
-        result.duration = stmt.GetColumnInt64(4);
-        results.push_back(std::move(result));
-    }
-    return results;
 }
 
 std::vector<BlockInfo> LocalSQLiteStorage::QueryBlocksRange(int num_heights)

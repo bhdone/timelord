@@ -31,7 +31,6 @@ struct VDFResult {
 struct VDFRecordPack {
     VDFRecord record;
     std::vector<VDFRequest> requests;
-    std::vector<VDFResult> results;
 };
 
 bool operator==(VDFRecord const& lhs, VDFRecord const& rhs);

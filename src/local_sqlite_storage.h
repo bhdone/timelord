@@ -22,8 +22,6 @@ public:
 
     void AppendRequest(VDFRequest const& request);
 
-    void AppendResult(VDFResult const& result);
-
     void AppendBlock(BlockInfo const& block_info);
 
     std::tuple<VDFRecord, bool> QueryRecord(uint256 const& challenge);
@@ -31,8 +29,6 @@ public:
     std::vector<VDFRecord> QueryRecords(uint32_t begin_timestamp, uint32_t end_timestamp);
 
     std::vector<VDFRequest> QueryRequests(uint256 const& challenge);
-
-    std::vector<VDFResult> QueryResults(uint256 const& challenge);
 
     std::vector<BlockInfo> QueryBlocksRange(int num_heights);
 

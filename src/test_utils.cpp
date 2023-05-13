@@ -66,15 +66,3 @@ VDFRequest GenerateRandomRequest(uint256 challenge)
     request.total_size = random();
     return request;
 }
-
-VDFResult GenerateRandomResult(uint256 challenge, uint64_t iters, int dur)
-{
-    VDFResult result;
-    result.challenge = std::move(challenge);
-    result.iters = iters;
-    result.duration = dur;
-    result.witness_type = 11;
-    result.y = MakeRandomBytes(100);
-    result.proof = MakeRandomBytes(233);
-    return result;
-}

@@ -104,7 +104,6 @@ TEST_F(WebServiceTest, FullTests)
 {
     VDFRecordPack pack = GenerateRandomPack(time(nullptr), 20000, false);
     pack.requests.push_back(GenerateRandomRequest(pack.record.challenge));
-    pack.results.push_back(GenerateRandomResult(pack.record.challenge, pack.requests[0].iters, 10000));
     persist_->Save(pack);
 
     asio::io_context ioc;
@@ -148,20 +147,6 @@ TEST_F(WebServiceTest, FullTests)
     check_json(request_val, "estimated_seconds", pack.requests[0].estimated_seconds);
     check_json(request_val, "group_hash", Uint256ToHex(pack.requests[0].group_hash));
     check_json(request_val, "total_size", pack.requests[0].total_size);
-
-    EXPECT_TRUE(record_val.isMember("results"));
-    Json::Value result_vals = record_val["results"];
-    EXPECT_TRUE(result_vals.isArray());
-    EXPECT_EQ(result_vals.size(), 1);
-
-    Json::Value result_val = result_vals[0];
-    EXPECT_TRUE(result_val.isObject());
-    check_json(result_val, "challenge", Uint256ToHex(pack.results[0].challenge));
-    check_json(result_val, "iters", pack.results[0].iters);
-    check_json(result_val, "y", BytesToHex(pack.results[0].y));
-    check_json(result_val, "proof", BytesToHex(pack.results[0].proof));
-    check_json(result_val, "witness_type", pack.results[0].witness_type);
-    check_json(result_val, "duration", pack.results[0].duration);
 
     service.Stop();
     service_thread.join();

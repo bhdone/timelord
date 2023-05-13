@@ -34,11 +34,6 @@ public:
         storage_.AppendRequest(request);
     }
 
-    void AppendResult(VDFResult const& result)
-    {
-        storage_.AppendResult(result);
-    }
-
 private:
     Storage& storage_;
 };
