@@ -121,6 +121,9 @@ TEST_F(WebServiceTest, FullTests)
             },
             []() -> TimelordStatus {
                 return {};
+            },
+            []() -> RankRecord {
+                return {};
             });
     service.Run();
 

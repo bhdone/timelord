@@ -16,6 +16,7 @@
 
 #include "block_info_sqlite_saver.hpp"
 #include "last_block_info_querier.hpp"
+#include "miner_rank_querier.hpp"
 #include "missing_block_importer.hpp"
 #include "netspace_querier.hpp"
 #include "num_heights_by_hours_querier.hpp"
@@ -50,6 +51,7 @@ int main(int argc, char* argv[])
             ("min-height", "The minimal height for importing blocks from the chain, only when local db is empty", cxxopts::value<int>()->default_value("200000")) // --min-height
             ("skip-import-check", "The importing procedure will import all blocks from the chain since min-height") // --skip-import-check
             ("skip-host-detection", "Do not detect the host cause sometimes you are under the stupid GTFW") // --skip-host-detection
+            ("rank-from-height", "The summary of miner rank will count since the height", cxxopts::value<int>()->default_value("200000")) // --rank-from-height
             ;
     auto parse_result = opts.parse(argc, argv);
     if (parse_result.count("help")) {
@@ -117,9 +119,11 @@ int main(int argc, char* argv[])
         bool skip_host_detection = parse_result.count("skip-host-detection") > 0;
         StandardStatusQuerier status_querier(LastBlockInfoQuerier(rpc), VDFPackByChallengeQuerier(db), timelord, !skip_host_detection);
 
+        auto rank_from_height = parse_result["rank-from-height"].as<int>();
+
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, false), status_querier);
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, false), status_querier, MinerRankQuerier(rpc, rank_from_height));
         web_service.Run();
 
         // start timelord

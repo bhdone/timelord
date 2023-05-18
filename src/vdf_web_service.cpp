@@ -56,16 +56,18 @@ std::tuple<std::string, bool> ParseUrlParameter(std::string_view target, std::st
     return std::make_tuple((*it).value, true);
 }
 
-VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier)
+VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier)
     : web_service_(ioc, tcp::endpoint(asio::ip::address::from_string(std::string(addr)), port), expired_after_secs, std::bind(&VDFWebService::HandleRequest, this, _1))
     , num_heights_by_hours_querier_(std::move(num_heights_by_hours_querier))
     , block_info_range_querier_(std::move(block_info_range_querier))
     , netspace_querier_(std::move(netspace_querier))
     , status_querier_(std::move(status_querier))
+    , rank_querier_(std::move(rank_querier))
 {
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/summary"), std::bind(&VDFWebService::Handle_API_Summary, this, _1));
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/status"), std::bind(&VDFWebService::Handle_API_Status, this, _1));
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/netspace"), std::bind(&VDFWebService::Handle_API_Netspace, this, _1));
+    web_req_handler_.Register(std::make_pair(http::verb::get, "/api/rank"), std::bind(&VDFWebService::Handle_API_Rank, this, _1));
 }
 
 void VDFWebService::Run()
@@ -231,6 +233,36 @@ http::message_generator VDFWebService::Handle_API_Netspace(http::request<http::s
                 data.size());
         res_json.append(std::move(data_val));
     }
+
+    return PrepareResponseWithContent(http::status::ok, res_json, request.version(), request.keep_alive());
+}
+
+http::message_generator VDFWebService::Handle_API_Rank(http::request<http::string_body> const& request)
+{
+    Json::Value res_json;
+
+    auto rank = rank_querier_();
+    res_json["begin_height"] = rank.begin_height;
+    res_json["end_height"] = rank.end_height;
+    res_json["count"] = rank.count;
+
+    // prepare by sorting the rank entries
+    std::vector<std::pair<std::string, int>> sort_entries;
+    for (auto const& entry : rank.entries) {
+        sort_entries.push_back(entry);
+    }
+    std::sort(std::begin(sort_entries), std::end(sort_entries), [](std::pair<std::string, int> const& lhs, std::pair<std::string, int> const& rhs) {
+        return lhs.second > rhs.second;
+    });
+
+    Json::Value entries_json(Json::arrayValue);
+    for (auto const& entry : sort_entries) {
+        Json::Value entry_json;
+        entry_json["address"] = entry.first;
+        entry_json["count"] = entry.second;
+        entries_json.append(std::move(entry_json));
+    }
+    res_json["entries"] = entries_json;
 
     return PrepareResponseWithContent(http::status::ok, res_json, request.version(), request.keep_alive());
 }
