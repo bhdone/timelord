@@ -243,8 +243,6 @@ http::message_generator VDFWebService::Handle_API_Rank(http::request<http::strin
 
     auto [ranks, begin_height] = rank_querier_();
     res_json["begin_height"] = begin_height;
-    res_json["end_height"] = 0;
-    res_json["count"] = 0;
 
     std::sort(std::begin(ranks), std::end(ranks), [](auto const& lhs, auto const& rhs) {
         return lhs.produced_blocks > rhs.produced_blocks;
