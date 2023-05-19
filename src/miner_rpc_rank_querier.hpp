@@ -10,31 +10,38 @@
 class MinerRPCRankQuerier
 {
 public:
-    MinerRPCRankQuerier(RPCClient& rpc, int from_height)
+    MinerRPCRankQuerier(RPCClient& rpc, int start_height, int count)
         : rpc_(rpc)
-        , from_height_(from_height)
+        , start_height_(start_height)
+        , count_(count)
     {
     }
 
     std::tuple<std::vector<RankRecord>, int> operator()() const
     {
         std::vector<RankRecord> ranks;
-        auto res = rpc_.Call("countblockowners", std::to_string(from_height_));
+        auto res = rpc_.Call("countblockowners", std::to_string(start_height_));
         auto keys = res.result.getKeys();
+        int curr_count { 0 };
         for (auto const& key : keys) {
             if (key != "begin" && key != "end" && key != "count") {
                 RankRecord rank;
                 rank.address = key;
                 rank.produced_blocks = res.result[key].get_int64();
                 ranks.push_back(std::move(rank));
+                ++curr_count;
+                if (curr_count == count_) {
+                    break;
+                }
             }
         }
-        return std::make_tuple(ranks, from_height_);
+        return std::make_tuple(ranks, start_height_);
     }
 
 private:
     RPCClient& rpc_;
-    int from_height_;
+    int start_height_;
+    int count_;
 };
 
 #endif
