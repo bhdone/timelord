@@ -9,6 +9,8 @@
 
 #include "netspace_data.h"
 
+#include "rank_record.h"
+
 #include "local_database_keeper.hpp"
 
 struct BlockInfo;
@@ -37,6 +39,8 @@ public:
     int QueryNumHeightsByTimeRange(int hours);
 
     std::vector<NetspaceData> QueryNetspace(int num_heights, bool sum_netspace);
+
+    std::vector<RankRecord> QueryRank(int from_height, int count);
 
 private:
     SQLite sql3_;

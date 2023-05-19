@@ -22,6 +22,7 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
 
     sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
     sql3_.ExecuteSQL("create index if not exists blocks_height on blocks (height)");
+    sql3_.ExecuteSQL("create index if not exists blocks_address on blocks (address)");
 }
 
 void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
@@ -187,4 +188,22 @@ std::vector<NetspaceData> LocalSQLiteStorage::QueryNetspace(int num_heights, boo
         results.push_back(std::move(data));
     }
     return results;
+}
+
+std::vector<RankRecord> LocalSQLiteStorage::QueryRank(int from_height, int count)
+{
+    auto stmt = sql3_.Prepare("select address, sum(reward), count(*), avg(block_difficulty) from blocks where height >= ? group by address limit ?");
+    stmt.Bind(1, from_height);
+    stmt.Bind(2, count);
+    std::vector<RankRecord> res;
+    while (stmt.StepNext()) {
+        RankRecord rank;
+        rank.address = stmt.GetColumnInt64(0);
+        rank.total_reward = stmt.GetColumnInt64(1);
+        rank.produced_blocks = stmt.GetColumnInt64(2);
+        rank.participated_blocks = 0;
+        rank.average_difficulty = stmt.GetColumnInt64(3);
+        res.push_back(std::move(rank));
+    }
+    return res;
 }
