@@ -255,6 +255,8 @@ http::message_generator VDFWebService::Handle_API_Rank(http::request<http::strin
         Json::Value entry_json;
         entry_json["address"] = entry.address;
         entry_json["count"] = entry.produced_blocks;
+        entry_json["average_difficulty"] = entry.average_difficulty;
+        entry_json["total_reward"] = entry.total_reward;
         entries_json.append(std::move(entry_json));
     }
     res_json["entries"] = entries_json;

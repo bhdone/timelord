@@ -198,7 +198,7 @@ std::vector<RankRecord> LocalSQLiteStorage::QueryRank(int from_height, int count
     std::vector<RankRecord> res;
     while (stmt.StepNext()) {
         RankRecord rank;
-        rank.address = stmt.GetColumnInt64(0);
+        rank.address = stmt.GetColumnString(0);
         rank.total_reward = stmt.GetColumnInt64(1);
         rank.produced_blocks = stmt.GetColumnInt64(2);
         rank.participated_blocks = 0;
