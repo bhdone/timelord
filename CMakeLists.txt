@@ -19,24 +19,18 @@ include(FetchContent)
 FetchContent_Declare(
     bhd_vdf
     GIT_REPOSITORY https://github.com/bhdone/bhd_vdf
-    GIT_TAG v0.0.53
+    GIT_TAG ba1e28049bb34ce611b4c8190eac65c3ae35fcdc
 )
 
 FetchContent_Declare(
     gears
     GIT_REPOSITORY https://github.com/bhdone/gears
-    GIT_TAG d29da4d07edfc77b4d918c97c23aecd16432ad59
+    GIT_TAG 1979324ec2bff6677a4f704d24cfb0616c59d240
 )
 
 FetchContent_MakeAvailable(bhd_vdf gears)
 
 set(CMAKE_CXX_STANDARD 17)
-
-include_directories(${CMAKE_BINARY_DIR}/include ${tinyformat_Include})
-set(univaluelib
-    ${CMAKE_BINARY_DIR}/lib/libunivalue.a
-)
-set_source_files_properties(${univaluelib} PROPERTIES GENERATED TRUE)
 
 set(TIMELORDLIB_SRCS
     ./src/timelord_utils.cpp
@@ -69,10 +63,9 @@ set(TIMELORD_SRCS
     ${TIMELORDLIB_SRCS}
 )
 
-message(STATUS "univaluelib: ${univaluelib}")
-
 add_executable(timelord ${TIMELORD_SRCS} ${SQLITE3_WRAP_SRCS} ${WEB_SERVICE_SRCS})
-target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
+add_dependencies(timelord gears bhd_vdf)
+target_include_directories(timelord PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src ${UniValue_Include} ${tinyformat_Include})
 target_link_libraries(timelord PRIVATE
     bhd_vdf
     gears
@@ -83,7 +76,7 @@ target_link_libraries(timelord PRIVATE
     CURL::libcurl
     unofficial::sqlite3::sqlite3
     Boost::url
-    ${univaluelib}
+    ${UniValue_Lib}
 )
 
 set(TIMELORD_CLIENT_SRCS
@@ -93,7 +86,8 @@ set(TIMELORD_CLIENT_SRCS
 )
 
 add_library(timelord_client ${TIMELORD_CLIENT_SRCS})
-target_include_directories(timelord_client PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
+add_dependencies(timelord_client gears bhd_vdf)
+target_include_directories(timelord_client PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src ${UniValue_Include} ${tinyformat_Include})
 target_link_libraries(timelord_client PRIVATE JsonCpp::JsonCpp)
 
 if (BUILD_TEST)
@@ -107,7 +101,8 @@ if (BUILD_TEST)
             ./src/${TEST_TARGET_NAME}.cpp
         )
         add_executable(${TEST_TARGET_NAME} ${TEST_SRCS})
-        target_include_directories(${TEST_TARGET_NAME} PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src)
+        add_dependencies(${TEST_TARGET_NAME} gears bhd_vdf)
+        target_include_directories(${TEST_TARGET_NAME} PRIVATE ${bhd_vdf_SOURCE_DIR}/src ${gears_SOURCE_DIR}/src ${UniValue_Include} ${tinyformat_Include})
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE
             bhd_vdf
             gears
@@ -118,7 +113,7 @@ if (BUILD_TEST)
             CURL::libcurl
             unofficial::sqlite3::sqlite3
             Boost::url
-            ${univaluelib}
+            ${UniValue_Lib}
         )
         add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
     endfunction()
