@@ -4,10 +4,10 @@
 #include "rank_record.h"
 #include "rpc_client.h"
 
-class MinerRankQuerier
+class MinerRPCRankQuerier
 {
 public:
-    MinerRankQuerier(RPCClient& rpc, int from_height)
+    MinerRPCRankQuerier(RPCClient& rpc, int from_height)
         : rpc_(rpc)
         , from_height_(from_height)
     {

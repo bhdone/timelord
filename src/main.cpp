@@ -16,7 +16,7 @@
 
 #include "block_info_sqlite_saver.hpp"
 #include "last_block_info_querier.hpp"
-#include "miner_rank_querier.hpp"
+#include "miner_rpc_rank_querier.hpp"
 #include "missing_block_importer.hpp"
 #include "netspace_querier.hpp"
 #include "num_heights_by_hours_querier.hpp"
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, false), status_querier, MinerRankQuerier(rpc, rank_from_height));
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, false), status_querier, MinerRPCRankQuerier(rpc, rank_from_height));
         web_service.Run();
 
         // start timelord
