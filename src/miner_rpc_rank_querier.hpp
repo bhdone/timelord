@@ -1,6 +1,9 @@
 #ifndef MINER_RANK_QUERIER_HPP
 #define MINER_RANK_QUERIER_HPP
 
+#include <tuple>
+#include <vector>
+
 #include "rank_record.h"
 #include "rpc_client.h"
 
@@ -13,23 +16,20 @@ public:
     {
     }
 
-    RankRecord operator()() const
+    std::tuple<std::vector<RankRecord>, int> operator()() const
     {
+        std::vector<RankRecord> ranks;
         auto res = rpc_.Call("countblockowners", std::to_string(from_height_));
-        RankRecord rank;
         auto keys = res.result.getKeys();
         for (auto const& key : keys) {
-            if (key == "begin") {
-                rank.begin_height = res.result["begin"].get_int64();
-            } else if (key == "end") {
-                rank.end_height = res.result["end"].get_int64();
-            } else if (key == "count") {
-                rank.count = res.result["count"].get_int64();
-            } else {
-                rank.entries.insert(std::make_pair(key, res.result[key].get_int64()));
+            if (key != "begin" && key != "end" && key != "count") {
+                RankRecord rank;
+                rank.address = key;
+                rank.produced_blocks = res.result[key].get_int64();
+                ranks.push_back(std::move(rank));
             }
         }
-        return rank;
+        return std::make_tuple(ranks, from_height_);
     }
 
 private:

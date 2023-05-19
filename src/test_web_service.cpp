@@ -122,7 +122,7 @@ TEST_F(WebServiceTest, FullTests)
             []() -> TimelordStatus {
                 return {};
             },
-            []() -> RankRecord {
+            []() -> std::tuple<std::vector<RankRecord>, int> {
                 return {};
             });
     service.Run();

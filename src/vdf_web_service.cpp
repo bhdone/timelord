@@ -241,25 +241,20 @@ http::message_generator VDFWebService::Handle_API_Rank(http::request<http::strin
 {
     Json::Value res_json;
 
-    auto rank = rank_querier_();
-    res_json["begin_height"] = rank.begin_height;
-    res_json["end_height"] = rank.end_height;
-    res_json["count"] = rank.count;
+    auto [ranks, begin_height] = rank_querier_();
+    res_json["begin_height"] = begin_height;
+    res_json["end_height"] = 0;
+    res_json["count"] = 0;
 
-    // prepare by sorting the rank entries
-    std::vector<std::pair<std::string, int>> sort_entries;
-    for (auto const& entry : rank.entries) {
-        sort_entries.push_back(entry);
-    }
-    std::sort(std::begin(sort_entries), std::end(sort_entries), [](std::pair<std::string, int> const& lhs, std::pair<std::string, int> const& rhs) {
-        return lhs.second > rhs.second;
+    std::sort(std::begin(ranks), std::end(ranks), [](auto const& lhs, auto const& rhs) {
+        return lhs.produced_blocks > rhs.produced_blocks;
     });
 
     Json::Value entries_json(Json::arrayValue);
-    for (auto const& entry : sort_entries) {
+    for (auto const& entry : ranks) {
         Json::Value entry_json;
-        entry_json["address"] = entry.first;
-        entry_json["count"] = entry.second;
+        entry_json["address"] = entry.address;
+        entry_json["count"] = entry.produced_blocks;
         entries_json.append(std::move(entry_json));
     }
     res_json["entries"] = entries_json;

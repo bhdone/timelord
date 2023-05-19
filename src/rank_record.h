@@ -1,14 +1,15 @@
 #ifndef RANK_RECORD_H
 #define RANK_RECORD_H
 
-#include <map>
+#include <vector>
 #include <string>
 
 struct RankRecord {
-    int begin_height;
-    int end_height;
-    int count;
-    std::map<std::string, int> entries;
+    std::string address;
+    int participated_blocks;
+    int produced_blocks;
+    uint64_t average_difficulty;
+    uint64_t total_reward;
 };
 
 #endif
