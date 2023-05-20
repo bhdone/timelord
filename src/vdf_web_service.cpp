@@ -239,9 +239,14 @@ http::message_generator VDFWebService::Handle_API_Netspace(http::request<http::s
 
 http::message_generator VDFWebService::Handle_API_Rank(http::request<http::string_body> const& request)
 {
+    auto [hours_str, ok] = ParseUrlParameter(request.target(), "hours");
+    int hours{0};
+    if (ok) {
+        hours = std::atoi(hours_str.c_str());
+    }
     Json::Value res_json;
 
-    auto [ranks, begin_height] = rank_querier_();
+    auto [ranks, begin_height] = rank_querier_(hours);
     res_json["begin_height"] = begin_height;
 
     std::sort(std::begin(ranks), std::end(ranks), [](auto const& lhs, auto const& rhs) {

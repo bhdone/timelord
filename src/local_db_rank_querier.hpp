@@ -14,9 +14,18 @@ public:
     {
     }
 
-    std::tuple<std::vector<RankRecord>, int> operator()() const {
-        auto ranks = db_.QueryRank(start_height_, count_);
-        return std::make_tuple(ranks, start_height_);
+    std::tuple<std::vector<RankRecord>, int> operator()(int hours) const
+    {
+        if (hours == 0) {
+            auto ranks = db_.QueryRank(start_height_, count_);
+            return std::make_tuple(ranks, start_height_);
+        } else {
+            int num_heights = db_.QueryNumHeightsByTimeRange(hours);
+            int curr_height = db_.QueryLastBlockHeight();
+            int start_height = curr_height - num_heights;
+            auto ranks = db_.QueryRank(start_height, count_);
+            return std::make_tuple(ranks, start_height);
+        }
     }
 
 private:

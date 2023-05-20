@@ -147,6 +147,15 @@ std::vector<BlockInfo> LocalSQLiteStorage::QueryBlocksRange(int num_heights)
     return blocks;
 }
 
+int LocalSQLiteStorage::QueryLastBlockHeight()
+{
+    auto stmt = sql3_.Prepare("select height from blocks order by height desc limit 1");
+    if (stmt.StepNext()) {
+        return stmt.GetColumnInt64(0);
+    }
+    return -1; // cannot find any record from table `block`
+}
+
 int LocalSQLiteStorage::QueryNumHeightsByTimeRange(int hours)
 {
     int begin_height, end_height;

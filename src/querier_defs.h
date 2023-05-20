@@ -22,6 +22,6 @@ using VDFPackByChallengeQuerierType = std::function<VDFRecordPack(uint256 const&
 
 using NetspaceQuerierType = std::function<std::vector<NetspaceData>(int num_heights)>;
 
-using RankQuerierType = std::function<std::tuple<std::vector<RankRecord>, int>()>;
+using RankQuerierType = std::function<std::tuple<std::vector<RankRecord>, int>(int hours)>;
 
 #endif

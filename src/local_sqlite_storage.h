@@ -36,6 +36,8 @@ public:
 
     std::vector<BlockInfo> QueryBlocksRange(int num_heights);
 
+    int QueryLastBlockHeight();
+
     int QueryNumHeightsByTimeRange(int hours);
 
     std::vector<NetspaceData> QueryNetspace(int num_heights, bool sum_netspace);
