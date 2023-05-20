@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
             ("min-height", "The minimal height for importing blocks from the chain, only when local db is empty", cxxopts::value<int>()->default_value("200000")) // --min-height
             ("skip-import-check", "The importing procedure will import all blocks from the chain since min-height") // --skip-import-check
             ("skip-host-detection", "Do not detect the host cause sometimes you are under the stupid GTFW") // --skip-host-detection
-            ("rank-from-height", "The summary of miner rank will count since the height", cxxopts::value<int>()->default_value("200000")) // --rank-from-height
+            ("fork-height", "The number of height of the hard-fork of the chain", cxxopts::value<int>()->default_value("200000")) // --fork-height
             ;
     auto parse_result = opts.parse(argc, argv);
     if (parse_result.count("help")) {
@@ -116,15 +116,15 @@ int main(int argc, char* argv[])
         int num_imported = ImportMissingBlocks(BlockInfoRangeLocalDBQuerier(db), BlockInfoRangeRPCQuerier(rpc), BlockInfoSQLiteSaver(db), min_height, force_from_min_height);
         PLOGI << tinyformat::format("total %d blocks are imported", num_imported);
 
-        auto rank_from_height = parse_result["rank-from-height"].as<int>();
+        auto fork_height = parse_result["fork-height"].as<int>();
 
         // prepare status querier
         bool skip_host_detection = parse_result.count("skip-host-detection") > 0;
-        StandardStatusQuerier status_querier(LastBlockInfoQuerier(rpc), VDFPackByChallengeQuerier(db), LocalDBNetspaceRangeQuerier(db, rank_from_height), timelord, !skip_host_detection);
+        StandardStatusQuerier status_querier(LastBlockInfoQuerier(rpc), VDFPackByChallengeQuerier(db), LocalDBNetspaceRangeQuerier(db, fork_height), timelord, !skip_host_detection);
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, rank_from_height, 10));
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, fork_height, 10));
         web_service.Run();
 
         // start timelord
