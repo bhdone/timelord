@@ -16,6 +16,7 @@
 
 #include "block_info_sqlite_saver.hpp"
 #include "last_block_info_querier.hpp"
+#include "local_db_netspace_range_querier.hpp"
 #include "local_db_rank_querier.hpp"
 #include "missing_block_importer.hpp"
 #include "netspace_querier.hpp"
@@ -115,11 +116,11 @@ int main(int argc, char* argv[])
         int num_imported = ImportMissingBlocks(BlockInfoRangeLocalDBQuerier(db), BlockInfoRangeRPCQuerier(rpc), BlockInfoSQLiteSaver(db), min_height, force_from_min_height);
         PLOGI << tinyformat::format("total %d blocks are imported", num_imported);
 
+        auto rank_from_height = parse_result["rank-from-height"].as<int>();
+
         // prepare status querier
         bool skip_host_detection = parse_result.count("skip-host-detection") > 0;
-        StandardStatusQuerier status_querier(LastBlockInfoQuerier(rpc), VDFPackByChallengeQuerier(db), timelord, !skip_host_detection);
-
-        auto rank_from_height = parse_result["rank-from-height"].as<int>();
+        StandardStatusQuerier status_querier(LastBlockInfoQuerier(rpc), VDFPackByChallengeQuerier(db), LocalDBNetspaceRangeQuerier(db, rank_from_height), timelord, !skip_host_detection);
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);

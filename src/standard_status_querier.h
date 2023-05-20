@@ -11,13 +11,14 @@ class Timelord;
 class StandardStatusQuerier
 {
 public:
-    StandardStatusQuerier(LastBlockInfoQuerierType last_block_querier, VDFPackByChallengeQuerierType vdf_pack_querier, Timelord const& timelord, bool detect_hostip);
+    StandardStatusQuerier(LastBlockInfoQuerierType last_block_querier, VDFPackByChallengeQuerierType vdf_pack_querier, NetspaceRangeQuerierType netspace_range_querier, Timelord const& timelord, bool detect_hostip);
 
     TimelordStatus operator()() const;
 
 private:
     LastBlockInfoQuerierType last_block_querier_;
     VDFPackByChallengeQuerierType vdf_pack_querier_;
+    NetspaceRangeQuerierType netspace_range_querier_;
     Timelord const& timelord_;
 
     bool detect_hostip_;

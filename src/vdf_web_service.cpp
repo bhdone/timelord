@@ -95,6 +95,8 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     status_value["height"] = status.height;
     status_value["iters_per_sec"] = status.iters_per_sec;
     status_value["total_size"] = status.total_size;
+    status_value["max_size"] = status.max_size;
+    status_value["min_size"] = status.min_size;
     status_value["num_connections"] = status.num_connections;
     status_value["status_string"] = status.status_string;
 

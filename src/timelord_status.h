@@ -14,6 +14,8 @@ struct TimelordStatus {
     int height;
     int iters_per_sec;
     uint64_t total_size;
+    uint64_t max_size;
+    uint64_t min_size;
     int num_connections;
     std::string status_string;
     BlockInfo last_block_info;

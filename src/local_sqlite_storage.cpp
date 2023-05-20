@@ -23,7 +23,8 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
     sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
     sql3_.ExecuteSQL("create index if not exists blocks_height on blocks (height)");
     sql3_.ExecuteSQL("create index if not exists blocks_address on blocks (address)");
-    sql3_.ExecuteSQL("create table if not exists blocks_with_netspace_summary as select hash, timestamp, blocks.challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed, sum(total_size) as netspace from blocks left join vdf_requests on blocks.challenge = vdf_requests.challenge group by hash order by height desc");
+    sql3_.ExecuteSQL("drop table if exists blocks_with_netspace_summary");
+    sql3_.ExecuteSQL("create table if not exists blocks_with_netspace_summary as select hash, timestamp, blocks.challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed, sum(total_size) as netspace from blocks left join vdf_requests on blocks.challenge = vdf_requests.challenge group by blocks.challenge order by height desc");
 }
 
 void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
@@ -216,4 +217,16 @@ std::vector<RankRecord> LocalSQLiteStorage::QueryRank(int from_height, int count
         res.push_back(std::move(rank));
     }
     return res;
+}
+
+std::pair<uint64_t, uint64_t> LocalSQLiteStorage::QueryNetspaceRange(int from_height)
+{
+    auto stmt = sql3_.Prepare("select max(netspace), min(netspace) from blocks_with_netspace_summary where height >= ?");
+    stmt.Bind(1, from_height);
+    if (!stmt.StepNext()) {
+        return std::make_pair(0, 0);
+    }
+    uint64_t max = stmt.GetColumnInt64(0);
+    uint64_t min = stmt.GetColumnInt64(1);
+    return std::make_pair(max, min);
 }

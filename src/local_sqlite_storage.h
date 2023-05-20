@@ -44,6 +44,8 @@ public:
 
     std::vector<RankRecord> QueryRank(int from_height, int count);
 
+    std::pair<uint64_t, uint64_t> QueryNetspaceRange(int from_height);
+
 private:
     SQLite sql3_;
 };
