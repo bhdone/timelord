@@ -240,7 +240,7 @@ http::message_generator VDFWebService::Handle_API_Netspace(http::request<http::s
 http::message_generator VDFWebService::Handle_API_Rank(http::request<http::string_body> const& request)
 {
     auto [hours_str, ok] = ParseUrlParameter(request.target(), "hours");
-    int hours{0};
+    int hours { 0 };
     if (ok) {
         hours = std::atoi(hours_str.c_str());
     }
