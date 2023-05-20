@@ -27,6 +27,7 @@ TimelordStatus StandardStatusQuerier::operator()() const
     auto timelord_status = timelord_.QueryStatus();
     status.hostip = hostip_.empty() ? "unavailable" : hostip_;
     status.challenge = timelord_status.challenge;
+    status.difficulty = timelord_status.difficulty;
     status.height = timelord_status.height;
     status.iters_per_sec = timelord_status.iters_per_sec;
     status.total_size = timelord_status.total_size;

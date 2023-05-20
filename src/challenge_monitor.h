@@ -19,7 +19,7 @@ class ChallengeMonitor
 public:
     enum class Status { NO_ERROR = 0, RPC_ERROR, OTHER_ERROR };
 
-    using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge, int height)>;
+    using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty)>;
 
     ChallengeMonitor(asio::io_context& ioc, RPCClient& rpc, int interval_seconds);
 

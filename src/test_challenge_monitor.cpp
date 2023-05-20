@@ -60,8 +60,8 @@ TEST_F(ChallengeMonitorTest, Base)
     bool done { false };
     std::mutex m;
     std::condition_variable cv;
-    SetNewChallengeHandler([&m, &done, &cv](uint256 const& old_challenge, uint256 const& new_challenge, int height) {
-        PLOGD << "received new challenge: " << Uint256ToHex(new_challenge) << ", old one: " << Uint256ToHex(old_challenge) << ", height: " << height;
+    SetNewChallengeHandler([&m, &done, &cv](uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty) {
+        PLOGD << "received new challenge: " << Uint256ToHex(new_challenge) << ", old one: " << Uint256ToHex(old_challenge) << ", height: " << height << ", difficulty: " << difficulty;
         EXPECT_TRUE(IsZero(old_challenge));
         {
             std::lock_guard<std::mutex> lg(m);

@@ -48,9 +48,9 @@ class Timelord
     };
 
 public:
-    struct Status
-    {
+    struct Status {
         uint256 challenge;
+        uint64_t difficulty;
         int height;
         uint64_t iters_per_sec;
         uint64_t total_size;
@@ -67,7 +67,7 @@ public:
     Status QueryStatus() const;
 
 private:
-    void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height);
+    void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty);
 
     void HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession);
 
@@ -89,7 +89,8 @@ private:
     std::map<uint256, std::vector<ChallengeRequestSession>> challenge_reqs_;
 
     ChallengeMonitor challenge_monitor_;
-    int height_{0};
+    int height_ { 0 };
+    uint64_t difficulty_ { 0 };
 
     vdf_client::VdfClientMan vdf_client_man_;
 

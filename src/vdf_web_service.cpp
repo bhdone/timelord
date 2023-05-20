@@ -92,6 +92,7 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     Json::Value status_value;
     status_value["server_ip"] = status.hostip;
     status_value["challenge"] = Uint256ToHex(status.challenge);
+    status_value["difficulty"] = status.difficulty;
     status_value["height"] = status.height;
     status_value["iters_per_sec"] = status.iters_per_sec;
     status_value["total_size"] = status.total_size;

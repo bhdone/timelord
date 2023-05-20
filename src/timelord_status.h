@@ -11,6 +11,7 @@
 struct TimelordStatus {
     std::string hostip;
     uint256 challenge;
+    uint64_t difficulty;
     int height;
     int iters_per_sec;
     uint64_t total_size;

@@ -13,6 +13,7 @@ using boost::system::error_code;
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
+using std::placeholders::_4;
 
 static int const SECS_TO_WAIT_BEFORE_CLOSE_VDF = 5;
 
@@ -101,7 +102,7 @@ Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_c
         throw std::runtime_error(fmt::format("the full path to `vdf_client' is incorrect, path={}", vdf_client_path));
     }
     vdf_client_man_.SetProofReceiver(std::bind(&Timelord::HandleVdfClient_ProofIsReceived, this, _1, _2));
-    challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2, _3));
+    challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2, _3, _4));
     msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::CALC), std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleFrontEnd_NewSessionConnected, this, _1));
     frontend_.SetMessageHandler(msg_dispatcher_);
@@ -130,6 +131,7 @@ Timelord::Status Timelord::QueryStatus() const
 {
     Status status;
     status.challenge = challenge_monitor_.GetCurrentChallenge();
+    status.difficulty = difficulty_;
     status.height = height_;
     status.iters_per_sec = iters_per_sec_;
     status.num_connections = frontend_.GetNumOfSessions();
@@ -148,11 +150,12 @@ Timelord::Status Timelord::QueryStatus() const
     return status;
 }
 
-void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height)
+void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty)
 {
     PLOGI << tinyformat::format("challenge is changed to %s, height=%d", Uint256ToHex(new_challenge), height);
 
     height_ = height;
+    difficulty_ = difficulty;
     netspace_.clear();
 
     auto ptimer = std::make_shared<asio::steady_timer>(ioc_);
