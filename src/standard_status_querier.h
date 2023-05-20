@@ -8,10 +8,6 @@
 class BlockQuerier;
 class Timelord;
 
-class LocalSQLiteStorage;
-template <typename Storage> class LocalDatabaseKeeper;
-using LocalSQLiteDatabaseKeeper = LocalDatabaseKeeper<LocalSQLiteStorage>;
-
 class StandardStatusQuerier
 {
 public:
