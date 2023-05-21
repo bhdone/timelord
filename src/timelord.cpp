@@ -219,7 +219,11 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
                 request.estimated_seconds = iters_per_sec_ > 0 ? req.iters / iters_per_sec_ : 0;
                 request.group_hash = req.group_hash;
                 request.total_size = req.total_size;
-                persist_operator_.AppendRequest(request);
+                try {
+                    persist_operator_.AppendRequest(request);
+                } catch (std::exception const& e) {
+                    PLOGE << tinyformat::format("cannot save the request(group_hash: %s): %s", Uint256ToHex(req.group_hash), e.what());
+                }
             }
         }
     }
@@ -304,7 +308,11 @@ void Timelord::HandleFrontEnd_SessionRequestChallenge(FrontEndSessionPtr psessio
             request.estimated_seconds = iters_per_sec_ > 0 ? iters / iters_per_sec_ : 0;
             request.group_hash = group_hash;
             request.total_size = total_size;
-            persist_operator_.AppendRequest(request);
+            try {
+                persist_operator_.AppendRequest(request);
+            } catch (std::exception const& e) {
+                PLOGE << tinyformat::format("cannot save request(group_hash: %s): %s", Uint256ToHex(group_hash), e.what());
+            }
         }
     }
 
