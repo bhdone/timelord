@@ -19,17 +19,13 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
 
     sql3_.ExecuteSQL("create table if not exists vdf_requests (challenge, iters, estimated_seconds, group_hash, total_size)");
     sql3_.ExecuteSQL("create index if not exists vdf_requests_challenge on vdf_requests (challenge)");
+    sql3_.ExecuteSQL("create unique index if not exists vdf_requests_challenge_group_hash on vdf_requests (challenge, group_hash)");
 
     sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
     sql3_.ExecuteSQL("create index if not exists blocks_height on blocks (height)");
     sql3_.ExecuteSQL("create index if not exists blocks_address on blocks (address)");
     sql3_.ExecuteSQL("drop table if exists blocks_with_netspace_summary");
     sql3_.ExecuteSQL("create table if not exists blocks_with_netspace_summary as select hash, timestamp, blocks.challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed, sum(total_size) as netspace from blocks left join vdf_requests on blocks.challenge = vdf_requests.challenge group by blocks.challenge order by height desc");
-
-    // remove duplicated requests and trying to make an unique index
-    while (RemoveDuplicatedRequests() > 0)
-        ;
-    sql3_.ExecuteSQL("create unique index if not exists vdf_requests_challenge_group_hash on vdf_requests (challenge, group_hash)");
 }
 
 void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
@@ -234,23 +230,4 @@ std::pair<uint64_t, uint64_t> LocalSQLiteStorage::QueryNetspaceRange(int from_he
     uint64_t max = stmt.GetColumnInt64(0);
     uint64_t min = stmt.GetColumnInt64(1);
     return std::make_pair(max, min);
-}
-
-int LocalSQLiteStorage::RemoveDuplicatedRequests()
-{
-    std::vector<uint64_t> rowids;
-    {
-        auto stmt = sql3_.Prepare("select ROWID, challenge, group_hash, count(*) as c from vdf_requests group by challenge, group_hash having c > 1");
-        while (stmt.StepNext()) {
-            rowids.push_back(stmt.GetColumnInt64(0));
-        }
-    }
-    {
-        for (uint64_t rowid : rowids) {
-            auto stmt = sql3_.Prepare("delete from vdf_requests where ROWID = ?");
-            stmt.Bind(1, rowid);
-            stmt.Run();
-        }
-    }
-    return rowids.size();
 }

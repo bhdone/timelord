@@ -46,8 +46,6 @@ public:
 
     std::pair<uint64_t, uint64_t> QueryNetspaceRange(int from_height);
 
-    int RemoveDuplicatedRequests();
-
 private:
     SQLite sql3_;
 };
