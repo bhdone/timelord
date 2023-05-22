@@ -24,7 +24,6 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
     sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
     sql3_.ExecuteSQL("create index if not exists blocks_height on blocks (height)");
     sql3_.ExecuteSQL("create index if not exists blocks_address on blocks (address)");
-    sql3_.ExecuteSQL("drop table if exists blocks_with_netspace_summary");
     sql3_.ExecuteSQL("create temporary view if not exists blocks_with_netspace_summary as select hash, timestamp, blocks.challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed, sum(total_size) as netspace from blocks left join vdf_requests on blocks.challenge = vdf_requests.challenge group by blocks.challenge order by height desc");
 }
 
