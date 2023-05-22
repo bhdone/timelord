@@ -22,9 +22,9 @@ LocalSQLiteStorage::LocalSQLiteStorage(std::string_view file_path)
     sql3_.ExecuteSQL("create unique index if not exists vdf_requests_challenge_group_hash on vdf_requests (challenge, group_hash)");
 
     sql3_.ExecuteSQL("create table if not exists blocks (hash primary key, timestamp, challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed)");
+    sql3_.ExecuteSQL("create index if not exists blocks_challenge on blocks (challenge)");
     sql3_.ExecuteSQL("create index if not exists blocks_height on blocks (height)");
     sql3_.ExecuteSQL("create index if not exists blocks_address on blocks (address)");
-    sql3_.ExecuteSQL("create temporary view if not exists blocks_with_netspace_summary as select hash, timestamp, blocks.challenge, height, filter_bits, block_difficulty, challenge_difficulty, farmer_pk, address, reward, accumulate, vdf_time, vdf_iters, vdf_speed, sum(total_size) as netspace from blocks left join vdf_requests on blocks.challenge = vdf_requests.challenge group by blocks.challenge order by height desc");
 }
 
 void LocalSQLiteStorage::Save(VDFRecordPack const& pack)
@@ -185,7 +185,7 @@ int LocalSQLiteStorage::QueryNumHeightsByTimeRange(int hours)
 std::vector<NetspaceData> LocalSQLiteStorage::QueryNetspace(int num_heights, bool sum_netspace)
 {
     std::vector<NetspaceData> results;
-    char const* SZ_QUERY_NETSPACE_SUM_NETSPACE = "select height, challenge_difficulty, block_difficulty, netspace from blocks_with_netspace_summary order by height desc limit ?";
+    char const* SZ_QUERY_NETSPACE_SUM_NETSPACE = "select blocks.height, blocks.challenge_difficulty, blocks.block_difficulty, sum(vdf_requests.total_size) from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge group by blocks.challenge order by blocks.height desc limit ?";
     char const* SZ_QUERY_NETSPACE = "select height, challenge_difficulty, block_difficulty, 0 from blocks order by height desc limit ?";
     std::string sql_str = sum_netspace ? SZ_QUERY_NETSPACE_SUM_NETSPACE : SZ_QUERY_NETSPACE;
     auto stmt = sql3_.Prepare(sql_str);
@@ -219,14 +219,31 @@ std::vector<RankRecord> LocalSQLiteStorage::QueryRank(int from_height, int count
     return res;
 }
 
+uint64_t QueryMaxNetspace(SQLite& sql3, int from_height)
+{
+    char const* SZ_QUERY_NETSPACE_MAX_SUM_NETSPACE = "select sum(vdf_requests.total_size) as s from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge where blocks.height >= ? group by blocks.challenge order by s desc limit 1";
+    auto stmt = sql3.Prepare(SZ_QUERY_NETSPACE_MAX_SUM_NETSPACE);
+    stmt.Bind(1, from_height);
+    if (stmt.StepNext()) {
+        return stmt.GetColumnInt64(0);
+    }
+    return 0;
+}
+
+uint64_t QueryMinNetspace(SQLite& sql3, int from_height)
+{
+    char const* SZ_QUERY_NETSPACE_MIN_SUM_NETSPACE = "select sum(vdf_requests.total_size) as s from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge where blocks.height >= ? group by blocks.challenge order by s limit 1";
+    auto stmt = sql3.Prepare(SZ_QUERY_NETSPACE_MIN_SUM_NETSPACE);
+    stmt.Bind(1, from_height);
+    if (stmt.StepNext()) {
+        return stmt.GetColumnInt64(0);
+    }
+    return 0;
+}
+
 std::pair<uint64_t, uint64_t> LocalSQLiteStorage::QueryNetspaceRange(int from_height)
 {
-    auto stmt = sql3_.Prepare("select max(netspace), min(netspace) from blocks_with_netspace_summary where height >= ?");
-    stmt.Bind(1, from_height);
-    if (!stmt.StepNext()) {
-        return std::make_pair(0, 0);
-    }
-    uint64_t max = stmt.GetColumnInt64(0);
-    uint64_t min = stmt.GetColumnInt64(1);
+    uint64_t max = QueryMaxNetspace(sql3_, from_height);
+    uint64_t min = QueryMinNetspace(sql3_, from_height);
     return std::make_pair(max, min);
 }
