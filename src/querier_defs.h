@@ -24,6 +24,6 @@ using NetspaceQuerierType = std::function<std::vector<NetspaceData>(int num_heig
 
 using RankQuerierType = std::function<std::tuple<std::vector<RankRecord>, int>(int hours)>;
 
-using NetspaceRangeQuerierType = std::function<std::pair<uint64_t, uint64_t>(int hours)>;
+using NetspaceSizeQuerierType = std::function<uint64_t(int hours, int best_height)>;
 
 #endif

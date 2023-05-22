@@ -219,31 +219,26 @@ std::vector<RankRecord> LocalSQLiteStorage::QueryRank(int from_height, int count
     return res;
 }
 
-uint64_t QueryMaxNetspace(SQLite& sql3, int from_height)
+uint64_t LocalSQLiteStorage::QueryMaxNetspace(int from_height, int best_height)
 {
-    char const* SZ_QUERY_NETSPACE_MAX_SUM_NETSPACE = "select sum(vdf_requests.total_size) as s from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge where blocks.height >= ? group by blocks.challenge order by s desc limit 1";
-    auto stmt = sql3.Prepare(SZ_QUERY_NETSPACE_MAX_SUM_NETSPACE);
+    char const* SZ_QUERY_NETSPACE_MAX_SUM_NETSPACE = "select sum(vdf_requests.total_size) as s from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge where blocks.height >= ? and blocks.height < ? group by blocks.challenge order by s desc limit 1";
+    auto stmt = sql3_.Prepare(SZ_QUERY_NETSPACE_MAX_SUM_NETSPACE);
     stmt.Bind(1, from_height);
+    stmt.Bind(2, best_height);
     if (stmt.StepNext()) {
         return stmt.GetColumnInt64(0);
     }
     return 0;
 }
 
-uint64_t QueryMinNetspace(SQLite& sql3, int from_height)
+uint64_t LocalSQLiteStorage::QueryMinNetspace(int from_height, int best_height)
 {
-    char const* SZ_QUERY_NETSPACE_MIN_SUM_NETSPACE = "select sum(vdf_requests.total_size) as s from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge where blocks.height >= ? group by blocks.challenge order by s limit 1";
-    auto stmt = sql3.Prepare(SZ_QUERY_NETSPACE_MIN_SUM_NETSPACE);
+    char const* SZ_QUERY_NETSPACE_MIN_SUM_NETSPACE = "select sum(vdf_requests.total_size) as s from blocks left join vdf_requests on vdf_requests.challenge = blocks.challenge where blocks.height >= ? and blocks.height < ? group by blocks.challenge order by s limit 1";
+    auto stmt = sql3_.Prepare(SZ_QUERY_NETSPACE_MIN_SUM_NETSPACE);
     stmt.Bind(1, from_height);
+    stmt.Bind(2, best_height);
     if (stmt.StepNext()) {
         return stmt.GetColumnInt64(0);
     }
     return 0;
-}
-
-std::pair<uint64_t, uint64_t> LocalSQLiteStorage::QueryNetspaceRange(int from_height)
-{
-    uint64_t max = QueryMaxNetspace(sql3_, from_height);
-    uint64_t min = QueryMinNetspace(sql3_, from_height);
-    return std::make_pair(max, min);
 }
