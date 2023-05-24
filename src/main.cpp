@@ -94,8 +94,11 @@ int main(int argc, char* argv[])
             rpc_password = parse_result["rpc-password"].as<std::string>();
         }
 
+        bool mainnet = parse_result.count("mainnet") > 0;
+
         asio::io_context ioc;
         PLOGI << "initializing timelord...";
+        PLOGI << "network: " << (mainnet ? "mainnet" : "testnet3");
         PLOGI << "url: " << url;
         PLOGI << "cookie: " << cookie_path;
         PLOGI << "use_cookie: " << (use_cookie ? "yes" : "no");
@@ -111,7 +114,6 @@ int main(int argc, char* argv[])
         RPCClient rpc(true, url, std::move(login));
         Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, persist_operator, db);
 
-        bool mainnet = parse_result.count("mainnet") > 0;
         int fork_height = std::atoi(mainnet ? SZ_FORK_HEIGHT_MAINNET : SZ_FORK_HEIGHT_TESTNET);
 
         // before starting services, we need to import the missing blocks
