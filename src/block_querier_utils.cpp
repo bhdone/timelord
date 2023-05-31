@@ -32,22 +32,38 @@ BlockInfo ConvertToBlockInfo(UniValue const& block_json)
 {
     BlockInfo block_info;
     block_info.hash = Uint256FromHex(block_json["new best"].get_str());
-    block_info.challenge = Uint256FromHex(block_json["challenge"].get_str());
-    block_info.height = StrToInt(block_json["height"].get_str());
-    block_info.filter_bits = StrToInt(block_json["filter-bit"].get_str());
-    block_info.block_difficulty = StrToInt(block_json["block-difficulty"].get_str());
-    block_info.challenge_difficulty = StrToInt(block_json["challenge-diff"].get_str());
-    block_info.farmer_pk = BytesFromHex(block_json["farmer-pk"].get_str());
-    std::tie(block_info.vdf_iters, block_info.vdf_speed) = AnalyzeVdfInfo(block_json["vdf"].get_str());
-    block_info.vdf_time = block_json["vdf-time"].get_str();
-    // find the first tx and retrieve the reward info
-    auto txs_json = block_json["txs"];
-    if (!txs_json.isArray()) {
-        throw std::runtime_error("the type of txs is not an array");
+    if (block_json.exists("challenge")) {
+        block_info.challenge = Uint256FromHex(block_json["challenge"].get_str());
     }
-    auto tx_1_json = txs_json.getValues()[0];
-    block_info.address = tx_1_json["address"].get_str();
-    block_info.reward = tx_1_json["reward"].get_real();
-    block_info.accumulate = tx_1_json["accumulate"].get_real();
+    block_info.height = StrToInt(block_json["height"].get_str());
+    if (block_json.exists("filter-bit")) {
+        block_info.filter_bits = StrToInt(block_json["filter-bit"].get_str());
+    }
+    if (block_json.exists("block-difficulty")) {
+        block_info.block_difficulty = StrToInt(block_json["block-difficulty"].get_str());
+    }
+    if (block_json.exists("challenge-diff")) {
+        block_info.challenge_difficulty = StrToInt(block_json["challenge-diff"].get_str());
+    }
+    if (block_json.exists("farmer-pk")) {
+        block_info.farmer_pk = BytesFromHex(block_json["farmer-pk"].get_str());
+    }
+    if (block_json.exists("vdf")) {
+        std::tie(block_info.vdf_iters, block_info.vdf_speed) = AnalyzeVdfInfo(block_json["vdf"].get_str());
+    }
+    if (block_json.exists("vdf-time")) {
+        block_info.vdf_time = block_json["vdf-time"].get_str();
+    }
+    // find the first tx and retrieve the reward info
+    if (block_json.exists("txs")) {
+        auto txs_json = block_json["txs"];
+        if (!txs_json.isArray()) {
+            throw std::runtime_error("the type of txs is not an array");
+        }
+        auto tx_1_json = txs_json.getValues()[0];
+        block_info.address = tx_1_json["address"].get_str();
+        block_info.reward = tx_1_json["reward"].get_real();
+        block_info.accumulate = tx_1_json["accumulate"].get_real();
+    }
     return block_info;
 }
