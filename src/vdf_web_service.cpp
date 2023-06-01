@@ -142,8 +142,10 @@ http::message_generator VDFWebService::Handle_API_Summary(http::request<http::st
     for (int seg : segs) {
         summary.insert_or_assign(seg, 0);
     }
+    int total_duration { 0 };
     for (auto const& block : blocks) {
         int duration = block.vdf_iters / block.vdf_speed;
+        total_duration += duration;
         int min = duration / 60;
         if (duration % 60 > 0) {
             ++min;
@@ -161,6 +163,7 @@ http::message_generator VDFWebService::Handle_API_Summary(http::request<http::st
     res_json["hours"] = hours;
     res_json["high_height"] = blocks.front().height;
     res_json["low_height"] = blocks.back().height;
+    res_json["avg_duration"] = total_duration / blocks.size();
 
     Json::Value summary_json(Json::arrayValue);
     for (auto entry : summary) {
