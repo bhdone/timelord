@@ -129,12 +129,12 @@ http::message_generator VDFWebService::Handle_API_Summary(http::request<http::st
         return PrepareResponseWithError(http::status::bad_request, "missing parameter `hours=?`", request.version(), request.keep_alive());
     }
 
-    int hours = std::atoi(hours_str.data());
-    if (hours <= 0 || hours > 24 * 7) {
+    int pass_hours = std::atoi(hours_str.data());
+    if (pass_hours <= 0 || pass_hours > 24 * 7) {
         return PrepareResponseWithError(http::status::bad_request, "the value of `hours` is invalid", request.version(), request.keep_alive());
     }
 
-    int num_heights = num_heights_by_hours_querier_(hours);
+    int num_heights = num_heights_by_hours_querier_(pass_hours);
     auto blocks = block_info_range_querier_(num_heights);
 
     int segs[] = { 3, 10, 30, 60 };
@@ -160,7 +160,7 @@ http::message_generator VDFWebService::Handle_API_Summary(http::request<http::st
 
     Json::Value res_json;
     res_json["num_blocks"] = blocks.size();
-    res_json["hours"] = hours;
+    res_json["hours"] = pass_hours;
     res_json["high_height"] = blocks.front().height;
     res_json["low_height"] = blocks.back().height;
     res_json["avg_duration"] = total_duration / blocks.size();
@@ -200,14 +200,14 @@ http::message_generator VDFWebService::Handle_API_Netspace(http::request<http::s
         return PrepareResponseWithError(http::status::bad_request, "missing parameter `hours=?`", request.version(), request.keep_alive());
     }
 
-    int hours = std::atoi(hours_str.data());
-    if (hours <= 0 || hours > 24 * 7) {
+    int pass_hours = std::atoi(hours_str.data());
+    if (pass_hours <= 0 || pass_hours > 24 * 7) {
         return PrepareResponseWithError(http::status::bad_request, "the value of `hours` is invalid", request.version(), request.keep_alive());
     }
 
     Json::Value res_json;
 
-    int num_heights = num_heights_by_hours_querier_(hours);
+    int num_heights = num_heights_by_hours_querier_(pass_hours);
     auto data = netspace_querier_(num_heights);
     int const DATA_N = 1000;
     for (int i = DATA_N - 1; i >= 0; --i) {
@@ -245,13 +245,13 @@ http::message_generator VDFWebService::Handle_API_Netspace(http::request<http::s
 http::message_generator VDFWebService::Handle_API_Rank(http::request<http::string_body> const& request)
 {
     auto [hours_str, ok] = ParseUrlParameter(request.target(), "hours");
-    int hours { 0 };
+    int pass_hours { 0 };
     if (ok) {
-        hours = std::atoi(hours_str.c_str());
+        pass_hours = std::atoi(hours_str.c_str());
     }
     Json::Value res_json;
 
-    auto [ranks, begin_height] = rank_querier_(hours);
+    auto [ranks, begin_height] = rank_querier_(pass_hours);
     res_json["begin_height"] = begin_height;
 
     std::sort(std::begin(ranks), std::end(ranks), [](auto const& lhs, auto const& rhs) {

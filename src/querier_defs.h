@@ -16,14 +16,14 @@ using LastBlockInfoQuerierType = std::function<BlockInfo()>;
 
 using BlockInfoRangeQuerierType = std::function<std::vector<BlockInfo>(int num_heights)>;
 
-using NumHeightsByHoursQuerierType = std::function<int(int hours)>;
+using NumHeightsByHoursQuerierType = std::function<int(int pass_hours)>;
 
 using VDFPackByChallengeQuerierType = std::function<VDFRecordPack(uint256 const& challenge)>;
 
 using NetspaceQuerierType = std::function<std::vector<NetspaceData>(int num_heights)>;
 
-using RankQuerierType = std::function<std::tuple<std::vector<RankRecord>, int>(int hours)>;
+using RankQuerierType = std::function<std::tuple<std::vector<RankRecord>, int>(int pass_hours)>;
 
-using NetspaceSizeQuerierType = std::function<uint64_t(int hours, int best_height)>;
+using NetspaceSizeQuerierType = std::function<uint64_t(int pass_hours, int best_height)>;
 
 #endif
