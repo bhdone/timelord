@@ -9,18 +9,20 @@
 class NumHeightsByHoursQuerier
 {
 public:
-    explicit NumHeightsByHoursQuerier(LocalSQLiteStorage& storage)
+    NumHeightsByHoursQuerier(LocalSQLiteStorage& storage, int fork_height)
         : storage_(storage)
+        , fork_height_(fork_height)
     {
     }
 
-    int operator()(int hours) const
+    int operator()(int pass_hours) const
     {
-        return storage_.QueryNumHeightsByTimeRange(hours);
+        return storage_.QueryNumHeightsByTimeRange(pass_hours, fork_height_);
     }
 
 private:
     LocalSQLiteStorage& storage_;
+    int fork_height_;
 };
 
 #endif

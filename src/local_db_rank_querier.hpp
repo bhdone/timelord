@@ -7,30 +7,30 @@
 class LocalDBRankQuerier
 {
 public:
-    LocalDBRankQuerier(LocalSQLiteStorage& db, int start_height, int count)
+    LocalDBRankQuerier(LocalSQLiteStorage& db, int fork_height, int count)
         : db_(db)
-        , start_height_(start_height)
+        , fork_height_(fork_height)
         , count_(count)
     {
     }
 
-    std::tuple<std::vector<RankRecord>, int> operator()(int hours) const
+    std::tuple<std::vector<RankRecord>, int> operator()(int pass_hours) const
     {
-        if (hours == 0) {
-            auto ranks = db_.QueryRank(start_height_, count_);
-            return std::make_tuple(ranks, start_height_);
+        if (pass_hours == 0) {
+            auto ranks = db_.QueryRank(fork_height_, count_);
+            return std::make_tuple(ranks, fork_height_);
         } else {
-            int num_heights = db_.QueryNumHeightsByTimeRange(hours);
+            int num_heights = db_.QueryNumHeightsByTimeRange(pass_hours, fork_height_);
             int curr_height = db_.QueryLastBlockHeight();
-            int start_height = num_heights == -1 ? start_height_ : curr_height - num_heights;
-            auto ranks = db_.QueryRank(start_height, count_);
-            return std::make_tuple(ranks, start_height);
+            int fork_height = num_heights == -1 ? fork_height_ : curr_height - num_heights;
+            auto ranks = db_.QueryRank(fork_height, count_);
+            return std::make_tuple(ranks, fork_height);
         }
     }
 
 private:
     LocalSQLiteStorage& db_;
-    int start_height_;
+    int fork_height_;
     int count_;
 };
 

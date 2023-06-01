@@ -12,12 +12,12 @@ public:
     {
     }
 
-    uint64_t operator()(int hours, int best_height) const
+    uint64_t operator()(int pass_hours, int best_height) const
     {
-        if (hours == 0) {
+        if (pass_hours == 0) {
             return db_.QueryMaxNetspace(fork_height_, best_height);
         } else {
-            int num_heights = db_.QueryNumHeightsByTimeRange(hours);
+            int num_heights = db_.QueryNumHeightsByTimeRange(pass_hours, fork_height_);
             return db_.QueryMaxNetspace(num_heights, best_height);
         }
     }
@@ -36,12 +36,12 @@ public:
     {
     }
 
-    uint64_t operator()(int hours, int best_height) const
+    uint64_t operator()(int pass_hours, int best_height) const
     {
-        if (hours == 0) {
+        if (pass_hours == 0) {
             return db_.QueryMinNetspace(fork_height_, best_height);
         } else {
-            int num_heights = db_.QueryNumHeightsByTimeRange(hours);
+            int num_heights = db_.QueryNumHeightsByTimeRange(pass_hours, fork_height_);
             return db_.QueryMinNetspace(num_heights, best_height);
         }
     }
