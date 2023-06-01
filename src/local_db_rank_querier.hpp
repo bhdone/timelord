@@ -22,7 +22,7 @@ public:
         } else {
             int num_heights = db_.QueryNumHeightsByTimeRange(hours);
             int curr_height = db_.QueryLastBlockHeight();
-            int start_height = curr_height - num_heights;
+            int start_height = num_heights == -1 ? start_height_ : curr_height - num_heights;
             auto ranks = db_.QueryRank(start_height, count_);
             return std::make_tuple(ranks, start_height);
         }
