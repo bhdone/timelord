@@ -21,6 +21,7 @@
 #include "missing_block_importer.hpp"
 #include "netspace_querier.hpp"
 #include "num_heights_by_hours_querier.hpp"
+#include "supply_rpc_querier.hpp"
 #include "vdf_pack_by_challenge_querier.hpp"
 
 #include "vdf_web_service.h"
@@ -128,7 +129,7 @@ int main(int argc, char* argv[])
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db, fork_height), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, fork_height, 10));
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db, fork_height), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, fork_height, 10), SupplyRPCQuerier(rpc));
         web_service.Run();
 
         // start timelord

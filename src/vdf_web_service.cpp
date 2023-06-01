@@ -56,13 +56,14 @@ std::tuple<std::string, bool> ParseUrlParameter(std::string_view target, std::st
     return std::make_tuple((*it).value, true);
 }
 
-VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier)
+VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier)
     : web_service_(ioc, tcp::endpoint(asio::ip::address::from_string(std::string(addr)), port), expired_after_secs, std::bind(&VDFWebService::HandleRequest, this, _1))
     , num_heights_by_hours_querier_(std::move(num_heights_by_hours_querier))
     , block_info_range_querier_(std::move(block_info_range_querier))
     , netspace_querier_(std::move(netspace_querier))
     , status_querier_(std::move(status_querier))
     , rank_querier_(std::move(rank_querier))
+    , supply_querier_(std::move(supply_querier))
 {
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/summary"), std::bind(&VDFWebService::Handle_API_Summary, this, _1));
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/status"), std::bind(&VDFWebService::Handle_API_Status, this, _1));
@@ -117,6 +118,28 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     status_value["last_block_info"] = last_blk_info_value;
 
     status_value["vdf_pack"] = MakePackJson(status.vdf_pack);
+
+    Supply supply = supply_querier_();
+
+    Json::Value supply_json;
+    supply_json["dist_height"] = supply.dist_height;
+
+    Json::Value calc_json;
+    calc_json["height"] = supply.calc.height;
+    calc_json["burned"] = supply.calc.burned;
+    calc_json["total"] = supply.calc.total;
+    calc_json["actual"] = supply.calc.actual;
+
+    Json::Value last_json;
+    last_json["height"] = supply.last.height;
+    last_json["burned"] = supply.last.burned;
+    last_json["total"] = supply.last.total;
+    last_json["actual"] = supply.last.actual;
+
+    supply_json["calc"] = calc_json;
+    supply_json["last"] = last_json;
+
+    status_value["supply"] = supply_json;
 
     // prepare body
     return PrepareResponseWithContent(http::status::ok, status_value, request.version(), request.keep_alive());

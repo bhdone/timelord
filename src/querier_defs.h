@@ -7,6 +7,7 @@
 #include "block_info.h"
 #include "netspace_data.h"
 #include "rank_record.h"
+#include "supply_data.h"
 #include "timelord_status.h"
 #include "vdf_record.h"
 
@@ -25,5 +26,7 @@ using NetspaceQuerierType = std::function<std::vector<NetspaceData>(int num_heig
 using RankQuerierType = std::function<std::tuple<std::vector<RankRecord>, int>(int pass_hours)>;
 
 using NetspaceSizeQuerierType = std::function<uint64_t(int pass_hours, int best_height)>;
+
+using SupplyQuerierType = std::function<Supply()>;
 
 #endif

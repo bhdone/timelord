@@ -124,6 +124,9 @@ TEST_F(WebServiceTest, FullTests)
             },
             [](int) -> std::tuple<std::vector<RankRecord>, int> {
                 return {};
+            },
+            []() -> Supply {
+                return {};
             });
     service.Run();
 
