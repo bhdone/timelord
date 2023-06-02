@@ -49,28 +49,4 @@ private:
     RPCClient& rpc_;
 };
 
-/*
-    UniValue calcValue(UniValue::VOBJ);
-    calcValue.pushKV("request_height", nRequestedHeight);
-    calcValue.pushKV("calc_height", nHeightForCalculatingTotalSupply);
-    calcValue.pushKV("total_supplied", nTotalSupplied);
-    calcValue.pushKV("burned", nBurned);
-    calcValue.pushKV("actual_supplied", nActualAmount);
-
-    CAmount nLastBurned = view.GetAccountBalance(GetBurnToAccountID(), nullptr, nullptr, nullptr, &params.BHDIP009PledgeTerms, nLastHeight);
-    CAmount nLastTotalSupplied = GetTotalSupplyBeforeHeight(nLastHeight, params);
-    CAmount nLastActualAmount = nLastTotalSupplied - nLastBurned;
-
-    UniValue lastValue(UniValue::VOBJ);
-    lastValue.pushKV("last_height", nLastHeight);
-    lastValue.pushKV("total_supplied", nLastTotalSupplied);
-    lastValue.pushKV("burned", nLastBurned);
-    lastValue.pushKV("actual_supplied", nLastActualAmount);
-
-    UniValue resValue(UniValue::VOBJ);
-    resValue.pushKV("dist_height", params.BHDIP009CalculateDistributedAmountEveryHeights);
-    resValue.pushKV("calc", calcValue);
-    resValue.pushKV("last", lastValue);
-*/
-
 #endif
