@@ -6,6 +6,7 @@
 
 #include "block_info.h"
 #include "netspace_data.h"
+#include "pledge_info.h"
 #include "rank_record.h"
 #include "supply_data.h"
 #include "timelord_status.h"
@@ -28,5 +29,7 @@ using RankQuerierType = std::function<std::tuple<std::vector<RankRecord>, int>(i
 using NetspaceSizeQuerierType = std::function<uint64_t(int pass_hours, int best_height)>;
 
 using SupplyQuerierType = std::function<Supply()>;
+
+using PledgeInfoQuerierType = std::function<PledgeInfo()>;
 
 #endif

@@ -56,7 +56,7 @@ std::tuple<std::string, bool> ParseUrlParameter(std::string_view target, std::st
     return std::make_tuple((*it).value, true);
 }
 
-VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier)
+VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier, PledgeInfoQuerierType pledge_info_querier)
     : web_service_(ioc, tcp::endpoint(asio::ip::address::from_string(std::string(addr)), port), expired_after_secs, std::bind(&VDFWebService::HandleRequest, this, _1))
     , num_heights_by_hours_querier_(std::move(num_heights_by_hours_querier))
     , block_info_range_querier_(std::move(block_info_range_querier))
@@ -64,6 +64,7 @@ VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint1
     , status_querier_(std::move(status_querier))
     , rank_querier_(std::move(rank_querier))
     , supply_querier_(std::move(supply_querier))
+    , pledge_info_querier_(std::move(pledge_info_querier))
 {
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/summary"), std::bind(&VDFWebService::Handle_API_Summary, this, _1));
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/status"), std::bind(&VDFWebService::Handle_API_Status, this, _1));
@@ -135,11 +136,24 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     last_json["burned"] = supply.last.burned;
     last_json["total"] = supply.last.total;
     last_json["actual"] = supply.last.actual;
-
     supply_json["calc"] = calc_json;
     supply_json["last"] = last_json;
-
     status_value["supply"] = supply_json;
+
+    PledgeInfo pledge_info = pledge_info_querier_();
+    Json::Value pledge_info_json;
+    pledge_info_json["retarget_min_heights"] = pledge_info.retarget_min_heights;
+    pledge_info_json["capacity_eval_window"] = pledge_info.capacity_eval_window;
+    Json::Value pledges_json(Json::arrayValue);
+    for (int i = 0; i < pledge_info.pledges.size(); ++i) {
+        auto const& pledge = pledge_info.pledges[i];
+        Json::Value pledge_json;
+        pledge_json["lock_height"] = pledge.lock_height;
+        pledge_json["actual_percent"] = pledge.actual_percent;
+        pledges_json.append(std::move(pledge_json));
+    }
+    pledge_info_json["pledges"] = pledges_json;
+    status_value["pledge_info"] = pledge_info_json;
 
     // prepare body
     return PrepareResponseWithContent(http::status::ok, status_value, request.version(), request.keep_alive());

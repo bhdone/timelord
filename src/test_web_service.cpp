@@ -127,6 +127,9 @@ TEST_F(WebServiceTest, FullTests)
             },
             []() -> Supply {
                 return {};
+            },
+            []() -> PledgeInfo {
+                return {};
             });
     service.Run();
 
