@@ -5,7 +5,7 @@
 #include <string>
 
 struct RankRecord {
-    std::string address;
+    std::string farmer_pk;
     int participated_blocks;
     int produced_blocks;
     uint64_t average_difficulty;

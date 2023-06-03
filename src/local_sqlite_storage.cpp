@@ -205,13 +205,13 @@ std::vector<NetspaceData> LocalSQLiteStorage::QueryNetspace(int num_heights, boo
 
 std::vector<RankRecord> LocalSQLiteStorage::QueryRank(int from_height, int count)
 {
-    auto stmt = sql3_.Prepare("select address, sum(reward), count(*), avg(block_difficulty) from blocks where height >= ? group by address limit ?");
+    auto stmt = sql3_.Prepare("select farmer_pk, sum(reward), count(*), avg(block_difficulty) from blocks where height >= ? group by farmer_pk limit ?");
     stmt.Bind(1, from_height);
     stmt.Bind(2, count);
     std::vector<RankRecord> res;
     while (stmt.StepNext()) {
         RankRecord rank;
-        rank.address = stmt.GetColumnString(0);
+        rank.farmer_pk = stmt.GetColumnString(0);
         rank.total_reward = stmt.GetColumnInt64(1);
         rank.produced_blocks = stmt.GetColumnInt64(2);
         rank.participated_blocks = 0;

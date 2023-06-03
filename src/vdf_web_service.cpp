@@ -298,7 +298,7 @@ http::message_generator VDFWebService::Handle_API_Rank(http::request<http::strin
     Json::Value entries_json(Json::arrayValue);
     for (auto const& entry : ranks) {
         Json::Value entry_json;
-        entry_json["address"] = entry.address;
+        entry_json["farmer_pk"] = entry.farmer_pk;
         entry_json["count"] = entry.produced_blocks;
         entry_json["average_difficulty"] = entry.average_difficulty;
         entry_json["total_reward"] = entry.total_reward;
