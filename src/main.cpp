@@ -111,12 +111,12 @@ int main(int argc, char* argv[])
         LocalSQLiteStorage db(db_path);
         LocalSQLiteDatabaseKeeper persist_operator(db);
 
+        int fork_height = std::atoi(mainnet ? SZ_FORK_HEIGHT_MAINNET : SZ_FORK_HEIGHT_TESTNET);
+
         // prepare RPC login
         RPCLogin login = use_cookie ? RPCLogin(cookie_path) : RPCLogin(rpc_user, rpc_password);
         RPCClient rpc(true, url, std::move(login));
-        Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, persist_operator, db);
-
-        int fork_height = std::atoi(mainnet ? SZ_FORK_HEIGHT_MAINNET : SZ_FORK_HEIGHT_TESTNET);
+        Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, fork_height, persist_operator, db);
 
         // before starting services, we need to import the missing blocks
         bool force_from_min_height = parse_result.count("skip-import-check") > 0;

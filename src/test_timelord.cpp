@@ -24,7 +24,7 @@ public:
         : storage_(SZ_VDF_DB_PATH)
         , persist_operator_(storage_)
         , rpc_(true, SZ_URL, RPCLogin(SZ_COOKIE_PATH))
-        , timelord_(ioc_, rpc_, ExpandEnvPath(SZ_VDF_CLIENT_PATH), SZ_VDF_CLIENT_ADDR, VDF_CLIENT_PORT, persist_operator_, storage_)
+        , timelord_(ioc_, rpc_, ExpandEnvPath(SZ_VDF_CLIENT_PATH), SZ_VDF_CLIENT_ADDR, VDF_CLIENT_PORT, 200000, persist_operator_, storage_)
     {
     }
 

@@ -58,7 +58,7 @@ public:
         std::string status_string;
     };
 
-    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage);
+    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, int fork_height, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage);
 
     void Run(std::string_view addr, unsigned short port);
 
@@ -88,6 +88,7 @@ private:
     MessageDispatcher msg_dispatcher_;
     std::map<uint256, std::vector<ChallengeRequestSession>> challenge_reqs_;
 
+    int fork_height_;
     ChallengeMonitor challenge_monitor_;
     int height_ { 0 };
     uint64_t difficulty_ { 0 };

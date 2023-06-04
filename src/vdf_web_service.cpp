@@ -198,9 +198,9 @@ http::message_generator VDFWebService::Handle_API_Summary(http::request<http::st
     Json::Value res_json;
     res_json["num_blocks"] = blocks.size();
     res_json["hours"] = pass_hours;
-    res_json["high_height"] = blocks.front().height;
-    res_json["low_height"] = blocks.back().height;
-    res_json["avg_duration"] = total_duration / blocks.size();
+    res_json["high_height"] = blocks.empty() ? 0 : blocks.front().height;
+    res_json["low_height"] = blocks.empty() ? 0 : blocks.back().height;
+    res_json["avg_duration"] = blocks.empty() ? 0 : total_duration / blocks.size();
 
     Json::Value summary_json(Json::arrayValue);
     for (auto entry : summary) {
@@ -227,7 +227,7 @@ template <typename T, typename OriginalValueQuerierType> T CalcSimValue(int inde
         total += original_val_querier(index);
         ++count;
     }
-    return total / count;
+    return count > 0 ? total / count : 0;
 }
 
 http::message_generator VDFWebService::Handle_API_Netspace(http::request<http::string_body> const& request)

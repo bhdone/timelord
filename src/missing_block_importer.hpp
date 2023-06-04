@@ -15,6 +15,8 @@
  * @param local_querier local database querier
  * @param rpc_querier RPC querier
  * @param saver use this functor to save block to local database
+ * @param min_height import blocks only when the height >= min_height
+ * @param force_from_min_height ignore the existing blocks from local db
  *
  * @return the number of blocks are saved
  */
@@ -27,8 +29,7 @@ template <typename LocalDBQuerier, typename RPCQuerier, typename Saver> int Impo
         return 0;
     }
     int max_height = blocks.front().height;
-
-    int start_height = min_height - 1;
+    int start_height = min_height;
     if (!force_from_min_height) {
         blocks = local_querier(1);
         if (!blocks.empty()) {
