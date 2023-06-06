@@ -32,4 +32,6 @@ using SupplyQuerierType = std::function<Supply()>;
 
 using PledgeInfoQuerierType = std::function<PledgeInfo()>;
 
+using RecentlyNetspaceSizeQuerierType = std::function<uint64_t()>;
+
 #endif

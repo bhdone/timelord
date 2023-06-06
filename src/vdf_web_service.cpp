@@ -56,7 +56,7 @@ std::tuple<std::string, bool> ParseUrlParameter(std::string_view target, std::st
     return std::make_tuple((*it).value, true);
 }
 
-VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier, PledgeInfoQuerierType pledge_info_querier)
+VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier, PledgeInfoQuerierType pledge_info_querier, RecentlyNetspaceSizeQuerierType recently_netspace_querier)
     : web_service_(ioc, tcp::endpoint(asio::ip::address::from_string(std::string(addr)), port), expired_after_secs, std::bind(&VDFWebService::HandleRequest, this, _1))
     , num_heights_by_hours_querier_(std::move(num_heights_by_hours_querier))
     , block_info_range_querier_(std::move(block_info_range_querier))
@@ -65,6 +65,7 @@ VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint1
     , rank_querier_(std::move(rank_querier))
     , supply_querier_(std::move(supply_querier))
     , pledge_info_querier_(std::move(pledge_info_querier))
+    , recently_netspace_querier_(std::move(recently_netspace_querier))
 {
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/summary"), std::bind(&VDFWebService::Handle_API_Summary, this, _1));
     web_req_handler_.Register(std::make_pair(http::verb::get, "/api/status"), std::bind(&VDFWebService::Handle_API_Status, this, _1));
@@ -101,6 +102,7 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     status_value["max_size"] = status.max_size;
     status_value["num_connections"] = status.num_connections;
     status_value["status_string"] = status.status_string;
+    status_value["estimated_netspace"] = recently_netspace_querier_();
 
     Json::Value last_blk_info_value;
     last_blk_info_value["hash"] = Uint256ToHex(status.last_block_info.hash);

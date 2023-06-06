@@ -130,6 +130,9 @@ TEST_F(WebServiceTest, FullTests)
             },
             []() -> PledgeInfo {
                 return {};
+            },
+            []() -> uint64_t {
+                return 0;
             });
     service.Run();
 
