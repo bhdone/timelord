@@ -185,6 +185,8 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
         record.challenge = new_challenge;
         record.height = height;
         persist_operator_.AppendRecord(record);
+    } else {
+        PLOGE << tinyformat::format("challenge on height %d is less than fork height %d", height, fork_height_);
     }
 
     // we should query last new block info. and save it to local database
