@@ -12,6 +12,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(Boost 1.82.0 REQUIRED COMPONENTS system url)
+find_package(OpenSSL REQUIRED)
 
 set(ENABLE_TEST OFF CACHE INTERNAL "Turn off gears test")
 
@@ -76,6 +77,8 @@ target_link_libraries(timelord PRIVATE
     CURL::libcurl
     unofficial::sqlite3::sqlite3
     Boost::url
+    OpenSSL::SSL
+    OpenSSL::Crypto
     ${UniValue_Lib}
 )
 
@@ -113,6 +116,8 @@ if (BUILD_TEST)
             CURL::libcurl
             unofficial::sqlite3::sqlite3
             Boost::url
+            OpenSSL::SSL
+            OpenSSL::Crypto
             ${UniValue_Lib}
         )
         add_test(NAME ${TEST_TARGET_NAME} COMMAND ./${TEST_TARGET_NAME})
