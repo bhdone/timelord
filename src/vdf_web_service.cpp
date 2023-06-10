@@ -198,11 +198,11 @@ http::message_generator VDFWebService::Handle_API_Summary(http::request<http::st
     }
 
     Json::Value res_json;
-    res_json["num_blocks"] = blocks.size();
+    res_json["num_blocks"] = static_cast<Json::Int64>(blocks.size());
     res_json["hours"] = pass_hours;
     res_json["high_height"] = blocks.empty() ? 0 : blocks.front().height;
     res_json["low_height"] = blocks.empty() ? 0 : blocks.back().height;
-    res_json["avg_duration"] = blocks.empty() ? 0 : total_duration / blocks.size();
+    res_json["avg_duration"] = static_cast<Json::Int64>(blocks.empty() ? 0 : total_duration / blocks.size());
 
     Json::Value summary_json(Json::arrayValue);
     for (auto entry : summary) {
