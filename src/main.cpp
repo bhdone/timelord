@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
             ("vdf_client-addr", "vdf_client will listen to this address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --vdf_client-addr
             ("vdf_client-port", "vdf_client will listen to this port", cxxopts::value<unsigned short>()->default_value("29292")) // --vdf_client-port
             ("db", "store vdf and related information to this file", cxxopts::value<std::string>()->default_value("./timelord.sqlite3")) // --db
+            ("web_service-prefix", "The prefix of the api url path", cxxopts::value<std::string>()->default_value("")) // --web_service-path_prefix
             ("web_service-addr", "Web service will listen to this address", cxxopts::value<std::string>()->default_value("127.0.0.1")) // --web_service-addr
             ("web_service-port", "Web service will listen to this port", cxxopts::value<uint16_t>()->default_value("39393")) // --web_service-port
             ("rpc", "The endpoint of btchd core", cxxopts::value<std::string>()->default_value("http://127.0.0.1:18732")) // --rpc
@@ -83,6 +84,7 @@ int main(int argc, char* argv[])
         std::string vdf_client_addr = parse_result["vdf_client-addr"].as<std::string>();
         unsigned short vdf_client_port = parse_result["vdf_client-port"].as<unsigned short>();
         std::string db_path = parse_result["db"].as<std::string>();
+        std::string web_service_prefix = parse_result["web_service-prefix"].as<std::string>();
         std::string web_service_addr = parse_result["web_service-addr"].as<std::string>();
         uint16_t web_service_port = parse_result["web_service-port"].as<uint16_t>();
         std::string url = parse_result["rpc"].as<std::string>();
@@ -131,7 +133,7 @@ int main(int argc, char* argv[])
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, NumHeightsByHoursQuerier(db, fork_height), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, fork_height, 10), SupplyRPCQuerier(rpc), PledgeInfoRPCQuerier(rpc), RecentlyNetspaceSizeRPCQuerier(rpc));
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, web_service_prefix, NumHeightsByHoursQuerier(db, fork_height), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, fork_height, 10), SupplyRPCQuerier(rpc), PledgeInfoRPCQuerier(rpc), RecentlyNetspaceSizeRPCQuerier(rpc));
         web_service.Run();
 
         // start timelord
