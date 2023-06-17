@@ -33,7 +33,7 @@
 char const* SZ_APP_NAME = "Timelord";
 
 char const* SZ_FORK_HEIGHT_TESTNET = "200000";
-char const* SZ_FORK_HEIGHT_MAINNET = "999999";
+char const* SZ_FORK_HEIGHT_MAINNET = "860130";
 
 int main(int argc, char* argv[])
 {
