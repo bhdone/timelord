@@ -38,12 +38,18 @@ BlockInfo ConvertToBlockInfo(UniValue const& block_json)
     block_info.height = StrToInt(block_json["height"].get_str());
     if (block_json.exists("filter-bit")) {
         block_info.filter_bits = StrToInt(block_json["filter-bit"].get_str());
+    } else {
+        block_info.filter_bits = 0;
     }
     if (block_json.exists("block-difficulty")) {
         block_info.block_difficulty = StrToInt(block_json["block-difficulty"].get_str());
+    } else {
+        block_info.block_difficulty = 0;
     }
     if (block_json.exists("challenge-diff")) {
         block_info.challenge_difficulty = StrToInt(block_json["challenge-diff"].get_str());
+    } else {
+        block_info.challenge_difficulty = 0;
     }
     if (block_json.exists("farmer-pk")) {
         block_info.farmer_pk = BytesFromHex(block_json["farmer-pk"].get_str());
