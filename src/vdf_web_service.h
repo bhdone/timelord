@@ -17,7 +17,7 @@
 class VDFWebService
 {
 public:
-    VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, std::string api_path_prefix, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier, PledgeInfoQuerierType pledge_info_querier, RecentlyNetspaceSizeQuerierType recently_netspace_querier);
+    VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, std::string api_path_prefix, int fork_height, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier, PledgeInfoQuerierType pledge_info_querier, RecentlyNetspaceSizeQuerierType recently_netspace_querier);
 
     void Run();
 
@@ -36,6 +36,7 @@ private:
 
     WebService web_service_;
     WebReqHandler web_req_handler_;
+    int fork_height_;
     NumHeightsByHoursQuerierType num_heights_by_hours_querier_;
     BlockInfoRangeQuerierType block_info_range_querier_;
     NetspaceQuerierType netspace_querier_;

@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 
         // start web service
         PLOGI << tinyformat::format("web-service is listening on %s:%d", web_service_addr, web_service_port);
-        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, web_service_prefix, NumHeightsByHoursQuerier(db, fork_height), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, fork_height, 10), SupplyRPCQuerier(rpc), PledgeInfoRPCQuerier(rpc), RecentlyNetspaceSizeRPCQuerier(rpc));
+        VDFWebService web_service(ioc, web_service_addr, web_service_port, 30, web_service_prefix, fork_height, NumHeightsByHoursQuerier(db, fork_height), BlockInfoRangeLocalDBQuerier(db), NetspaceSQLiteQuerier(db, true), status_querier, LocalDBRankQuerier(db, fork_height, 10), SupplyRPCQuerier(rpc), PledgeInfoRPCQuerier(rpc), RecentlyNetspaceSizeRPCQuerier(rpc));
         web_service.Run();
 
         // start timelord

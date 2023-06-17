@@ -56,8 +56,9 @@ std::tuple<std::string, bool> ParseUrlParameter(std::string_view target, std::st
     return std::make_tuple((*it).value, true);
 }
 
-VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, std::string api_path_prefix, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier, PledgeInfoQuerierType pledge_info_querier, RecentlyNetspaceSizeQuerierType recently_netspace_querier)
+VDFWebService::VDFWebService(asio::io_context& ioc, std::string_view addr, uint16_t port, int expired_after_secs, std::string api_path_prefix, int fork_height, NumHeightsByHoursQuerierType num_heights_by_hours_querier, BlockInfoRangeQuerierType block_info_range_querier, NetspaceQuerierType netspace_querier, TimelordStatusQuerierType status_querier, RankQuerierType rank_querier, SupplyQuerierType supply_querier, PledgeInfoQuerierType pledge_info_querier, RecentlyNetspaceSizeQuerierType recently_netspace_querier)
     : web_service_(ioc, tcp::endpoint(asio::ip::address::from_string(std::string(addr)), port), expired_after_secs, std::bind(&VDFWebService::HandleRequest, this, _1))
+    , fork_height_(fork_height)
     , num_heights_by_hours_querier_(std::move(num_heights_by_hours_querier))
     , block_info_range_querier_(std::move(block_info_range_querier))
     , netspace_querier_(std::move(netspace_querier))
@@ -97,6 +98,7 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     status_value["challenge"] = Uint256ToHex(status.challenge);
     status_value["difficulty"] = status.difficulty;
     status_value["height"] = status.height;
+    status_value["fork_height"] = fork_height_;
     status_value["iters_per_sec"] = status.iters_per_sec;
     status_value["total_size"] = status.total_size;
     status_value["max_size"] = status.max_size;

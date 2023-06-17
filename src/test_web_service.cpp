@@ -109,7 +109,7 @@ TEST_F(WebServiceTest, FullTests)
 
     asio::io_context ioc;
     VDFWebService service(
-            ioc, SZ_LISTEN_ADDR, LISTEN_PORT, 30, "",
+            ioc, SZ_LISTEN_ADDR, LISTEN_PORT, 30, "", 0,
             [](int) {
                 return 0;
             },
