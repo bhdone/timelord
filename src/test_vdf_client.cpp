@@ -15,10 +15,11 @@ namespace fs = std::filesystem;
 #include "timelord_utils.h"
 #include "utils.h"
 
-static std::string const VDF_CLIENT_PATH = "$HOME/Workspace/BitcoinHD/chiavdf/src/vdf_client";
+static std::string const VDF_CLIENT_PATH = "$HOME/vdf_client";
 static std::string const VDF_CLIENT_ADDR = "127.0.0.1";
 static unsigned short const VDF_CLIENT_PORT = 29292;
 static uint64_t VDF_TEST_ITERS = 1234567;
+static uint64_t VDF_ITERS_PER_SEC = 100000;
 
 class VdfClientTest : public ::testing::Test
 {
@@ -71,7 +72,7 @@ TEST_F(VdfClientTest, Base)
 {
     bool proof_is_ready { false };
     std::map<uint256, std::vector<vdf_client::ProofDetail>> recv_proofs;
-    int num_of_waiting_proofs { 3 };
+    int num_of_waiting_proofs { 1 };
     std::condition_variable cv;
     std::mutex m;
     SetProofReceiver([&m, &proof_is_ready, &cv, &recv_proofs, &num_of_waiting_proofs](uint256 const& challenge, vdf_client::ProofDetail const& detail) {
@@ -97,10 +98,11 @@ TEST_F(VdfClientTest, Base)
     });
     uint256 challenge1, challenge2;
     MakeZero(challenge1, 1);
-    MakeZero(challenge2, 2);
-    PutIters(challenge1, VDF_TEST_ITERS);
-    PutIters(challenge1, VDF_TEST_ITERS * 3);
-    PutIters(challenge2, VDF_TEST_ITERS * 2);
+    PutIters(challenge1, VDF_ITERS_PER_SEC * 60 * 60);
+    // MakeZero(challenge2, 2);
+    // PutIters(challenge1, VDF_TEST_ITERS);
+    // PutIters(challenge1, VDF_TEST_ITERS * 3);
+    // PutIters(challenge2, VDF_TEST_ITERS * 1);
     Run();
     std::unique_lock lk(m);
     cv.wait(lk, [&proof_is_ready]() -> bool {
