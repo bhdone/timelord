@@ -1,6 +1,10 @@
 #ifndef RECENTLYNETSPACESIZERPCQUERIER_HPP
 #define RECENTLYNETSPACESIZERPCQUERIER_HPP
 
+#include <cstdint>
+
+#include "rpc_client.h"
+
 class RecentlyNetspaceSizeRPCQuerier
 {
 public:
@@ -15,7 +19,7 @@ public:
         if (!res.result.isObject()) {
             throw std::runtime_error("require an object but the service didn't return one.");
         }
-        return res.result["netspace"].get_int64();
+        return res.result["netspace_tib"].get_int64();
     }
 
 private:
