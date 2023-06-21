@@ -26,7 +26,7 @@ class VdfClientTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        pman_ = std::make_unique<vdf_client::VdfClientMan>(ioc_, vdf_client::TimeType::T, ExpandEnvPath(VDF_CLIENT_PATH), VDF_CLIENT_ADDR, VDF_CLIENT_PORT);
+        pman_ = std::make_unique<vdf_client::VdfClientMan>(ioc_, vdf_client::TimeType::N, ExpandEnvPath(VDF_CLIENT_PATH), VDF_CLIENT_ADDR, VDF_CLIENT_PORT);
     }
 
     void TearDown() override

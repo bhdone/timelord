@@ -279,7 +279,7 @@ SocketWriter::SocketWriter(tcp::socket& s)
 
 void SocketWriter::AsyncWrite(Bytes buff)
 {
-    PLOGD << "prepare to write total " << buff.size() << " bytes";
+    PLOGD << "prepare to write total " << buff.size() << " bytes: " << BytesToHex(buff);
     bool do_write = buff_deq_.empty();
     buff_deq_.push_back(std::move(buff));
     if (do_write) {
