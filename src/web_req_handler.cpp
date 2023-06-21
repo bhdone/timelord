@@ -1,8 +1,10 @@
 #include "web_req_handler.h"
 
-#include <json/json.h>
+#include <plog/Log.h>
 
 #include <boost/url.hpp>
+#include <json/json.h>
+#include <tinyformat.h>
 
 namespace urls = boost::urls;
 
@@ -21,6 +23,11 @@ std::string BodyInvalidMethod()
 std::string BodyBadRequest()
 {
     return BodyError("the request is illegal");
+}
+
+std::string BodyInternalServerError(std::string_view err)
+{
+    return BodyError(tinyformat::format("internal server error: %s", err));
 }
 
 void PrepareResponseHeaders(http::response<http::string_body>& response)
@@ -92,5 +99,13 @@ http::message_generator WebReqHandler::Handle(http::request<http::string_body> c
         return response;
     }
 
-    return it->second(request);
+    try {
+        return it->second(request);
+    } catch (std::exception const& e) {
+        PLOGE << tinyformat::format("http request(%s): %s", req_path, e.what());
+        auto response = PrepareResponse(http::status::internal_server_error, request.version(), request.keep_alive());
+        response.body() = BodyInternalServerError(e.what());
+        response.prepare_payload();
+        return response;
+    }
 }
