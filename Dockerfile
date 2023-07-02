@@ -21,4 +21,6 @@ RUN apt update && apt install libgmp-dev --yes
 
 EXPOSE 19191
 
+EXPOSE 39393
+
 CMD ["/timelord"]
