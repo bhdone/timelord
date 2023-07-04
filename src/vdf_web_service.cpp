@@ -120,6 +120,7 @@ http::message_generator VDFWebService::Handle_API_Status(http::request<http::str
     last_blk_info_value["vdf_time"] = status.last_block_info.vdf_time;
     last_blk_info_value["vdf_iters"] = status.last_block_info.vdf_iters;
     last_blk_info_value["vdf_speed"] = status.last_block_info.vdf_speed;
+    last_blk_info_value["vdf_iters_req"] = status.last_block_info.vdf_iters_req;
     status_value["last_block_info"] = last_blk_info_value;
 
     status_value["vdf_pack"] = MakePackJson(status.vdf_pack);

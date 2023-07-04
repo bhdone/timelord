@@ -60,6 +60,9 @@ BlockInfo ConvertToBlockInfo(UniValue const& block_json)
     if (block_json.exists("vdf-time")) {
         block_info.vdf_time = block_json["vdf-time"].get_str();
     }
+    if (block_json.exists("vdf-iters-req")) {
+        block_info.vdf_iters_req = StrToInt(block_json["vdf-iters-req"].get_str());
+    }
     // find the first tx and retrieve the reward info
     if (block_json.exists("txs")) {
         auto txs_json = block_json["txs"];

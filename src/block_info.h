@@ -24,6 +24,7 @@ struct BlockInfo {
     std::string vdf_time;
     int vdf_iters;
     int vdf_speed;
+    int vdf_iters_req;
 };
 
 using BlockInfoRangeQuerierType = std::function<std::vector<BlockInfo>(int)>;
