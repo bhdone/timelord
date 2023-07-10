@@ -1,16 +1,17 @@
 #ifndef TL_CHALLENGE_MONITOR_HPP
 #define TL_CHALLENGE_MONITOR_HPP
 
-#include "asio_defs.hpp"
+#include <boost/asio.hpp>
+namespace asio = boost::asio;
 
 #include <memory>
+#include <set>
 #include <tuple>
 
 #include <string>
 #include <string_view>
 
 #include "common_types.h"
-#include "timelord_utils.h"
 
 #include <rpc_client.h>
 
@@ -20,6 +21,8 @@ public:
     enum class Status { NO_ERROR = 0, RPC_ERROR, OTHER_ERROR };
 
     using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty)>;
+
+    using NewVdfReqHandler = std::function<void(uint256 const& challenge, std::set<int> const& vdf_reqs)>;
 
     ChallengeMonitor(asio::io_context& ioc, RPCClient& rpc, int interval_seconds);
 
@@ -35,7 +38,14 @@ public:
         return error_string_;
     }
 
+    std::set<int> const& GetVdfReqs() const
+    {
+        return vdf_reqs_;
+    }
+
     void SetNewChallengeHandler(NewChallengeHandler handler);
+
+    void SetNewVdfReqHandler(NewVdfReqHandler handler);
 
     void Run();
 
@@ -53,7 +63,9 @@ private:
     std::string error_string_;
     int interval_seconds_;
     uint256 challenge_;
+    std::set<int> vdf_reqs_;
     NewChallengeHandler new_challenge_handler_;
+    NewVdfReqHandler new_vdf_req_handler_;
 };
 
 #endif

@@ -2,6 +2,8 @@
 
 #include <plog/Log.h>
 
+#include "timelord_utils.h"
+
 using boost::system::error_code;
 
 ChallengeMonitor::ChallengeMonitor(asio::io_context& ioc, RPCClient& rpc, int interval_seconds)
@@ -23,6 +25,11 @@ void ChallengeMonitor::SetNewChallengeHandler(NewChallengeHandler handler)
     new_challenge_handler_ = std::move(handler);
 }
 
+void ChallengeMonitor::SetNewVdfReqHandler(NewVdfReqHandler handler)
+{
+    new_vdf_req_handler_ = std::move(handler);
+}
+
 void ChallengeMonitor::Run()
 {
     DoQueryNext();
@@ -41,6 +48,22 @@ void ChallengeMonitor::QueryChallenge()
         uint256 challenge = Uint256FromHex(result.result["challenge"].get_str());
         uint64_t difficulty = result.result["difficulty"].get_int64();
         int height = result.result["target_height"].get_int();
+        // save vdf_reqs
+        std::set<int> new_vdf_reqs;
+        if (result.result.exists("vdf_reqs")) {
+            auto vdf_req_objs = result.result["vdf_reqs"];
+            if (vdf_req_objs.isArray()) {
+                for (auto iters_obj : vdf_req_objs.getValues()) {
+                    new_vdf_reqs.insert(iters_obj.get_int());
+                }
+            }
+        }
+        if (new_vdf_reqs != vdf_reqs_) {
+            vdf_reqs_ = new_vdf_reqs;
+            if (new_vdf_req_handler_) {
+                new_vdf_req_handler_(challenge, new_vdf_reqs);
+            }
+        }
         if (challenge != challenge_) {
             auto old_challenge = challenge_;
             challenge_ = challenge;

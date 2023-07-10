@@ -10,6 +10,9 @@ using boost::system::error_code;
 #include "block_info_range_rpc_querier.hpp"
 #include "block_info_sqlite_saver.hpp"
 
+#include "msg_ids.h"
+#include "timelord_utils.h"
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
@@ -104,6 +107,7 @@ Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_c
     }
     vdf_client_man_.SetProofReceiver(std::bind(&Timelord::HandleVdfClient_ProofIsReceived, this, _1, _2));
     challenge_monitor_.SetNewChallengeHandler(std::bind(&Timelord::HandleChallengeMonitor_NewChallenge, this, _1, _2, _3, _4));
+    challenge_monitor_.SetNewVdfReqHandler(std::bind(&Timelord::HandleChallengeMonitor_NewVdfReqs, this, _1, _2));
     msg_dispatcher_.RegisterHandler(static_cast<int>(TimelordClientMsgs::CALC), std::bind(&Timelord::HandleFrontEnd_SessionRequestChallenge, this, _1, _2));
     frontend_.SetConnectionHandler(std::bind(&Timelord::HandleFrontEnd_NewSessionConnected, this, _1));
     frontend_.SetMessageHandler(msg_dispatcher_);
@@ -231,6 +235,13 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
                 }
             }
         }
+    }
+}
+
+void Timelord::HandleChallengeMonitor_NewVdfReqs(uint256 const& challenge, std::set<int> const& vdf_reqs)
+{
+    for (int iters : vdf_reqs) {
+        vdf_client_man_.CalcIters(challenge, iters);
     }
 }
 

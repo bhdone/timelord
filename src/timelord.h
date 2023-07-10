@@ -10,8 +10,6 @@
 #include <fmt/core.h>
 #include <plog/Log.h>
 
-#include "asio_defs.hpp"
-
 #include "common_types.h"
 
 #include "block_info.h"
@@ -19,9 +17,6 @@
 #include "challenge_monitor.h"
 #include "frontend.h"
 #include "vdf_client_man.h"
-
-#include "msg_ids.h"
-#include "timelord_utils.h"
 
 #include "local_sqlite_storage.h"
 
@@ -68,6 +63,8 @@ public:
 
 private:
     void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty);
+
+    void HandleChallengeMonitor_NewVdfReqs(uint256 const& challenge, std::set<int> const& vdf_reqs);
 
     void HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession);
 
