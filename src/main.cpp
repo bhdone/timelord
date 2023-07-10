@@ -25,6 +25,7 @@
 #include "recently_netspace_size_rpc_querier.hpp"
 #include "supply_rpc_querier.hpp"
 #include "vdf_pack_by_challenge_querier.hpp"
+#include "vdf_proof_submitter.hpp"
 
 #include "vdf_web_service.h"
 
@@ -119,7 +120,7 @@ int main(int argc, char* argv[])
         // prepare RPC login
         RPCLogin login = use_cookie ? RPCLogin(cookie_path) : RPCLogin(rpc_user, rpc_password);
         RPCClient rpc(true, url, std::move(login));
-        Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, fork_height, persist_operator, db);
+        Timelord timelord(ioc, rpc, vdf_client_path, vdf_client_addr, vdf_client_port, fork_height, persist_operator, db, VDFProofSubmitter(rpc));
 
         // before starting services, we need to import the missing blocks
         bool force_from_min_height = parse_result.count("skip-import-check") > 0;

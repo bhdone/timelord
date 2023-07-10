@@ -90,11 +90,12 @@ void MessageDispatcher::operator()(FrontEndSessionPtr psession, Json::Value cons
     it->second(psession, msg);
 }
 
-Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, int fork_height, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage)
+Timelord::Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, int fork_height, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage, VDFProofSubmitterType submitter)
     : ioc_(ioc)
     , persist_operator_(persist_operator)
     , block_info_querier_(BlockInfoRangeRPCQuerier(rpc))
     , block_info_saver_(BlockInfoSQLiteSaver(storage))
+    , vdf_proof_submitter_(std::move(submitter))
     , challenge_monitor_(ioc_, rpc, 3)
     , frontend_(ioc)
     , fork_height_(fork_height)
@@ -345,6 +346,8 @@ void Timelord::HandleVdfClient_ProofIsReceived(uint256 const& challenge, vdf_cli
         iters_per_sec_ = detail.iters / detail.duration;
         PLOGI << "proof is received from vdf_client, iters=" << detail.iters << ", " << (iters_per_sec_ / 1000) << "k iters/second";
     }
+    // submit to RPC server
+    vdf_proof_submitter_(challenge, detail.y, detail.proof, detail.witness_type, detail.iters, detail.duration);
     // find the related session
     auto it = challenge_reqs_.find(challenge);
     if (it == std::cend(challenge_reqs_)) {

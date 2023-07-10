@@ -34,4 +34,6 @@ using PledgeInfoQuerierType = std::function<PledgeInfo()>;
 
 using RecentlyNetspaceSizeQuerierType = std::function<uint64_t()>;
 
+using VDFProofSubmitterType = std::function<void(uint256 const& challenge, Bytes const& y, Bytes const& proof, int witness_type, int iters, int duration)>;
+
 #endif

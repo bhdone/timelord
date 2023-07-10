@@ -14,6 +14,7 @@
 
 #include "block_info.h"
 
+#include "querier_defs.h"
 #include "challenge_monitor.h"
 #include "frontend.h"
 #include "vdf_client_man.h"
@@ -53,7 +54,7 @@ public:
         std::string status_string;
     };
 
-    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, int fork_height, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage);
+    Timelord(asio::io_context& ioc, RPCClient& rpc, std::string_view vdf_client_path, std::string_view vdf_client_addr, unsigned short vdf_client_port, int fork_height, LocalSQLiteDatabaseKeeper& persist_operator, LocalSQLiteStorage& storage, VDFProofSubmitterType submitter);
 
     void Run(std::string_view addr, unsigned short port);
 
@@ -80,6 +81,7 @@ private:
     LocalSQLiteDatabaseKeeper& persist_operator_;
     BlockInfoRangeQuerierType block_info_querier_;
     BlockInfoSaverType block_info_saver_;
+    VDFProofSubmitterType vdf_proof_submitter_;
 
     FrontEnd frontend_;
     MessageDispatcher msg_dispatcher_;
