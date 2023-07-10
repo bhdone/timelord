@@ -1,8 +1,6 @@
 #ifndef LAST_BLOCK_INFO_QUERIER_HPP
 #define LAST_BLOCK_INFO_QUERIER_HPP
 
-#include "common_types.h"
-
 #include "block_info.h"
 #include "block_querier_utils.h"
 #include "rpc_client.h"

@@ -12,8 +12,6 @@
 #include "web_req_handler.h"
 #include "web_service.hpp"
 
-#include "local_sqlite_storage.h"
-
 class VDFWebService
 {
 public:
