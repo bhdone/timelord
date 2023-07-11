@@ -242,6 +242,12 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
 void Timelord::HandleChallengeMonitor_NewVdfReqs(uint256 const& challenge, std::set<int> const& vdf_reqs)
 {
     for (int iters : vdf_reqs) {
+        auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);
+        if (detail.has_value()) {
+            PLOGD << tinyformat::format("the proof already exists, just send it back to miner, challenge: (iters=%s)%s", FormatNumberStr(std::to_string(iters)), Uint256ToHex(challenge));
+            vdf_proof_submitter_(challenge, detail->y, detail->proof, detail->witness_type, detail->iters, detail->duration);
+            continue;
+        }
         vdf_client_man_.CalcIters(challenge, iters);
     }
 }
