@@ -65,7 +65,7 @@ public:
 private:
     void HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty);
 
-    void HandleChallengeMonitor_NewVdfReqs(uint256 const& challenge, std::set<int> const& vdf_reqs);
+    void HandleChallengeMonitor_NewVdfReqs(uint256 const& challenge, std::set<uint64_t> const& vdf_reqs);
 
     void HandleFrontEnd_NewSessionConnected(FrontEndSessionPtr psession);
 

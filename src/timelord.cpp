@@ -239,7 +239,7 @@ void Timelord::HandleChallengeMonitor_NewChallenge(uint256 const& old_challenge,
     }
 }
 
-void Timelord::HandleChallengeMonitor_NewVdfReqs(uint256 const& challenge, std::set<int> const& vdf_reqs)
+void Timelord::HandleChallengeMonitor_NewVdfReqs(uint256 const& challenge, std::set<uint64_t> const& vdf_reqs)
 {
     for (int iters : vdf_reqs) {
         auto detail = vdf_client_man_.QueryExistingProof(challenge, iters);

@@ -49,12 +49,12 @@ void ChallengeMonitor::QueryChallenge()
         uint64_t difficulty = result.result["difficulty"].get_int64();
         int height = result.result["target_height"].get_int();
         // save vdf_reqs
-        std::set<int> new_vdf_reqs;
+        std::set<uint64_t> new_vdf_reqs;
         if (result.result.exists("vdf_reqs")) {
             auto vdf_req_objs = result.result["vdf_reqs"];
             if (vdf_req_objs.isArray()) {
                 for (auto iters_obj : vdf_req_objs.getValues()) {
-                    new_vdf_reqs.insert(iters_obj.get_int());
+                    new_vdf_reqs.insert(iters_obj.get_int64());
                 }
             }
         }

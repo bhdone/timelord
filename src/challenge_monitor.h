@@ -22,7 +22,7 @@ public:
 
     using NewChallengeHandler = std::function<void(uint256 const& old_challenge, uint256 const& new_challenge, int height, uint64_t difficulty)>;
 
-    using NewVdfReqHandler = std::function<void(uint256 const& challenge, std::set<int> const& vdf_reqs)>;
+    using NewVdfReqHandler = std::function<void(uint256 const& challenge, std::set<uint64_t> const& vdf_reqs)>;
 
     ChallengeMonitor(asio::io_context& ioc, RPCClient& rpc, int interval_seconds);
 
@@ -38,7 +38,7 @@ public:
         return error_string_;
     }
 
-    std::set<int> const& GetVdfReqs() const
+    std::set<uint64_t> const& GetVdfReqs() const
     {
         return vdf_reqs_;
     }
@@ -63,7 +63,7 @@ private:
     std::string error_string_;
     int interval_seconds_;
     uint256 challenge_;
-    std::set<int> vdf_reqs_;
+    std::set<uint64_t> vdf_reqs_;
     NewChallengeHandler new_challenge_handler_;
     NewVdfReqHandler new_vdf_req_handler_;
 };
