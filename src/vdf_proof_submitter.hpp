@@ -16,7 +16,7 @@ public:
     {
     }
 
-    void operator()(uint256 const& challenge, Bytes const& y, Bytes const& proof, int witness_type, int iters, int duration)
+    void operator()(uint256 const& challenge, Bytes const& y, Bytes const& proof, int witness_type, uint64_t iters, int duration)
     {
         try {
             rpc_.Call("submitvdfproof", Uint256ToHex(challenge), BytesToHex(y), BytesToHex(proof), witness_type, iters, duration);
