@@ -18,11 +18,15 @@ public:
         BlockInfo block_info;
 
         auto res = rpc_.Call("queryupdatetiphistory", std::string("1"));
-        if (!res.result.isArray()) {
-            throw std::runtime_error("the return value is not an array");
+        if (!res.result.isObject()) {
+            throw std::runtime_error("the return value is not an object");
         }
 
-        auto values = res.result.getValues();
+        if (!res.result.exists("tips") || !res.result["tips"].isArray()) {
+            throw std::runtime_error("`tips` doesn't exist or it is not an array");
+        }
+
+        auto values = res.result["tips"].getValues();
         if (values.empty()) {
             throw std::runtime_error("empty result from `queryupdatetiphistory`");
         }
