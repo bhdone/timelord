@@ -18,11 +18,14 @@ public:
     std::vector<BlockInfo> operator()(int num_heights) const
     {
         auto res = rpc_.Call("queryupdatetiphistory", std::to_string(num_heights));
-        if (!res.result.isArray()) {
+        if (!res.result.isObject()) {
             throw std::runtime_error("the return value is not an array");
         }
+        if (!res.result.exists("tips") || !res.result["tips"].isArray()) {
+            throw std::runtime_error("the member `tips` doesn't exist");
+        }
         std::vector<BlockInfo> blocks;
-        auto values = res.result.getValues();
+        auto values = res.result["tips"].getValues();
         blocks.reserve(values.size());
         for (auto const& block_json : values) {
             blocks.push_back(ConvertToBlockInfo(block_json));
